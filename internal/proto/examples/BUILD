@@ -1,0 +1,44 @@
+# Copyright 2021 Google LLC
+
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     https://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# Description:
+#   This BUILD file contains example protos used for testing.
+
+load("@io_bazel_rules_go//proto:def.bzl", "go_proto_library")
+load("@io_bazel_rules_go//proto:def.bzl", "go_grpc_library")
+
+package(default_visibility = ["//:__subpackages__"])
+
+licenses(["notice"])
+
+proto_library(
+    name = "helloworld_proto",
+    srcs = ["helloworld.proto"],
+)
+
+go_proto_library(
+    name = "helloworld_go_proto",
+    # The "importpath" field must be set when using the OSS go_library rule,
+    # but must be commented out otherwise.
+    importpath = "github.com/s2a-go/internal/proto/examples/helloworld_go_proto",
+    protos = [":helloworld_proto"],
+)
+
+go_grpc_library(
+    name = "helloworld_go_grpc_proto",
+    # The "importpath" field must be set when using the OSS go_library rule,
+    # but must be commented out otherwise.
+    importpath = "github.com/s2a-go/internal/proto/examples/helloworld_go_grpc_proto",
+    protos = [":helloworld_proto"],
+)
