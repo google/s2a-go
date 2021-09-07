@@ -24,7 +24,6 @@ import (
 
 	s2apb "github.com/s2a-go/internal/proto/common_go_proto"
 	"github.com/google/go-cmp/cmp"
-	
 )
 
 func TestNewClientCreds(t *testing.T) {
