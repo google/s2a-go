@@ -133,7 +133,7 @@ func TestChachaPolyEncryptRoundtrip(t *testing.T) {
 }
 
 func TestWycheProofTestVectorsChachaPoly(t *testing.T) {
-	for _, tc := range testutil.ParseWycheProofTestVectors("github.com/s2a-go/internal/record/internal/aeadcrypter/testdata/chacha_poly_wycheproof.json", wycheProofTestVectorFilter, t) {
+	for _, tc := range testutil.ParseWycheProofTestVectors("internal/record/internal/aeadcrypter/testdata/chacha_poly_wycheproof.json", wycheProofTestVectorFilter, t) {
 		t.Run(fmt.Sprintf("%d/%s", tc.ID, tc.Desc), func(t *testing.T) {
 			// Test encryption and decryption for CHACHA-POLY.
 			sender, receiver := getChachaPolyCrypterPair(tc.Key, t)

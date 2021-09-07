@@ -22,7 +22,6 @@ package service
 import (
 	"sync"
 
-	_ "go/tools/nogo/allowlist/grpc/insecure" // To suppress go/nogo-check for using grpc.WithInsecure().
 	grpc "google.golang.org/grpc"
 )
 
@@ -48,7 +47,6 @@ func Dial(handshakerServiceAddress string) (*grpc.ClientConn, error) {
 		// Create a new connection to the S2A handshaker service. Note that
 		// this connection stays open until the application is closed.
 		var err error
-		// suppress go/nogo-check#disallowedfunction third_party/golang/grpc/grpc.WithInsecure
 		hsConn, err = hsDialer(handshakerServiceAddress, grpc.WithInsecure())
 		if err != nil {
 			return nil, err

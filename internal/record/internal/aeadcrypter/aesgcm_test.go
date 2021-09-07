@@ -199,7 +199,7 @@ func TestAESGCMEncrypt(t *testing.T) {
 }
 
 func TestWycheProofTestVectors(t *testing.T) {
-	for _, tc := range testutil.ParseWycheProofTestVectors("github.com/s2a-go/internal/record/internal/aeadcrypter/testdata/aes_gcm_wycheproof.json", wycheProofTestVectorFilter, t) {
+	for _, tc := range testutil.ParseWycheProofTestVectors("internal/record/internal/aeadcrypter/testdata/aes_gcm_wycheproof.json", wycheProofTestVectorFilter, t) {
 		t.Run(fmt.Sprintf("%d/%s", tc.ID, tc.Desc), func(t *testing.T) {
 			// Test encryption and decryption for AES-GCM.
 			sender, receiver := getGCMCryptoPair(tc.Key, t)
