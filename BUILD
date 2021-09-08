@@ -60,10 +60,11 @@ go_test(
         "//internal/proto:s2a_go_grpc_proto",
         "//internal/proto/examples:helloworld_go_grpc_proto",
         "//internal/proto/examples:helloworld_go_proto",
-        "@org_golang_google_go_cmp//cmp:go_default_library",
+        "@com_github_google_go_cmp//cmp:go_default_library",
         "@org_golang_google_grpc//:go_default_library",
         "@org_golang_google_grpc//credentials:go_default_library",
         "@org_golang_google_grpc//grpclog:go_default_library",
         "@org_golang_google_grpc//peer:go_default_library",
+        "@org_golang_google_protobuf//testing/protocmp:go_default_library",
     ],
 )

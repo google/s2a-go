@@ -24,6 +24,7 @@ import (
 
 	s2apb "github.com/s2a-go/internal/proto/common_go_proto"
 	"github.com/google/go-cmp/cmp"
+	"google.golang.org/protobuf/testing/protocmp"
 )
 
 func TestNewClientCreds(t *testing.T) {
@@ -187,10 +188,10 @@ func TestNewClientCreds(t *testing.T) {
 			if got, want := s2aCreds.tlsCiphersuites, tc.outTLSCiphersuites; !cmp.Equal(got, want) {
 				t.Errorf("s2aCreds.tlsCiphersuites = %v, want %v", got, want)
 			}
-			if got, want := s2aCreds.targetIdentities, tc.outTargetIdentities; !cmp.Equal(got, want) {
+			if got, want := s2aCreds.targetIdentities, tc.outTargetIdentities; !cmp.Equal(got, want, protocmp.Transform()) {
 				t.Errorf("s2aCreds.targetIdentities = %v, want %v", got, want)
 			}
-			if got, want := s2aCreds.localIdentity, tc.outLocalIdentity; !cmp.Equal(got, want) {
+			if got, want := s2aCreds.localIdentity, tc.outLocalIdentity; !cmp.Equal(got, want, protocmp.Transform()) {
 				t.Errorf("s2aCreds.localIdentity = %v, want %v", got, want)
 			}
 			if got, want := s2aCreds.s2aAddr, tc.outS2AAddress; got != want {
@@ -336,7 +337,7 @@ func TestNewServerCreds(t *testing.T) {
 			if got, want := s2aCreds.tlsCiphersuites, tc.outTLSCiphersuites; !cmp.Equal(got, want) {
 				t.Errorf("s2aCreds.tlsCiphersuites = %v, want %v", got, want)
 			}
-			if got, want := s2aCreds.localIdentities, tc.outLocalIdentities; !cmp.Equal(got, want) {
+			if got, want := s2aCreds.localIdentities, tc.outLocalIdentities; !cmp.Equal(got, want, protocmp.Transform()) {
 				t.Errorf("s2aCreds.localIdentities = %v, want %v", got, want)
 			}
 			if got, want := s2aCreds.s2aAddr, tc.outS2AAddress; got != want {
@@ -398,7 +399,7 @@ func TestCloneClient(t *testing.T) {
 	if !ok {
 		t.Fatal("the created cloned creds is not of type s2aTransportCreds")
 	}
-	if got, want := cmp.Equal(s2aCreds, s2aCloneCreds, cmp.AllowUnexported(s2aTransportCreds{})), true; got != want {
+	if got, want := cmp.Equal(s2aCreds, s2aCloneCreds, protocmp.Transform(), cmp.AllowUnexported(s2aTransportCreds{})), true; got != want {
 		t.Errorf("cmp.Equal(%v, %v) = %v, want %v", s2aCreds, s2aCloneCreds, got, want)
 	}
 	// Change the values and verify that the creds were deep copied.
@@ -407,7 +408,7 @@ func TestCloneClient(t *testing.T) {
 			SpiffeId: "new_spiffe_id",
 		},
 	}
-	if got, want := cmp.Equal(s2aCreds, s2aCloneCreds, cmp.AllowUnexported(s2aTransportCreds{})), false; got != want {
+	if got, want := cmp.Equal(s2aCreds, s2aCloneCreds, protocmp.Transform(), cmp.AllowUnexported(s2aTransportCreds{})), false; got != want {
 		t.Errorf("cmp.Equal(%v, %v) = %v, want %v", s2aCreds, s2aCloneCreds, got, want)
 	}
 }
@@ -432,7 +433,7 @@ func TestCloneServer(t *testing.T) {
 	if !ok {
 		t.Fatal("the created cloned creds is not of type s2aTransportCreds")
 	}
-	if got, want := cmp.Equal(s2aCreds, s2aCloneCreds, cmp.AllowUnexported(s2aTransportCreds{})), true; got != want {
+	if got, want := cmp.Equal(s2aCreds, s2aCloneCreds, protocmp.Transform(), cmp.AllowUnexported(s2aTransportCreds{})), true; got != want {
 		t.Errorf("cmp.Equal(%v, %v) = %v, want %v", s2aCreds, s2aCloneCreds, got, want)
 	}
 	// Change the values and verify that the creds were deep copied.
@@ -441,7 +442,7 @@ func TestCloneServer(t *testing.T) {
 			SpiffeId: "new_spiffe_id",
 		},
 	}
-	if got, want := cmp.Equal(s2aCreds, s2aCloneCreds, cmp.AllowUnexported(s2aTransportCreds{})), false; got != want {
+	if got, want := cmp.Equal(s2aCreds, s2aCloneCreds, protocmp.Transform(), cmp.AllowUnexported(s2aTransportCreds{})), false; got != want {
 		t.Errorf("cmp.Equal(%v, %v) = %v, want %v", s2aCreds, s2aCloneCreds, got, want)
 	}
 }

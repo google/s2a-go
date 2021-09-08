@@ -27,9 +27,9 @@ import (
 	commonpb "github.com/s2a-go/internal/proto/common_go_proto"
 	grpcpb "github.com/s2a-go/internal/proto/s2a_go_grpc_proto"
 	"github.com/google/go-cmp/cmp"
+	"google.golang.org/protobuf/testing/protocmp"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc"
-	
 )
 
 const (
@@ -330,7 +330,7 @@ func TestSetupSession(t *testing.T) {
 					hasNonOKStatus = true
 					break
 				}
-				if got, want := stream.resps[i], tc.outResps[i]; !cmp.Equal(got, want) {
+				if got, want := stream.resps[i], tc.outResps[i]; !cmp.Equal(got, want, protocmp.Transform()) {
 					t.Fatalf("stream.resps[%d] = %v, want %v", i, got, want)
 				}
 			}

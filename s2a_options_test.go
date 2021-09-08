@@ -23,7 +23,7 @@ import (
 
 	s2apb "github.com/s2a-go/internal/proto/common_go_proto"
 	"github.com/google/go-cmp/cmp"
-	
+	"google.golang.org/protobuf/testing/protocmp"
 )
 
 func TestToProtoIdentity(t *testing.T) {
@@ -59,7 +59,7 @@ func TestToProtoIdentity(t *testing.T) {
 			if err != nil {
 				t.Errorf("toProtoIdentity(%v) failed: %v", tc.identity, err)
 			}
-			if got, want := protoSpiffeID, tc.outIdentity; !cmp.Equal(got, want) {
+			if got, want := protoSpiffeID, tc.outIdentity; !cmp.Equal(got, want, protocmp.Transform()) {
 				t.Errorf("toProtoIdentity(%v) = %v, want %v", tc.outIdentity, got, want)
 			}
 		})
