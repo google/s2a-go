@@ -12,6 +12,7 @@
 :: See the License for the specific language governing permissions and
 :: limitations under the License.
 
+set PATH=C:\Go;%PATH%
 cd github/s2a-go
 
 bazel test  //...
