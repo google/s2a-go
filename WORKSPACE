@@ -81,7 +81,6 @@ go_repository(
 #
 # Last updated: June 4,2021.
 go_repository(
-  #name = "org_golang_google_go_cmp",
   name = "com_github_google_go_cmp",
   importpath = "github.com/google/go-cmp",
   commit = "290a6a23966f9edffe2a0a4a1d8dd065cc0753fd"
