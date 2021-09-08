@@ -25,8 +25,8 @@ import (
 	"reflect"
 	"testing"
 
+	"google.golang.org/protobuf/testing/protocmp"
 	"github.com/google/go-cmp/cmp"
-	
 
 	commonpb "github.com/s2a-go/internal/proto/common_go_proto"
 	"github.com/s2a-go/internal/record/internal/aeadcrypter/testutil"
@@ -259,7 +259,7 @@ func TestNewS2ARecordConn(t *testing.T) {
 			if got, want := ticketSender.connectionID, tc.outConnectionID; got != want {
 				t.Errorf("ticketSender.connectionID = %v, want %v", got, want)
 			}
-			if got, want := ticketSender.localIdentity, tc.outLocalIdentity; !cmp.Equal(got, want) {
+			if got, want := ticketSender.localIdentity, tc.outLocalIdentity; !cmp.Equal(got, want, protocmp.Transform()) {
 				t.Errorf("ticketSender.localIdentity = %v, want %v", got, want)
 			}
 		})

@@ -50,6 +50,15 @@ go_repository(
   version = "v1.38.0",
 )
 
+# Go Protobuf.
+#
+# Last updated: September 7, 2021.
+go_repository(
+  name = "org_golang_google_protobuf",
+  importpath = "google.golang/org/protobuf",
+  version = "v1.27.1",
+)
+
 # Go Cryptography. No stable versions available.
 #
 # Last updated: June 4,2021.
@@ -72,7 +81,8 @@ go_repository(
 #
 # Last updated: June 4,2021.
 go_repository(
-  name = "org_golang_google_go_cmp",
+  #name = "org_golang_google_go_cmp",
+  name = "com_github_google_go_cmp",
   importpath = "github.com/google/go-cmp",
   commit = "290a6a23966f9edffe2a0a4a1d8dd065cc0753fd"
 )

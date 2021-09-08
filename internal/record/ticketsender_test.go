@@ -28,7 +28,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"google.golang.org/grpc/codes"
-	
+	"google.golang.org/protobuf/testing/protocmp"
 	"github.com/s2a-go/internal/tokenmanager"
 )
 
@@ -86,13 +86,13 @@ func (m *fakeAccessTokenManager) DefaultToken() (string, error) {
 }
 
 func (m *fakeAccessTokenManager) Token(identity *commonpb.Identity) (string, error) {
-	if identity == nil || cmp.Equal(identity, &commonpb.Identity{}) {
+	if identity == nil || cmp.Equal(identity, &commonpb.Identity{}, protocmp.Transform()) {
 		if !m.allowEmptyIdentity {
 			return "", fmt.Errorf("not allowed to get token for empty identity")
 		}
 		return m.accessToken, nil
 	}
-	if cmp.Equal(identity, m.acceptedIdentity) {
+	if cmp.Equal(identity, m.acceptedIdentity, protocmp.Transform()) {
 		return m.accessToken, nil
 	}
 	return "", fmt.Errorf("unable to get token")
@@ -212,7 +212,7 @@ func TestGetAuthMechanism(t *testing.T) {
 				t.Errorf("authMechanisms == nil: %t, tc.expectedAuthMechanisms == nil: %t", got, want)
 			}
 			if authMechanisms != nil && tc.expectedAuthMechanisms != nil {
-				if diff := cmp.Diff(authMechanisms, tc.expectedAuthMechanisms, sortProtos); diff != "" {
+				if diff := cmp.Diff(authMechanisms, tc.expectedAuthMechanisms, protocmp.Transform(), sortProtos); diff != "" {
 					t.Errorf("ticketSender.getAuthMechanisms() returned incorrect slice, (-want +got):\n%s", diff)
 				}
 			}

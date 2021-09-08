@@ -54,8 +54,9 @@ go_test(
         "//internal/proto:s2a_go_grpc_proto",
         "//internal/proto:s2a_go_proto",
         "//internal/tokenmanager",
-        "@org_golang_google_go_cmp//cmp:go_default_library",
-        "@org_golang_google_go_cmp//cmp/cmpopts:go_default_library",
+        "@com_github_google_go_cmp//cmp:go_default_library",
+        "@com_github_google_go_cmp//cmp/cmpopts:go_default_library",
         "@org_golang_google_grpc//:go_default_library",
+        "@org_golang_google_protobuf//testing/protocmp:go_default_library",
     ],
 )

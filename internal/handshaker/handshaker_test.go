@@ -32,9 +32,9 @@ import (
 	grpcpb "github.com/s2a-go/internal/proto/s2a_go_grpc_proto"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
+	"google.golang.org/protobuf/testing/protocmp"
 	"golang.org/x/sync/errgroup"
 	grpc "google.golang.org/grpc"
-	
 	"github.com/s2a-go/internal/tokenmanager"
 )
 
@@ -301,7 +301,7 @@ func (fs *fakeStream) Send(req *grpcpb.SessionReq) error {
 		// message.
 		fs.isFirstAccess = true
 		if fs.isClient {
-			if diff := cmp.Diff(req.GetClientStart(), fs.expectedClientStart); diff != "" {
+			if diff := cmp.Diff(req.GetClientStart(), fs.expectedClientStart, protocmp.Transform()); diff != "" {
 				return fmt.Errorf("client start message is incorrect, (-want +got):\n%s", diff)
 			}
 			resp = &grpcpb.SessionResp{
@@ -314,7 +314,7 @@ func (fs *fakeStream) Send(req *grpcpb.SessionReq) error {
 			if req.GetServerStart() == nil {
 				return errors.New("first request from server does not have server start")
 			}
-			if diff := cmp.Diff(req.GetServerStart(), fs.expectedServerStart); diff != "" {
+			if diff := cmp.Diff(req.GetServerStart(), fs.expectedServerStart, protocmp.Transform()); diff != "" {
 				return fmt.Errorf("server start message is incorrect, (-want +got):\n%s", diff)
 			}
 			fs.fc.in.Write([]byte("ClientFinished"))
@@ -331,7 +331,7 @@ func (fs *fakeStream) Send(req *grpcpb.SessionReq) error {
 			if req.GetNext() == nil {
 				return errors.New("second request from client does not have next")
 			}
-			if got, want := cmp.Equal(req.GetNext(), testClientNext), true; got != want {
+			if got, want := cmp.Equal(req.GetNext(), testClientNext, protocmp.Transform()), true; got != want {
 				return errors.New("client next message is incorrect")
 			}
 			if fs.isLocalIdentityMissing {
@@ -350,7 +350,7 @@ func (fs *fakeStream) Send(req *grpcpb.SessionReq) error {
 			if req.GetNext() == nil {
 				return errors.New("second request from server does not have next")
 			}
-			if got, want := cmp.Equal(req.GetNext(), testServerNext), true; got != want {
+			if got, want := cmp.Equal(req.GetNext(), testServerNext, protocmp.Transform()), true; got != want {
 				return errors.New("server next message is incorrect")
 			}
 			if fs.isLocalIdentityMissing {
@@ -396,13 +396,13 @@ func (m *fakeAccessTokenManager) DefaultToken() (string, error) {
 }
 
 func (m *fakeAccessTokenManager) Token(identity *commonpb.Identity) (string, error) {
-	if identity == nil || cmp.Equal(identity, &commonpb.Identity{}) {
+	if identity == nil || cmp.Equal(identity, &commonpb.Identity{}, protocmp.Transform()) {
 		if !m.allowEmptyIdentity {
 			return "", fmt.Errorf("not allowed to get token for empty identity")
 		}
 		return m.accessToken, nil
 	}
-	if cmp.Equal(identity, m.acceptedIdentity) {
+	if cmp.Equal(identity, m.acceptedIdentity, protocmp.Transform()) {
 		return m.accessToken, nil
 	}
 	return "", fmt.Errorf("unable to get token")
@@ -1001,7 +1001,7 @@ func TestGetAuthMechanismsForClient(t *testing.T) {
 				t.Errorf("authMechanisms == nil: %t, tc.expectedAuthMechanisms == nil: %t", got, want)
 			}
 			if authMechanisms != nil && tc.expectedAuthMechanisms != nil {
-				if diff := cmp.Diff(authMechanisms, tc.expectedAuthMechanisms, sortProtos); diff != "" {
+				if diff := cmp.Diff(authMechanisms, tc.expectedAuthMechanisms, protocmp.Transform(), sortProtos); diff != "" {
 					t.Errorf("handshaker.getAuthMechanisms() returned incorrect slice, (-want +got):\n%s", diff)
 				}
 			}
@@ -1135,7 +1135,7 @@ func TestGetAuthMechanismsForServer(t *testing.T) {
 				t.Errorf("authMechanisms == nil: %t, tc.expectedAuthMechanisms == nil: %t", got, want)
 			}
 			if authMechanisms != nil && tc.expectedAuthMechanisms != nil {
-				if diff := cmp.Diff(authMechanisms, tc.expectedAuthMechanisms, sortProtos); diff != "" {
+				if diff := cmp.Diff(authMechanisms, tc.expectedAuthMechanisms, protocmp.Transform(), sortProtos); diff != "" {
 					t.Errorf("handshaker.getAuthMechanisms() returned incorrect slice, (-want +got):\n%s", diff)
 				}
 			}
