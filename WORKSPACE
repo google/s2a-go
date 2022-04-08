@@ -51,8 +51,7 @@ gazelle_dependencies()
 go_repository(
   name = "org_golang_google_grpc",
   importpath = "google.golang.org/grpc",
-  sum = "h1:/9BgsAsa5nWe26HqOlvlgJnqBuktYOLCgjCPqsa56W0=",
-  version = "v1.38.0",
+  version = "v1.45.0",
 )
 
 # Go Protobuf.
