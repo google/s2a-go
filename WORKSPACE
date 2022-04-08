@@ -73,22 +73,24 @@ go_repository(
   version = "v1.28.0",
 )
 
-# Go Cryptography. No stable versions available.
+# Go Cryptography.
 #
-# Last updated: June 4,2021.
+# Last updated: April 8, 2022.
 go_repository(
   name = "org_golang_x_crypto",
   importpath = "golang.org/x/crypto",
-  commit = "c07d793c2f9aacf728fe68cbd7acd73adbd04159"
+  sum = "h1:iU7T1X1J6yxDr0rda54sWGkHgOp5XJrqm79gcNlC2VM=",
+  version = "v0.0.0-20220408190544-5352b0902921",
 )
 
-# Go Sync. No stable versions available.
+# Go Sync.
 #
-# Last updated: June 4,2021.
+# Last updated: April 8, 2022.
 go_repository(
   name = "org_golang_x_sync",
   importpath = "golang.org/x/sync",
-  commit = "036812b2e83c0ddf193dd5a34e034151da389d09"
+  sum = "h1:5KslGYwFpkhGh+Q16bwMP3cOontH8FOep7tGV86Y7SQ=",
+  version = "v0.0.0-20210220032951-036812b2e83c",
 )
 
 # Go Cmp. No stable versions available.
@@ -100,12 +102,14 @@ go_repository(
   commit = "290a6a23966f9edffe2a0a4a1d8dd065cc0753fd"
 )
 
-# Go Sys. No stable versions available.
+# Go Sys.
 #
 # Last updated: April 8, 2022.
 go_repository(
   name = "org_golang_x_sys",
   importpath = "golang.org/x/sys",
+  sum = "h1:QyVthZKMsyaQwBTJE04jdNN0Pp5Fn9Qga0mrgxyERQM=",
+  version = "v0.0.0-20220406163625-3f8b81556e12",
 )
 
 # Go Net.
