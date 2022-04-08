@@ -42,7 +42,8 @@ const (
 	// defaultTimeout specifies the default server handshake timeout.
 	defaultTimeout = 30.0 * time.Second
 )
-
+// FIGURING OUT WHAT TO DO
+/
 // s2aTransportCreds are the transport credentials required for establishing
 // a secure connection using the S2A. They implement the
 // credentials.TransportCredentials interface.
