@@ -90,3 +90,11 @@ go_repository(
   importpath = "github.com/google/go-cmp",
   commit = "290a6a23966f9edffe2a0a4a1d8dd065cc0753fd"
 )
+
+# Go Sys. No stable versions available.
+#
+# Last updated: April 8, 2022.
+go_repository(
+  name = "org_golang_x_sys",
+  importpath = "golang.org/x/sys",
+)
