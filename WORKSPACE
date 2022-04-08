@@ -57,10 +57,19 @@ go_repository(
 
 # Go Protobuf.
 #
+#
+go_repository(
+  name = "org_golang_protobuf",
+  importpath = "github.com/golang/protobuf",
+  version = "v1.5.2.",
+)
+
+# Google Protobuf.
+#
 # Last updated: April 8, 2022.
 go_repository(
   name = "org_golang_google_protobuf",
-  importpath = "google.golang/org/protobuf",
+  importpath = "google.golang.org/protobuf",
   version = "v1.28.0",
 )
 
@@ -98,3 +107,24 @@ go_repository(
   name = "org_golang_x_sys",
   importpath = "golang.org/x/sys",
 )
+
+# Go Net.
+#
+# Last updated: April 8, 2022.
+go_repository(
+  name = "org_golang_x_net",
+  importpath = "golang.org/x/net",
+  sum = "h1:EN5+DfgmRMvRUrMGERW2gQl3Vc+Z7ZMnI/xdEpPSf0c=",
+  version = "v0.0.0-20220407224826-aac1ed45d8e3",
+)
+
+# Go Text.
+#
+# Last updated: April 8, 2022.
+go_repository(
+  name = "org_golang_x_text",
+  importpath = "golang.org/x/text",
+  sum = "h1:olpwvP2KacW1ZWvsR7uQhoyTYvKAupfQrRGBFM352Gk=",
+  version = "v0.3.7",
+)
+
