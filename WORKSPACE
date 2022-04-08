@@ -57,11 +57,11 @@ go_repository(
 
 # Go Protobuf.
 #
-# Last updated: September 7, 2021.
+# Last updated: April 8, 2022.
 go_repository(
   name = "org_golang_google_protobuf",
   importpath = "google.golang/org/protobuf",
-  version = "v1.27.1",
+  version = "v1.28.0",
 )
 
 # Go Cryptography. No stable versions available.
