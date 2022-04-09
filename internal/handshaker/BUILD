@@ -26,8 +26,6 @@ package(
 go_library(
     name = "handshaker",
     srcs = ["handshaker.go"],
-    # The "importpath" field must be set when using the OSS go_library rule,
-    # but must be commented out otherwise.
     importpath = "github.com/s2a-go/internal/handshaker",
     deps = [
         "//internal/authinfo",
