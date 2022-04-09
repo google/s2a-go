@@ -29,8 +29,6 @@ go_library(
         "record.go",
         "ticketsender.go",
     ],
-    # The "importpath" field must be set when using the OSS go_library rule,
-    # but must be commented out otherwise.
     importpath = "github.com/s2a-go/internal/record",
     deps = [
         "//internal/handshaker/service",
