@@ -42,27 +42,27 @@ proto_library(
 
 go_proto_library(
     name = "common_go_proto",
-    importpath = "github.com/s2a-go/internal/proto/common_go_proto",
+    importpath = "github.com/google/s2a-go/internal/proto/common_go_proto",
     protos = [":common_proto"],
 )
 
 go_proto_library(
     name = "s2a_go_proto",
-    importpath = "github.com/s2a-go/internal/proto/s2a_go_proto",
+    importpath = "github.com/google/s2a-go/internal/proto/s2a_go_proto",
     protos = [":s2a_proto"],
     deps = [":common_go_proto"],
 )
 
 go_proto_library(
     name = "s2a_context_go_proto",
-    importpath = "github.com/s2a-go/internal/proto/s2a_context_go_proto",
+    importpath = "github.com/google/s2a-go/internal/proto/s2a_context_go_proto",
     protos = [":s2a_context_proto"],
     deps = [":common_go_proto"],
 )
 
 go_grpc_library(
     name = "s2a_go_grpc_proto",
-    importpath = "github.com/s2a-go/internal/proto/s2a_go_grpc_proto",
+    importpath = "github.com/google/s2a-go/internal/proto/s2a_go_grpc_proto",
     protos = [":s2a_proto"],
     deps = [":common_go_proto"],
 )

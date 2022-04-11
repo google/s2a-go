@@ -1,4 +1,4 @@
-# Copyright 2021 Google LLC
+# Copyright 2022 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,9 +13,9 @@
 # limitations under the License.
 
 # Description:
-#  Utility for calling the S2A.
+#  Generated code from s2a.proto.
 
-load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
 
 licenses(["notice"])
 
@@ -24,18 +24,18 @@ package(
 )
 
 go_library(
-    name = "service",
-    srcs = ["service.go"],
-    importpath = "github.com/google/s2a-go/internal/handshaker/service",
-    deps = [
-        "@org_golang_google_grpc//:go_default_library",
+    name = "s2a_go_proto",
+    srcs = [
+        "s2a.pb.go",
+        "s2a_grpc.pb.go",
     ],
-)
-
-go_test(
-    name = "service_test",
-    size = "small",
-    srcs = ["service_test.go"],
-    embed = [":service"],
-    deps = ["@org_golang_google_grpc//:go_default_library"],
+    importpath = "github.com/google/s2a-go/internal/proto/s2a_go_proto",
+    deps = [
+        "//internal/proto/common_go_proto:common_go_proto",
+        "@org_golang_google_grpc//:go_default_library",
+        "@org_golang_google_grpc//codes:go_default_library",
+        "@org_golang_google_grpc//status:go_default_library",
+        "@org_golang_google_protobuf//reflect/protoreflect:go_default_library",
+        "@org_golang_google_protobuf//runtime/protoimpl:go_default_library",
+    ],
 )

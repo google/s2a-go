@@ -29,12 +29,12 @@ proto_library(
 
 go_proto_library(
     name = "helloworld_go_proto",
-    importpath = "github.com/s2a-go/internal/proto/examples/helloworld_go_proto",
+    importpath = "github.com/google/s2a-go/internal/proto/examples/helloworld_go_proto",
     protos = [":helloworld_proto"],
 )
 
 go_grpc_library(
     name = "helloworld_go_grpc_proto",
-    importpath = "github.com/s2a-go/internal/proto/examples/helloworld_go_grpc_proto",
+    importpath = "github.com/google/s2a-go/internal/proto/examples/helloworld_go_grpc_proto",
     protos = [":helloworld_proto"],
 )

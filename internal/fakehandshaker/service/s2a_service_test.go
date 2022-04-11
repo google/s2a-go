@@ -24,8 +24,8 @@ import (
 	"strings"
 	"testing"
 
-	commonpb "github.com/s2a-go/internal/proto/common_go_proto"
-	grpcpb "github.com/s2a-go/internal/proto/s2a_go_grpc_proto"
+	commonpb "github.com/google/s2a-go/internal/proto/common_go_proto"
+	s2apb "github.com/google/s2a-go/internal/proto/s2a_go_proto"
 	"github.com/google/go-cmp/cmp"
 	"google.golang.org/protobuf/testing/protocmp"
 	"google.golang.org/grpc/codes"
@@ -39,16 +39,16 @@ const (
 type fakeS2ASetupSessionServer struct {
 	grpc.ServerStream
 	recvCount int
-	reqs      []*grpcpb.SessionReq
-	resps     []*grpcpb.SessionResp
+	reqs      []*s2apb.SessionReq
+	resps     []*s2apb.SessionResp
 }
 
-func (f *fakeS2ASetupSessionServer) Send(resp *grpcpb.SessionResp) error {
+func (f *fakeS2ASetupSessionServer) Send(resp *s2apb.SessionResp) error {
 	f.resps = append(f.resps, resp)
 	return nil
 }
 
-func (f *fakeS2ASetupSessionServer) Recv() (*grpcpb.SessionReq, error) {
+func (f *fakeS2ASetupSessionServer) Recv() (*s2apb.SessionReq, error) {
 	if f.recvCount == len(f.reqs) {
 		return nil, errors.New("request buffer was fully exhausted")
 	}
@@ -62,16 +62,16 @@ func TestSetupSession(t *testing.T) {
 	for _, tc := range []struct {
 		desc string
 		// Note that outResps[i] is the output for reqs[i].
-		reqs           []*grpcpb.SessionReq
-		outResps       []*grpcpb.SessionResp
+		reqs           []*s2apb.SessionReq
+		outResps       []*s2apb.SessionResp
 		hasNonOKStatus bool
 	}{
 		{
 			desc: "client failure no app protocols",
-			reqs: []*grpcpb.SessionReq{
+			reqs: []*s2apb.SessionReq{
 				{
-					ReqOneof: &grpcpb.SessionReq_ClientStart{
-						ClientStart: &grpcpb.ClientSessionStartReq{},
+					ReqOneof: &s2apb.SessionReq_ClientStart{
+						ClientStart: &s2apb.ClientSessionStartReq{},
 					},
 				},
 			},
@@ -79,10 +79,10 @@ func TestSetupSession(t *testing.T) {
 		},
 		{
 			desc: "client failure non initial state",
-			reqs: []*grpcpb.SessionReq{
+			reqs: []*s2apb.SessionReq{
 				{
-					ReqOneof: &grpcpb.SessionReq_ClientStart{
-						ClientStart: &grpcpb.ClientSessionStartReq{
+					ReqOneof: &s2apb.SessionReq_ClientStart{
+						ClientStart: &s2apb.ClientSessionStartReq{
 							ApplicationProtocols: []string{grpcAppProtocol},
 							MinTlsVersion:        commonpb.TLSVersion_TLS1_3,
 							MaxTlsVersion:        commonpb.TLSVersion_TLS1_3,
@@ -95,8 +95,8 @@ func TestSetupSession(t *testing.T) {
 					},
 				},
 				{
-					ReqOneof: &grpcpb.SessionReq_ClientStart{
-						ClientStart: &grpcpb.ClientSessionStartReq{
+					ReqOneof: &s2apb.SessionReq_ClientStart{
+						ClientStart: &s2apb.ClientSessionStartReq{
 							ApplicationProtocols: []string{grpcAppProtocol},
 							MinTlsVersion:        commonpb.TLSVersion_TLS1_3,
 							MaxTlsVersion:        commonpb.TLSVersion_TLS1_3,
@@ -109,10 +109,10 @@ func TestSetupSession(t *testing.T) {
 					},
 				},
 			},
-			outResps: []*grpcpb.SessionResp{
+			outResps: []*s2apb.SessionResp{
 				{
 					OutFrames: []byte(clientHelloFrame),
-					Status: &grpcpb.SessionStatus{
+					Status: &s2apb.SessionStatus{
 						Code: uint32(codes.OK),
 					},
 				},
@@ -121,10 +121,10 @@ func TestSetupSession(t *testing.T) {
 		},
 		{
 			desc: "client test",
-			reqs: []*grpcpb.SessionReq{
+			reqs: []*s2apb.SessionReq{
 				{
-					ReqOneof: &grpcpb.SessionReq_ClientStart{
-						ClientStart: &grpcpb.ClientSessionStartReq{
+					ReqOneof: &s2apb.SessionReq_ClientStart{
+						ClientStart: &s2apb.ClientSessionStartReq{
 							ApplicationProtocols: []string{grpcAppProtocol},
 							MinTlsVersion:        commonpb.TLSVersion_TLS1_3,
 							MaxTlsVersion:        commonpb.TLSVersion_TLS1_3,
@@ -145,26 +145,26 @@ func TestSetupSession(t *testing.T) {
 					},
 				},
 				{
-					ReqOneof: &grpcpb.SessionReq_Next{
-						Next: &grpcpb.SessionNextReq{
+					ReqOneof: &s2apb.SessionReq_Next{
+						Next: &s2apb.SessionNextReq{
 							InBytes: []byte(serverFrame),
 						},
 					},
 				},
 			},
-			outResps: []*grpcpb.SessionResp{
+			outResps: []*s2apb.SessionResp{
 				{
 					OutFrames: []byte(clientHelloFrame),
-					Status: &grpcpb.SessionStatus{
+					Status: &s2apb.SessionStatus{
 						Code: uint32(codes.OK),
 					},
 				},
 				{
 					OutFrames:     []byte(clientFinishedFrame),
 					BytesConsumed: uint32(len(serverFrame)),
-					Result: &grpcpb.SessionResult{
+					Result: &s2apb.SessionResult{
 						ApplicationProtocol: grpcAppProtocol,
-						State: &grpcpb.SessionState{
+						State: &s2apb.SessionState{
 							TlsVersion:     commonpb.TLSVersion_TLS1_3,
 							TlsCiphersuite: commonpb.Ciphersuite_AES_128_GCM_SHA256,
 							InKey:          []byte(inKey),
@@ -177,7 +177,7 @@ func TestSetupSession(t *testing.T) {
 							IdentityOneof: &commonpb.Identity_Hostname{Hostname: "local hostname"},
 						},
 					},
-					Status: &grpcpb.SessionStatus{
+					Status: &s2apb.SessionStatus{
 						Code: uint32(codes.OK),
 					},
 				},
@@ -185,10 +185,10 @@ func TestSetupSession(t *testing.T) {
 		},
 		{
 			desc: "server failure no app protocols",
-			reqs: []*grpcpb.SessionReq{
+			reqs: []*s2apb.SessionReq{
 				{
-					ReqOneof: &grpcpb.SessionReq_ServerStart{
-						ServerStart: &grpcpb.ServerSessionStartReq{},
+					ReqOneof: &s2apb.SessionReq_ServerStart{
+						ServerStart: &s2apb.ServerSessionStartReq{},
 					},
 				},
 			},
@@ -196,10 +196,10 @@ func TestSetupSession(t *testing.T) {
 		},
 		{
 			desc: "server failure non initial state",
-			reqs: []*grpcpb.SessionReq{
+			reqs: []*s2apb.SessionReq{
 				{
-					ReqOneof: &grpcpb.SessionReq_ServerStart{
-						ServerStart: &grpcpb.ServerSessionStartReq{
+					ReqOneof: &s2apb.SessionReq_ServerStart{
+						ServerStart: &s2apb.ServerSessionStartReq{
 							ApplicationProtocols: []string{grpcAppProtocol},
 							MinTlsVersion:        commonpb.TLSVersion_TLS1_3,
 							MaxTlsVersion:        commonpb.TLSVersion_TLS1_3,
@@ -212,8 +212,8 @@ func TestSetupSession(t *testing.T) {
 					},
 				},
 				{
-					ReqOneof: &grpcpb.SessionReq_ServerStart{
-						ServerStart: &grpcpb.ServerSessionStartReq{
+					ReqOneof: &s2apb.SessionReq_ServerStart{
+						ServerStart: &s2apb.ServerSessionStartReq{
 							ApplicationProtocols: []string{grpcAppProtocol},
 							MinTlsVersion:        commonpb.TLSVersion_TLS1_3,
 							MaxTlsVersion:        commonpb.TLSVersion_TLS1_3,
@@ -226,9 +226,9 @@ func TestSetupSession(t *testing.T) {
 					},
 				},
 			},
-			outResps: []*grpcpb.SessionResp{
+			outResps: []*s2apb.SessionResp{
 				{
-					Status: &grpcpb.SessionStatus{
+					Status: &s2apb.SessionStatus{
 						Code: uint32(codes.OK),
 					},
 				},
@@ -237,10 +237,10 @@ func TestSetupSession(t *testing.T) {
 		},
 		{
 			desc: "server test",
-			reqs: []*grpcpb.SessionReq{
+			reqs: []*s2apb.SessionReq{
 				{
-					ReqOneof: &grpcpb.SessionReq_ServerStart{
-						ServerStart: &grpcpb.ServerSessionStartReq{
+					ReqOneof: &s2apb.SessionReq_ServerStart{
+						ServerStart: &s2apb.ServerSessionStartReq{
 							ApplicationProtocols: []string{grpcAppProtocol},
 							MinTlsVersion:        commonpb.TLSVersion_TLS1_3,
 							MaxTlsVersion:        commonpb.TLSVersion_TLS1_3,
@@ -259,26 +259,26 @@ func TestSetupSession(t *testing.T) {
 					},
 				},
 				{
-					ReqOneof: &grpcpb.SessionReq_Next{
-						Next: &grpcpb.SessionNextReq{
+					ReqOneof: &s2apb.SessionReq_Next{
+						Next: &s2apb.SessionNextReq{
 							InBytes: []byte(clientFinishedFrame),
 						},
 					},
 				},
 			},
-			outResps: []*grpcpb.SessionResp{
+			outResps: []*s2apb.SessionResp{
 				{
 					OutFrames:     []byte(serverFrame),
 					BytesConsumed: uint32(len(clientHelloFrame)),
-					Status: &grpcpb.SessionStatus{
+					Status: &s2apb.SessionStatus{
 						Code: uint32(codes.OK),
 					},
 				},
 				{
 					BytesConsumed: uint32(len(clientFinishedFrame)),
-					Result: &grpcpb.SessionResult{
+					Result: &s2apb.SessionResult{
 						ApplicationProtocol: grpcAppProtocol,
-						State: &grpcpb.SessionState{
+						State: &s2apb.SessionState{
 							TlsVersion:     commonpb.TLSVersion_TLS1_3,
 							TlsCiphersuite: commonpb.Ciphersuite_AES_128_GCM_SHA256,
 							InKey:          []byte(inKey),
@@ -288,7 +288,7 @@ func TestSetupSession(t *testing.T) {
 							IdentityOneof: &commonpb.Identity_Hostname{Hostname: "local hostname"},
 						},
 					},
-					Status: &grpcpb.SessionStatus{
+					Status: &s2apb.SessionStatus{
 						Code: uint32(codes.OK),
 					},
 				},
@@ -296,10 +296,10 @@ func TestSetupSession(t *testing.T) {
 		},
 		{
 			desc: "resumption ticket test",
-			reqs: []*grpcpb.SessionReq{
+			reqs: []*s2apb.SessionReq{
 				{
-					ReqOneof: &grpcpb.SessionReq_ResumptionTicket{
-						ResumptionTicket: &grpcpb.ResumptionTicketReq{
+					ReqOneof: &s2apb.SessionReq_ResumptionTicket{
+						ResumptionTicket: &s2apb.ResumptionTicketReq{
 							ConnectionId: 1234,
 							LocalIdentity: &commonpb.Identity{
 								IdentityOneof: &commonpb.Identity_Hostname{Hostname: "local hostname"},
@@ -308,9 +308,9 @@ func TestSetupSession(t *testing.T) {
 					},
 				},
 			},
-			outResps: []*grpcpb.SessionResp{
+			outResps: []*s2apb.SessionResp{
 				{
-					Status: &grpcpb.SessionStatus{
+					Status: &s2apb.SessionStatus{
 						Code: uint32(codes.OK),
 					},
 				},
@@ -345,7 +345,7 @@ func TestAuthenticateRequest(t *testing.T) {
 	for _, tc := range []struct {
 		description   string
 		acceptedToken string
-		request       *grpcpb.SessionReq
+		request       *s2apb.SessionReq
 		expectedError string
 	}{
 		{
@@ -354,10 +354,10 @@ func TestAuthenticateRequest(t *testing.T) {
 		{
 			description:   "request contains valid token",
 			acceptedToken: testAccessToken,
-			request: &grpcpb.SessionReq{
-				AuthMechanisms: []*grpcpb.AuthenticationMechanism{
-					&grpcpb.AuthenticationMechanism{
-						MechanismOneof: &grpcpb.AuthenticationMechanism_Token{
+			request: &s2apb.SessionReq{
+				AuthMechanisms: []*s2apb.AuthenticationMechanism{
+					&s2apb.AuthenticationMechanism{
+						MechanismOneof: &s2apb.AuthenticationMechanism_Token{
 							Token: testAccessToken,
 						},
 					},
@@ -367,10 +367,10 @@ func TestAuthenticateRequest(t *testing.T) {
 		{
 			description:   "request contains invalid token",
 			acceptedToken: testAccessToken,
-			request: &grpcpb.SessionReq{
-				AuthMechanisms: []*grpcpb.AuthenticationMechanism{
-					&grpcpb.AuthenticationMechanism{
-						MechanismOneof: &grpcpb.AuthenticationMechanism_Token{
+			request: &s2apb.SessionReq{
+				AuthMechanisms: []*s2apb.AuthenticationMechanism{
+					&s2apb.AuthenticationMechanism{
+						MechanismOneof: &s2apb.AuthenticationMechanism_Token{
 							Token: "bad_access_token",
 						},
 					},
@@ -381,15 +381,15 @@ func TestAuthenticateRequest(t *testing.T) {
 		{
 			description:   "request contains valid and invalid tokens",
 			acceptedToken: testAccessToken,
-			request: &grpcpb.SessionReq{
-				AuthMechanisms: []*grpcpb.AuthenticationMechanism{
-					&grpcpb.AuthenticationMechanism{
-						MechanismOneof: &grpcpb.AuthenticationMechanism_Token{
+			request: &s2apb.SessionReq{
+				AuthMechanisms: []*s2apb.AuthenticationMechanism{
+					&s2apb.AuthenticationMechanism{
+						MechanismOneof: &s2apb.AuthenticationMechanism_Token{
 							Token: testAccessToken,
 						},
 					},
-					&grpcpb.AuthenticationMechanism{
-						MechanismOneof: &grpcpb.AuthenticationMechanism_Token{
+					&s2apb.AuthenticationMechanism{
+						MechanismOneof: &s2apb.AuthenticationMechanism_Token{
 							Token: "bad_access_token",
 						},
 					},

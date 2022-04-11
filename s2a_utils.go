@@ -22,7 +22,7 @@ import (
 	"context"
 	"errors"
 
-	commonpb "github.com/s2a-go/internal/proto/common_go_proto"
+	commonpb "github.com/google/s2a-go/internal/proto/common_go_proto"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/peer"
 )

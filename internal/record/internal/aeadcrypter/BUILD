@@ -31,7 +31,7 @@ go_library(
         "chachapoly.go",
         "common.go",
     ],
-    importpath = "github.com/s2a-go/internal/record/internal/aeadcrypter",
+    importpath = "github.com/google/s2a-go/internal/record/internal/aeadcrypter",
     deps = ["@org_golang_x_crypto//chacha20poly1305"],
 )
 

@@ -28,14 +28,14 @@ import (
 	"strings"
 	"testing"
 
-	commonpb "github.com/s2a-go/internal/proto/common_go_proto"
-	grpcpb "github.com/s2a-go/internal/proto/s2a_go_grpc_proto"
+	commonpb "github.com/google/s2a-go/internal/proto/common_go_proto"
+	s2apb "github.com/google/s2a-go/internal/proto/s2a_go_proto"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"google.golang.org/protobuf/testing/protocmp"
 	"golang.org/x/sync/errgroup"
 	grpc "google.golang.org/grpc"
-	"github.com/s2a-go/internal/tokenmanager"
+	"github.com/google/s2a-go/internal/tokenmanager"
 )
 
 var (
@@ -79,7 +79,7 @@ var (
 
 	// testClientStart is the ClientSessionStartReq message that the S2A expects
 	// to receive first from the test client.
-	testClientStart = &grpcpb.ClientSessionStartReq{
+	testClientStart = &s2apb.ClientSessionStartReq{
 		ApplicationProtocols: []string{"grpc"},
 		MinTlsVersion:        commonpb.TLSVersion_TLS1_2,
 		MaxTlsVersion:        commonpb.TLSVersion_TLS1_3,
@@ -110,7 +110,7 @@ var (
 
 	// testClientNext is the SessionNextReq message that the S2A expects
 	// to receive second from the test client.
-	testClientNext = &grpcpb.SessionNextReq{
+	testClientNext = &s2apb.SessionNextReq{
 		InBytes: []byte("ServerHelloServerFinished"),
 	}
 
@@ -140,7 +140,7 @@ var (
 
 	// testServerStart is the ServerSessionStartReq message that the S2A expects
 	// to receive from the test server.
-	testServerStart = &grpcpb.ServerSessionStartReq{
+	testServerStart = &s2apb.ServerSessionStartReq{
 		ApplicationProtocols: []string{"grpc"},
 		MinTlsVersion:        commonpb.TLSVersion_TLS1_2,
 		MaxTlsVersion:        commonpb.TLSVersion_TLS1_3,
@@ -166,13 +166,13 @@ var (
 
 	// testServerNext is the SessionNextReq message that the S2A expects to
 	// receive second from the test server.
-	testServerNext = &grpcpb.SessionNextReq{
+	testServerNext = &s2apb.SessionNextReq{
 		InBytes: []byte("ClientFinished"),
 	}
 
-	testClientSessionResult = &grpcpb.SessionResult{
+	testClientSessionResult = &s2apb.SessionResult{
 		ApplicationProtocol: "grpc",
-		State: &grpcpb.SessionState{
+		State: &s2apb.SessionState{
 			TlsVersion:     commonpb.TLSVersion_TLS1_3,
 			TlsCiphersuite: commonpb.Ciphersuite_AES_128_GCM_SHA256,
 			InSequence:     0,
@@ -194,9 +194,9 @@ var (
 		PeerCertFingerprint:  []byte("server_cert_fingerprint"),
 	}
 
-	testServerSessionResult = &grpcpb.SessionResult{
+	testServerSessionResult = &s2apb.SessionResult{
 		ApplicationProtocol: "grpc",
-		State: &grpcpb.SessionState{
+		State: &s2apb.SessionState{
 			TlsVersion:     commonpb.TLSVersion_TLS1_3,
 			TlsCiphersuite: commonpb.Ciphersuite_AES_128_GCM_SHA256,
 			InSequence:     0,
@@ -217,9 +217,9 @@ var (
 		LocalCertFingerprint: []byte("server_cert_fingerprint"),
 		PeerCertFingerprint:  []byte("client_cert_fingerprint"),
 	}
-	testResultWithoutLocalIdentity = &grpcpb.SessionResult{
+	testResultWithoutLocalIdentity = &s2apb.SessionResult{
 		ApplicationProtocol: "grpc",
-		State: &grpcpb.SessionState{
+		State: &s2apb.SessionState{
 			TlsVersion:     commonpb.TLSVersion_TLS1_3,
 			TlsCiphersuite: commonpb.Ciphersuite_AES_128_GCM_SHA256,
 			InSequence:     0,
@@ -265,12 +265,12 @@ type fakeStream struct {
 	grpc.ClientStream
 	t                   *testing.T
 	fc                  *fakeConn
-	expectedClientStart *grpcpb.ClientSessionStartReq
-	expectedServerStart *grpcpb.ServerSessionStartReq
+	expectedClientStart *s2apb.ClientSessionStartReq
+	expectedServerStart *s2apb.ServerSessionStartReq
 	expectToken         bool
 	// expectedResp is the expected SessionResp message from the handshaker
 	// service.
-	expectedResp *grpcpb.SessionResp
+	expectedResp *s2apb.SessionResp
 	// isFirstAccess indicates whether the first call to the handshaker service
 	// has been made or not.
 	isFirstAccess          bool
@@ -278,13 +278,13 @@ type fakeStream struct {
 	isLocalIdentityMissing bool
 }
 
-func (fs *fakeStream) Recv() (*grpcpb.SessionResp, error) {
+func (fs *fakeStream) Recv() (*s2apb.SessionResp, error) {
 	resp := fs.expectedResp
 	fs.expectedResp = nil
 	return resp, nil
 }
-func (fs *fakeStream) Send(req *grpcpb.SessionReq) error {
-	var resp *grpcpb.SessionResp
+func (fs *fakeStream) Send(req *s2apb.SessionReq) error {
+	var resp *s2apb.SessionResp
 	if fs.expectToken {
 		if len(req.GetAuthMechanisms()) == 0 {
 			return fmt.Errorf("request to S2A did not contain any tokens")
@@ -304,7 +304,7 @@ func (fs *fakeStream) Send(req *grpcpb.SessionReq) error {
 			if diff := cmp.Diff(req.GetClientStart(), fs.expectedClientStart, protocmp.Transform()); diff != "" {
 				return fmt.Errorf("client start message is incorrect, (-want +got):\n%s", diff)
 			}
-			resp = &grpcpb.SessionResp{
+			resp = &s2apb.SessionResp{
 				OutFrames: []byte("ClientHello"),
 				// There are no consumed bytes for a client start message
 				BytesConsumed: 0,
@@ -318,7 +318,7 @@ func (fs *fakeStream) Send(req *grpcpb.SessionReq) error {
 				return fmt.Errorf("server start message is incorrect, (-want +got):\n%s", diff)
 			}
 			fs.fc.in.Write([]byte("ClientFinished"))
-			resp = &grpcpb.SessionResp{
+			resp = &s2apb.SessionResp{
 				OutFrames: []byte("ServerHelloServerFinished"),
 				// Simulate consuming the ClientHello message.
 				BytesConsumed: uint32(len("ClientHello")),
@@ -335,12 +335,12 @@ func (fs *fakeStream) Send(req *grpcpb.SessionReq) error {
 				return errors.New("client next message is incorrect")
 			}
 			if fs.isLocalIdentityMissing {
-				resp = &grpcpb.SessionResp{
+				resp = &s2apb.SessionResp{
 					Result:        testResultWithoutLocalIdentity,
 					BytesConsumed: uint32(len("ClientFinished")),
 				}
 			} else {
-				resp = &grpcpb.SessionResp{
+				resp = &s2apb.SessionResp{
 					Result:        testClientSessionResult,
 					BytesConsumed: uint32(len("ServerHelloServerFinished")),
 				}
@@ -354,12 +354,12 @@ func (fs *fakeStream) Send(req *grpcpb.SessionReq) error {
 				return errors.New("server next message is incorrect")
 			}
 			if fs.isLocalIdentityMissing {
-				resp = &grpcpb.SessionResp{
+				resp = &s2apb.SessionResp{
 					Result:        testResultWithoutLocalIdentity,
 					BytesConsumed: uint32(len("ClientFinished")),
 				}
 			} else {
-				resp = &grpcpb.SessionResp{
+				resp = &s2apb.SessionResp{
 					Result:        testServerSessionResult,
 					BytesConsumed: uint32(len("ClientFinished")),
 				}
@@ -378,8 +378,8 @@ type fakeInvalidStream struct {
 	grpc.ClientStream
 }
 
-func (*fakeInvalidStream) Recv() (*grpcpb.SessionResp, error) { return &grpcpb.SessionResp{}, nil }
-func (*fakeInvalidStream) Send(*grpcpb.SessionReq) error      { return nil }
+func (*fakeInvalidStream) Recv() (*s2apb.SessionResp, error) { return &s2apb.SessionResp{}, nil }
+func (*fakeInvalidStream) Send(*s2apb.SessionReq) error      { return nil }
 func (*fakeInvalidStream) CloseSend() error                  { return nil }
 
 type fakeAccessTokenManager struct {
@@ -435,7 +435,7 @@ func TestClientHandshakeSuccess(t *testing.T) {
 		description         string
 		options             *ClientHandshakerOptions
 		tokenManager        tokenmanager.AccessTokenManager
-		expectedClientStart *grpcpb.ClientSessionStartReq
+		expectedClientStart *s2apb.ClientSessionStartReq
 	}{
 		{
 			description:         "full client options",
@@ -471,7 +471,7 @@ func TestClientHandshakeSuccess(t *testing.T) {
 				},
 				TargetName: testHostname,
 			},
-			expectedClientStart: &grpcpb.ClientSessionStartReq{
+			expectedClientStart: &s2apb.ClientSessionStartReq{
 				ApplicationProtocols: []string{"grpc"},
 				MinTlsVersion:        commonpb.TLSVersion_TLS1_2,
 				MaxTlsVersion:        commonpb.TLSVersion_TLS1_3,
@@ -524,7 +524,7 @@ func TestClientHandshakeSuccess(t *testing.T) {
 				},
 				TargetName: testHostname + ":1234",
 			},
-			expectedClientStart: &grpcpb.ClientSessionStartReq{
+			expectedClientStart: &s2apb.ClientSessionStartReq{
 				ApplicationProtocols: []string{"grpc"},
 				MinTlsVersion:        commonpb.TLSVersion_TLS1_2,
 				MaxTlsVersion:        commonpb.TLSVersion_TLS1_3,
@@ -585,7 +585,7 @@ func TestClientHandshakeSuccess(t *testing.T) {
 				},
 				TargetName: testHostname + ":1234",
 			},
-			expectedClientStart: &grpcpb.ClientSessionStartReq{
+			expectedClientStart: &s2apb.ClientSessionStartReq{
 				ApplicationProtocols: []string{"grpc"},
 				MinTlsVersion:        commonpb.TLSVersion_TLS1_2,
 				MaxTlsVersion:        commonpb.TLSVersion_TLS1_3,
@@ -660,7 +660,7 @@ func TestServerHandshakeSuccess(t *testing.T) {
 		description         string
 		options             *ServerHandshakerOptions
 		tokenManager        tokenmanager.AccessTokenManager
-		expectedServerStart *grpcpb.ServerSessionStartReq
+		expectedServerStart *s2apb.ServerSessionStartReq
 	}{
 		{
 			description:         "full server options",
@@ -678,7 +678,7 @@ func TestServerHandshakeSuccess(t *testing.T) {
 					commonpb.Ciphersuite_CHACHA20_POLY1305_SHA256,
 				},
 			},
-			expectedServerStart: &grpcpb.ServerSessionStartReq{
+			expectedServerStart: &s2apb.ServerSessionStartReq{
 				ApplicationProtocols: []string{"grpc"},
 				MinTlsVersion:        commonpb.TLSVersion_TLS1_2,
 				MaxTlsVersion:        commonpb.TLSVersion_TLS1_3,
@@ -714,7 +714,7 @@ func TestServerHandshakeSuccess(t *testing.T) {
 					commonpb.Ciphersuite_CHACHA20_POLY1305_SHA256,
 				},
 			},
-			expectedServerStart: &grpcpb.ServerSessionStartReq{
+			expectedServerStart: &s2apb.ServerSessionStartReq{
 				ApplicationProtocols: []string{"grpc"},
 				MinTlsVersion:        commonpb.TLSVersion_TLS1_2,
 				MaxTlsVersion:        commonpb.TLSVersion_TLS1_3,
@@ -918,12 +918,12 @@ func TestLocalIdentityNotSet(t *testing.T) {
 }
 
 func TestGetAuthMechanismsForClient(t *testing.T) {
-	sortProtos := cmpopts.SortSlices(func(m1, m2 *grpcpb.AuthenticationMechanism) bool { return m1.String() < m2.String() })
+	sortProtos := cmpopts.SortSlices(func(m1, m2 *s2apb.AuthenticationMechanism) bool { return m1.String() < m2.String() })
 	for _, tc := range []struct {
 		description            string
 		options                *ClientHandshakerOptions
 		tokenManager           tokenmanager.AccessTokenManager
-		expectedAuthMechanisms []*grpcpb.AuthenticationMechanism
+		expectedAuthMechanisms []*s2apb.AuthenticationMechanism
 	}{
 		{
 			description:            "token manager is nil",
@@ -936,9 +936,9 @@ func TestGetAuthMechanismsForClient(t *testing.T) {
 				accessToken:        testAccessToken,
 				allowEmptyIdentity: true,
 			},
-			expectedAuthMechanisms: []*grpcpb.AuthenticationMechanism{
-				&grpcpb.AuthenticationMechanism{
-					MechanismOneof: &grpcpb.AuthenticationMechanism_Token{
+			expectedAuthMechanisms: []*s2apb.AuthenticationMechanism{
+				&s2apb.AuthenticationMechanism{
+					MechanismOneof: &s2apb.AuthenticationMechanism_Token{
 						Token: testAccessToken,
 					},
 				},
@@ -968,14 +968,14 @@ func TestGetAuthMechanismsForClient(t *testing.T) {
 					},
 				},
 			},
-			expectedAuthMechanisms: []*grpcpb.AuthenticationMechanism{
-				&grpcpb.AuthenticationMechanism{
+			expectedAuthMechanisms: []*s2apb.AuthenticationMechanism{
+				&s2apb.AuthenticationMechanism{
 					Identity: &commonpb.Identity{
 						IdentityOneof: &commonpb.Identity_SpiffeId{
 							SpiffeId: "allowed_spiffe_id",
 						},
 					},
-					MechanismOneof: &grpcpb.AuthenticationMechanism_Token{
+					MechanismOneof: &s2apb.AuthenticationMechanism_Token{
 						Token: testAccessToken,
 					},
 				},
@@ -1010,12 +1010,12 @@ func TestGetAuthMechanismsForClient(t *testing.T) {
 }
 
 func TestGetAuthMechanismsForServer(t *testing.T) {
-	sortProtos := cmpopts.SortSlices(func(m1, m2 *grpcpb.AuthenticationMechanism) bool { return m1.String() < m2.String() })
+	sortProtos := cmpopts.SortSlices(func(m1, m2 *s2apb.AuthenticationMechanism) bool { return m1.String() < m2.String() })
 	for _, tc := range []struct {
 		description            string
 		options                *ServerHandshakerOptions
 		tokenManager           tokenmanager.AccessTokenManager
-		expectedAuthMechanisms []*grpcpb.AuthenticationMechanism
+		expectedAuthMechanisms []*s2apb.AuthenticationMechanism
 	}{
 		{
 			description:            "token manager is nil",
@@ -1028,9 +1028,9 @@ func TestGetAuthMechanismsForServer(t *testing.T) {
 				accessToken:        testAccessToken,
 				allowEmptyIdentity: true,
 			},
-			expectedAuthMechanisms: []*grpcpb.AuthenticationMechanism{
-				&grpcpb.AuthenticationMechanism{
-					MechanismOneof: &grpcpb.AuthenticationMechanism_Token{
+			expectedAuthMechanisms: []*s2apb.AuthenticationMechanism{
+				&s2apb.AuthenticationMechanism{
+					MechanismOneof: &s2apb.AuthenticationMechanism_Token{
 						Token: testAccessToken,
 					},
 				},
@@ -1067,24 +1067,24 @@ func TestGetAuthMechanismsForServer(t *testing.T) {
 					},
 				},
 			},
-			expectedAuthMechanisms: []*grpcpb.AuthenticationMechanism{
-				&grpcpb.AuthenticationMechanism{
+			expectedAuthMechanisms: []*s2apb.AuthenticationMechanism{
+				&s2apb.AuthenticationMechanism{
 					Identity: &commonpb.Identity{
 						IdentityOneof: &commonpb.Identity_SpiffeId{
 							SpiffeId: "allowed_spiffe_id",
 						},
 					},
-					MechanismOneof: &grpcpb.AuthenticationMechanism_Token{
+					MechanismOneof: &s2apb.AuthenticationMechanism_Token{
 						Token: testAccessToken,
 					},
 				},
-				&grpcpb.AuthenticationMechanism{
+				&s2apb.AuthenticationMechanism{
 					Identity: &commonpb.Identity{
 						IdentityOneof: &commonpb.Identity_SpiffeId{
 							SpiffeId: "allowed_spiffe_id",
 						},
 					},
-					MechanismOneof: &grpcpb.AuthenticationMechanism_Token{
+					MechanismOneof: &s2apb.AuthenticationMechanism_Token{
 						Token: testAccessToken,
 					},
 				},
@@ -1114,14 +1114,14 @@ func TestGetAuthMechanismsForServer(t *testing.T) {
 					},
 				},
 			},
-			expectedAuthMechanisms: []*grpcpb.AuthenticationMechanism{
-				&grpcpb.AuthenticationMechanism{
+			expectedAuthMechanisms: []*s2apb.AuthenticationMechanism{
+				&s2apb.AuthenticationMechanism{
 					Identity: &commonpb.Identity{
 						IdentityOneof: &commonpb.Identity_SpiffeId{
 							SpiffeId: "allowed_spiffe_id",
 						},
 					},
-					MechanismOneof: &grpcpb.AuthenticationMechanism_Token{
+					MechanismOneof: &s2apb.AuthenticationMechanism_Token{
 						Token: testAccessToken,
 					},
 				},

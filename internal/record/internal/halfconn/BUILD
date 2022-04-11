@@ -31,9 +31,9 @@ go_library(
         "expander.go",
         "halfconn.go",
     ],
-    importpath = "github.com/s2a-go/internal/record/internal/halfconn",
+    importpath = "github.com/google/s2a-go/internal/record/internal/halfconn",
     deps = [
-        "//internal/proto:common_go_proto",
+        "//internal/proto/common_go_proto:common_go_proto",
         "//internal/record/internal/aeadcrypter",
         "@org_golang_x_crypto//cryptobyte",
         "@org_golang_x_crypto//hkdf",
@@ -51,7 +51,7 @@ go_test(
     ],
     embed = [":halfconn"],
     deps = [
-        "//internal/proto:common_go_proto",
+        "//internal/proto/common_go_proto:common_go_proto",
         "//internal/record/internal/aeadcrypter",
         "//internal/record/internal/aeadcrypter/testutil",
     ],

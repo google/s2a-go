@@ -23,13 +23,13 @@ import (
 	"fmt"
 	"testing"
 
-	commonpb "github.com/s2a-go/internal/proto/common_go_proto"
-	grpcpb "github.com/s2a-go/internal/proto/s2a_go_grpc_proto"
+	commonpb "github.com/google/s2a-go/internal/proto/common_go_proto"
+	s2apb "github.com/google/s2a-go/internal/proto/s2a_go_proto"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/protobuf/testing/protocmp"
-	"github.com/s2a-go/internal/tokenmanager"
+	"github.com/google/s2a-go/internal/tokenmanager"
 )
 
 const (
@@ -45,7 +45,7 @@ type fakeStream struct {
 	returnRecvErr bool
 }
 
-func (fs *fakeStream) Send(req *grpcpb.SessionReq) error {
+func (fs *fakeStream) Send(req *s2apb.SessionReq) error {
 	if len(req.GetResumptionTicket().GetInBytes()) == 0 {
 		return errors.New("fakeStream Send received an empty InBytes")
 	}
@@ -58,17 +58,17 @@ func (fs *fakeStream) Send(req *grpcpb.SessionReq) error {
 	return nil
 }
 
-func (fs *fakeStream) Recv() (*grpcpb.SessionResp, error) {
+func (fs *fakeStream) Recv() (*s2apb.SessionResp, error) {
 	if fs.returnRecvErr {
 		return nil, errors.New("fakeStream Recv error")
 	}
 	if fs.returnInvalid {
-		return &grpcpb.SessionResp{
-			Status: &grpcpb.SessionStatus{Code: uint32(codes.InvalidArgument)},
+		return &s2apb.SessionResp{
+			Status: &s2apb.SessionStatus{Code: uint32(codes.InvalidArgument)},
 		}, nil
 	}
-	return &grpcpb.SessionResp{
-		Status: &grpcpb.SessionStatus{Code: uint32(codes.OK)},
+	return &s2apb.SessionResp{
+		Status: &s2apb.SessionStatus{Code: uint32(codes.OK)},
 	}, nil
 }
 
@@ -129,12 +129,12 @@ func TestWriteTicketsToStream(t *testing.T) {
 }
 
 func TestGetAuthMechanism(t *testing.T) {
-	sortProtos := cmpopts.SortSlices(func(m1, m2 *grpcpb.AuthenticationMechanism) bool { return m1.String() < m2.String() })
+	sortProtos := cmpopts.SortSlices(func(m1, m2 *s2apb.AuthenticationMechanism) bool { return m1.String() < m2.String() })
 	for _, tc := range []struct {
 		description            string
 		localIdentity          *commonpb.Identity
 		tokenManager           tokenmanager.AccessTokenManager
-		expectedAuthMechanisms []*grpcpb.AuthenticationMechanism
+		expectedAuthMechanisms []*s2apb.AuthenticationMechanism
 	}{
 		{
 			description:            "token manager is nil",
@@ -147,9 +147,9 @@ func TestGetAuthMechanism(t *testing.T) {
 				accessToken:        testAccessToken,
 				allowEmptyIdentity: true,
 			},
-			expectedAuthMechanisms: []*grpcpb.AuthenticationMechanism{
-				&grpcpb.AuthenticationMechanism{
-					MechanismOneof: &grpcpb.AuthenticationMechanism_Token{
+			expectedAuthMechanisms: []*s2apb.AuthenticationMechanism{
+				&s2apb.AuthenticationMechanism{
+					MechanismOneof: &s2apb.AuthenticationMechanism_Token{
 						Token: testAccessToken,
 					},
 				},
@@ -177,14 +177,14 @@ func TestGetAuthMechanism(t *testing.T) {
 					},
 				},
 			},
-			expectedAuthMechanisms: []*grpcpb.AuthenticationMechanism{
-				&grpcpb.AuthenticationMechanism{
+			expectedAuthMechanisms: []*s2apb.AuthenticationMechanism{
+				&s2apb.AuthenticationMechanism{
 					Identity: &commonpb.Identity{
 						IdentityOneof: &commonpb.Identity_SpiffeId{
 							SpiffeId: "allowed_spiffe_id",
 						},
 					},
-					MechanismOneof: &grpcpb.AuthenticationMechanism_Token{
+					MechanismOneof: &s2apb.AuthenticationMechanism_Token{
 						Token: testAccessToken,
 					},
 				},

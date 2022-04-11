@@ -28,10 +28,10 @@ import (
 	"net"
 	"sync"
 
-	commonpb "github.com/s2a-go/internal/proto/common_go_proto"
+	commonpb "github.com/google/s2a-go/internal/proto/common_go_proto"
 	"google.golang.org/grpc/grpclog"
-	"github.com/s2a-go/internal/record/internal/halfconn"
-	"github.com/s2a-go/internal/tokenmanager"
+	"github.com/google/s2a-go/internal/record/internal/halfconn"
+	"github.com/google/s2a-go/internal/tokenmanager"
 )
 
 // recordType is the `ContentType` as described in

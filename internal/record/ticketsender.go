@@ -24,13 +24,12 @@ import (
 	"sync"
 	"time"
 
-	commonpb "github.com/s2a-go/internal/proto/common_go_proto"
-	grpcpb "github.com/s2a-go/internal/proto/s2a_go_grpc_proto"
-	
+	commonpb "github.com/google/s2a-go/internal/proto/common_go_proto"
+	s2apb "github.com/google/s2a-go/internal/proto/s2a_go_proto"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/grpclog"
-	"github.com/s2a-go/internal/handshaker/service"
-	"github.com/s2a-go/internal/tokenmanager"
+	"github.com/google/s2a-go/internal/handshaker/service"
+	"github.com/google/s2a-go/internal/tokenmanager"
 )
 
 // sessionTimeout is the timeout for creating a session with the S2A handshaker
@@ -46,8 +45,8 @@ type s2aTicketSender interface {
 
 // ticketStream is the stream used to send and receive session information.
 type ticketStream interface {
-	Send(*grpcpb.SessionReq) error
-	Recv() (*grpcpb.SessionResp, error)
+	Send(*s2apb.SessionReq) error
+	Recv() (*s2apb.SessionResp, error)
 }
 
 type ticketSender struct {
@@ -88,7 +87,7 @@ func (t *ticketSender) sendTicketsToS2A(sessionTickets [][]byte, callComplete ch
 			if err != nil {
 				return err
 			}
-			client := grpcpb.NewS2AServiceClient(hsConn)
+			client := s2apb.NewS2AServiceClient(hsConn)
 			ctx, cancel := context.WithTimeout(context.Background(), sessionTimeout)
 			defer cancel()
 			session, err := client.SetUpSession(ctx)
@@ -113,9 +112,9 @@ func (t *ticketSender) sendTicketsToS2A(sessionTickets [][]byte, callComplete ch
 // writeTicketsToStream writes the given session tickets to the given stream.
 func (t *ticketSender) writeTicketsToStream(stream ticketStream, sessionTickets [][]byte) error {
 	if err := stream.Send(
-		&grpcpb.SessionReq{
-			ReqOneof: &grpcpb.SessionReq_ResumptionTicket{
-				ResumptionTicket: &grpcpb.ResumptionTicketReq{
+		&s2apb.SessionReq{
+			ReqOneof: &s2apb.SessionReq_ResumptionTicket{
+				ResumptionTicket: &s2apb.ResumptionTicketReq{
 					InBytes:       sessionTickets,
 					ConnectionId:  t.connectionID,
 					LocalIdentity: t.localIdentity,
@@ -137,7 +136,7 @@ func (t *ticketSender) writeTicketsToStream(stream ticketStream, sessionTickets 
 	return nil
 }
 
-func (t *ticketSender) getAuthMechanisms() []*grpcpb.AuthenticationMechanism {
+func (t *ticketSender) getAuthMechanisms() []*s2apb.AuthenticationMechanism {
 	if t.tokenManager == nil {
 		return nil
 	}
@@ -150,9 +149,9 @@ func (t *ticketSender) getAuthMechanisms() []*grpcpb.AuthenticationMechanism {
 			grpclog.Infof("unable to get token for empty local identity: %v", err)
 			return nil
 		}
-		return []*grpcpb.AuthenticationMechanism{
-			&grpcpb.AuthenticationMechanism{
-				MechanismOneof: &grpcpb.AuthenticationMechanism_Token{
+		return []*s2apb.AuthenticationMechanism{
+			&s2apb.AuthenticationMechanism{
+				MechanismOneof: &s2apb.AuthenticationMechanism_Token{
 					Token: token,
 				},
 			},
@@ -166,10 +165,10 @@ func (t *ticketSender) getAuthMechanisms() []*grpcpb.AuthenticationMechanism {
 		grpclog.Infof("unable to get token for local identity %v: %v", t.localIdentity, err)
 		return nil
 	}
-	return []*grpcpb.AuthenticationMechanism{
-		&grpcpb.AuthenticationMechanism{
+	return []*s2apb.AuthenticationMechanism{
+		&s2apb.AuthenticationMechanism{
 			Identity: t.localIdentity,
-			MechanismOneof: &grpcpb.AuthenticationMechanism_Token{
+			MechanismOneof: &s2apb.AuthenticationMechanism_Token{
 				Token: token,
 			},
 		},

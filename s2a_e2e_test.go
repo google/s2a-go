@@ -28,15 +28,14 @@ import (
 	"testing"
 	"time"
 
-	commonpb "github.com/s2a-go/internal/proto/common_go_proto"
-	grpcpb "github.com/s2a-go/internal/proto/s2a_go_grpc_proto"
+	commonpb "github.com/google/s2a-go/internal/proto/common_go_proto"
+	s2apb "github.com/google/s2a-go/internal/proto/s2a_go_proto"
 	"google.golang.org/grpc/credentials"
 	grpc "google.golang.org/grpc"
 	"google.golang.org/grpc/grpclog"
 	"google.golang.org/grpc/peer"
-	"github.com/s2a-go/internal/fakehandshaker/service"
-	helloworldgrpcpb "github.com/s2a-go/internal/proto/examples/helloworld_go_grpc_proto"
-	
+	"github.com/google/s2a-go/internal/fakehandshaker/service"
+	helloworldpb "github.com/google/s2a-go/internal/proto/examples/helloworld_go_proto"
 )
 
 const (
@@ -52,12 +51,12 @@ const (
 
 // server is used to implement helloworld.GreeterServer.
 type server struct {
-	helloworldgrpcpb.UnimplementedGreeterServer
+	helloworldpb.UnimplementedGreeterServer
 }
 
 // SayHello implements helloworld.GreeterServer.
-func (s *server) SayHello(_ context.Context, in *helloworldgrpcpb.HelloRequest) (*helloworldgrpcpb.HelloReply, error) {
-	return &helloworldgrpcpb.HelloReply{Message: "Hello " + in.GetName()}, nil
+func (s *server) SayHello(_ context.Context, in *helloworldpb.HelloRequest) (*helloworldpb.HelloReply, error) {
+	return &helloworldpb.HelloReply{Message: "Hello " + in.GetName()}, nil
 }
 
 // startFakeS2A starts up a fake S2A and returns the address that it is listening on.
@@ -67,7 +66,7 @@ func startFakeS2A(t *testing.T) string {
 		t.Errorf("net.Listen(tcp, :0) failed: %v", err)
 	}
 	s := grpc.NewServer()
-	grpcpb.RegisterS2AServiceServer(s, &service.FakeHandshakerService{})
+	s2apb.RegisterS2AServiceServer(s, &service.FakeHandshakerService{})
 	go func() {
 		if err := s.Serve(lis); err != nil {
 			t.Errorf("s.Serve(%v) failed: %v", lis, err)
@@ -87,7 +86,7 @@ func startFakeS2AOnUDS(t *testing.T) string {
 		t.Errorf("net.Listen(unix, %s) failed: %v", udsAddress, err)
 	}
 	s := grpc.NewServer()
-	grpcpb.RegisterS2AServiceServer(s, &service.FakeHandshakerService{})
+	s2apb.RegisterS2AServiceServer(s, &service.FakeHandshakerService{})
 	go func() {
 		if err := s.Serve(lis); err != nil {
 			t.Errorf("s.Serve(%v) failed: %v", lis, err)
@@ -113,7 +112,7 @@ func startServer(t *testing.T, s2aAddress string) string {
 		t.Errorf("net.Listen(tcp, :0) failed: %v", err)
 	}
 	s := grpc.NewServer(grpc.Creds(creds))
-	helloworldgrpcpb.RegisterGreeterServer(s, &server{})
+	helloworldpb.RegisterGreeterServer(s, &server{})
 	go func() {
 		if err := s.Serve(lis); err != nil {
 			t.Errorf("s.Serve(%v) failed: %v", lis, err)
@@ -148,8 +147,8 @@ func runClient(ctx context.Context, t *testing.T, clientS2AAddress, serverAddr s
 
 	// Contact the server.
 	peer := new(peer.Peer)
-	c := helloworldgrpcpb.NewGreeterClient(conn)
-	req := &helloworldgrpcpb.HelloRequest{Name: clientMessage}
+	c := helloworldpb.NewGreeterClient(conn)
+	req := &helloworldpb.HelloRequest{Name: clientMessage}
 	grpclog.Infof("client calling SayHello with request: %v", req)
 	resp, err := c.SayHello(ctx, req, grpc.Peer(peer), grpc.WaitForReady(true))
 	if err != nil {

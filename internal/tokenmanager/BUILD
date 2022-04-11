@@ -26,8 +26,8 @@ package(
 go_library(
     name = "tokenmanager",
     srcs = ["tokenmanager.go"],
-    importpath = "github.com/s2a-go/internal/tokenmanager",
-    deps = ["//internal/proto:common_go_proto"],
+    importpath = "github.com/google/s2a-go/internal/tokenmanager",
+    deps = ["//internal/proto/common_go_proto:common_go_proto"],
 )
 
 go_test(
@@ -35,5 +35,5 @@ go_test(
     size = "small",
     srcs = ["tokenmanager_test.go"],
     embed = [":tokenmanager"],
-    deps = ["//internal/proto:common_go_proto"],
+    deps = ["//internal/proto/common_go_proto:common_go_proto"],
 )

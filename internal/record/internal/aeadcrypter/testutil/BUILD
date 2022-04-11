@@ -29,5 +29,5 @@ go_library(
         "common.go",
         "wycheproofutil.go",
     ],
-    importpath = "github.com/s2a-go/internal/record/internal/aeadcrypter/testutil",
+    importpath = "github.com/google/s2a-go/internal/record/internal/aeadcrypter/testutil",
 )

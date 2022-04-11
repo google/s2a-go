@@ -26,9 +26,8 @@ import (
 
 	"google.golang.org/grpc/codes"
 
-	commonpb "github.com/s2a-go/internal/proto/common_go_proto"
-	grpcpb "github.com/s2a-go/internal/proto/s2a_go_grpc_proto"
-	
+	commonpb "github.com/google/s2a-go/internal/proto/common_go_proto"
+	s2apb "github.com/google/s2a-go/internal/proto/s2a_go_proto"
 )
 
 type handshakeState int
@@ -61,9 +60,11 @@ const (
 	outKey = "kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk"
 )
 
-// FakeHandshakerService implements the grpcpb.S2AServiceServer. The fake
+// FakeHandshakerService implements the s2apb.S2AServiceServer. The fake
 // handshaker service should not be used by more than 1 application at a time.
 type FakeHandshakerService struct {
+	s2apb.S2AServiceServer
+
 	assistingClient bool
 	state           handshakeState
 	peerIdentity    *commonpb.Identity
@@ -71,7 +72,7 @@ type FakeHandshakerService struct {
 }
 
 // SetUpSession sets up the S2A session.
-func (hs *FakeHandshakerService) SetUpSession(stream grpcpb.S2AService_SetUpSessionServer) error {
+func (hs *FakeHandshakerService) SetUpSession(stream s2apb.S2AService_SetUpSessionServer) error {
 	for {
 		sessionReq, err := stream.Recv()
 		if err != nil {
@@ -81,16 +82,16 @@ func (hs *FakeHandshakerService) SetUpSession(stream grpcpb.S2AService_SetUpSess
 			return fmt.Errorf("S2A cannot authenticate the request: %v", err)
 		}
 
-		var resp *grpcpb.SessionResp
+		var resp *s2apb.SessionResp
 		receivedTicket := false
 		switch req := sessionReq.ReqOneof.(type) {
-		case *grpcpb.SessionReq_ClientStart:
+		case *s2apb.SessionReq_ClientStart:
 			resp = hs.processClientStart(req)
-		case *grpcpb.SessionReq_ServerStart:
+		case *s2apb.SessionReq_ServerStart:
 			resp = hs.processServerStart(req)
-		case *grpcpb.SessionReq_Next:
+		case *s2apb.SessionReq_Next:
 			resp = hs.processNext(req)
-		case *grpcpb.SessionReq_ResumptionTicket:
+		case *s2apb.SessionReq_ResumptionTicket:
 			resp = hs.processResumptionTicket(req)
 			receivedTicket = true
 		default:
@@ -108,10 +109,10 @@ func (hs *FakeHandshakerService) SetUpSession(stream grpcpb.S2AService_SetUpSess
 }
 
 // processClientStart processes a ClientSessionStartReq.
-func (hs *FakeHandshakerService) processClientStart(req *grpcpb.SessionReq_ClientStart) *grpcpb.SessionResp {
-	resp := grpcpb.SessionResp{}
+func (hs *FakeHandshakerService) processClientStart(req *s2apb.SessionReq_ClientStart) *s2apb.SessionResp {
+	resp := s2apb.SessionResp{}
 	if hs.state != initial {
-		resp.Status = &grpcpb.SessionStatus{
+		resp.Status = &s2apb.SessionStatus{
 			Code:    uint32(codes.FailedPrecondition),
 			Details: "client start handshake not in initial state",
 		}
@@ -119,21 +120,21 @@ func (hs *FakeHandshakerService) processClientStart(req *grpcpb.SessionReq_Clien
 	}
 	if len(req.ClientStart.GetApplicationProtocols()) != 1 ||
 		req.ClientStart.GetApplicationProtocols()[0] != grpcAppProtocol {
-		resp.Status = &grpcpb.SessionStatus{
+		resp.Status = &s2apb.SessionStatus{
 			Code:    uint32(codes.InvalidArgument),
 			Details: "application protocol was not grpc",
 		}
 		return &resp
 	}
 	if req.ClientStart.GetMaxTlsVersion() != commonpb.TLSVersion_TLS1_3 {
-		resp.Status = &grpcpb.SessionStatus{
+		resp.Status = &s2apb.SessionStatus{
 			Code:    uint32(codes.InvalidArgument),
 			Details: "max TLS version must be 1.3",
 		}
 		return &resp
 	}
 	if req.ClientStart.GetMinTlsVersion() != commonpb.TLSVersion_TLS1_3 {
-		resp.Status = &grpcpb.SessionStatus{
+		resp.Status = &s2apb.SessionStatus{
 			Code:    uint32(codes.InvalidArgument),
 			Details: "min TLS version must be 1.3",
 		}
@@ -141,7 +142,7 @@ func (hs *FakeHandshakerService) processClientStart(req *grpcpb.SessionReq_Clien
 	}
 	resp.OutFrames = []byte(clientHelloFrame)
 	resp.BytesConsumed = 0
-	resp.Status = &grpcpb.SessionStatus{Code: uint32(codes.OK)}
+	resp.Status = &s2apb.SessionStatus{Code: uint32(codes.OK)}
 	hs.localIdentity = req.ClientStart.LocalIdentity
 	if len(req.ClientStart.TargetIdentities) > 0 {
 		hs.peerIdentity = req.ClientStart.TargetIdentities[0]
@@ -152,10 +153,10 @@ func (hs *FakeHandshakerService) processClientStart(req *grpcpb.SessionReq_Clien
 }
 
 // processServerStart processes a ServerSessionStartReq.
-func (hs *FakeHandshakerService) processServerStart(req *grpcpb.SessionReq_ServerStart) *grpcpb.SessionResp {
-	resp := grpcpb.SessionResp{}
+func (hs *FakeHandshakerService) processServerStart(req *s2apb.SessionReq_ServerStart) *s2apb.SessionResp {
+	resp := s2apb.SessionResp{}
 	if hs.state != initial {
-		resp.Status = &grpcpb.SessionStatus{
+		resp.Status = &s2apb.SessionStatus{
 			Code:    uint32(codes.FailedPrecondition),
 			Details: "server start handshake not in initial state",
 		}
@@ -163,21 +164,21 @@ func (hs *FakeHandshakerService) processServerStart(req *grpcpb.SessionReq_Serve
 	}
 	if len(req.ServerStart.GetApplicationProtocols()) != 1 ||
 		req.ServerStart.GetApplicationProtocols()[0] != grpcAppProtocol {
-		resp.Status = &grpcpb.SessionStatus{
+		resp.Status = &s2apb.SessionStatus{
 			Code:    uint32(codes.InvalidArgument),
 			Details: "application protocol was not grpc",
 		}
 		return &resp
 	}
 	if req.ServerStart.GetMaxTlsVersion() != commonpb.TLSVersion_TLS1_3 {
-		resp.Status = &grpcpb.SessionStatus{
+		resp.Status = &s2apb.SessionStatus{
 			Code:    uint32(codes.InvalidArgument),
 			Details: "max TLS version must be 1.3",
 		}
 		return &resp
 	}
 	if req.ServerStart.GetMinTlsVersion() != commonpb.TLSVersion_TLS1_3 {
-		resp.Status = &grpcpb.SessionStatus{
+		resp.Status = &s2apb.SessionStatus{
 			Code:    uint32(codes.InvalidArgument),
 			Details: "min TLS version must be 1.3",
 		}
@@ -191,14 +192,14 @@ func (hs *FakeHandshakerService) processServerStart(req *grpcpb.SessionReq_Serve
 		resp.BytesConsumed = uint32(len(clientHelloFrame))
 		hs.state = sent
 	} else {
-		resp.Status = &grpcpb.SessionStatus{
+		resp.Status = &s2apb.SessionStatus{
 			Code:    uint32(codes.Internal),
 			Details: "server start request did not have the correct input bytes",
 		}
 		return &resp
 	}
 
-	resp.Status = &grpcpb.SessionStatus{Code: uint32(codes.OK)}
+	resp.Status = &s2apb.SessionStatus{Code: uint32(codes.OK)}
 	if len(req.ServerStart.LocalIdentities) > 0 {
 		hs.localIdentity = req.ServerStart.LocalIdentities[0]
 	}
@@ -207,18 +208,18 @@ func (hs *FakeHandshakerService) processServerStart(req *grpcpb.SessionReq_Serve
 }
 
 // processNext processes a SessionNext request.
-func (hs *FakeHandshakerService) processNext(req *grpcpb.SessionReq_Next) *grpcpb.SessionResp {
-	resp := grpcpb.SessionResp{}
+func (hs *FakeHandshakerService) processNext(req *s2apb.SessionReq_Next) *s2apb.SessionResp {
+	resp := s2apb.SessionResp{}
 	if hs.assistingClient {
 		if hs.state != sent {
-			resp.Status = &grpcpb.SessionStatus{
+			resp.Status = &s2apb.SessionStatus{
 				Code:    uint32(codes.FailedPrecondition),
 				Details: "client handshake was not in sent state",
 			}
 			return &resp
 		}
 		if !bytes.Equal(req.Next.InBytes, []byte(serverFrame)) {
-			resp.Status = &grpcpb.SessionStatus{
+			resp.Status = &s2apb.SessionStatus{
 				Code:    uint32(codes.Internal),
 				Details: "client request did not match server frame",
 			}
@@ -230,7 +231,7 @@ func (hs *FakeHandshakerService) processNext(req *grpcpb.SessionReq_Next) *grpcp
 	} else {
 		if hs.state == started {
 			if !bytes.Equal(req.Next.InBytes, []byte(clientHelloFrame)) {
-				resp.Status = &grpcpb.SessionStatus{
+				resp.Status = &s2apb.SessionStatus{
 					Code:    uint32(codes.Internal),
 					Details: "server request did not match client hello frame",
 				}
@@ -241,7 +242,7 @@ func (hs *FakeHandshakerService) processNext(req *grpcpb.SessionReq_Next) *grpcp
 			hs.state = sent
 		} else if hs.state == sent {
 			if !bytes.Equal(req.Next.InBytes[:len(clientFinishedFrame)], []byte(clientFinishedFrame)) {
-				resp.Status = &grpcpb.SessionStatus{
+				resp.Status = &s2apb.SessionStatus{
 					Code:    uint32(codes.Internal),
 					Details: "server request did not match client finished frame",
 				}
@@ -250,14 +251,14 @@ func (hs *FakeHandshakerService) processNext(req *grpcpb.SessionReq_Next) *grpcp
 			resp.BytesConsumed = uint32(len(clientFinishedFrame))
 			hs.state = completed
 		} else {
-			resp.Status = &grpcpb.SessionStatus{
+			resp.Status = &s2apb.SessionStatus{
 				Code:    uint32(codes.FailedPrecondition),
 				Details: "server request was not in expected state",
 			}
 			return &resp
 		}
 	}
-	resp.Status = &grpcpb.SessionStatus{Code: uint32(codes.OK)}
+	resp.Status = &s2apb.SessionStatus{Code: uint32(codes.OK)}
 	if hs.state == completed {
 		resp.Result = hs.getSessionResult()
 	}
@@ -265,17 +266,17 @@ func (hs *FakeHandshakerService) processNext(req *grpcpb.SessionReq_Next) *grpcp
 }
 
 // processResumptionTicket processes a ResumptionTicketReq request.
-func (hs *FakeHandshakerService) processResumptionTicket(req *grpcpb.SessionReq_ResumptionTicket) *grpcpb.SessionResp {
-	return &grpcpb.SessionResp{
-		Status: &grpcpb.SessionStatus{Code: uint32(codes.OK)},
+func (hs *FakeHandshakerService) processResumptionTicket(req *s2apb.SessionReq_ResumptionTicket) *s2apb.SessionResp {
+	return &s2apb.SessionResp{
+		Status: &s2apb.SessionStatus{Code: uint32(codes.OK)},
 	}
 }
 
 // getSessionResult returns a dummy SessionResult.
-func (hs *FakeHandshakerService) getSessionResult() *grpcpb.SessionResult {
-	res := grpcpb.SessionResult{}
+func (hs *FakeHandshakerService) getSessionResult() *s2apb.SessionResult {
+	res := s2apb.SessionResult{}
 	res.ApplicationProtocol = grpcAppProtocol
-	res.State = &grpcpb.SessionState{
+	res.State = &s2apb.SessionState{
 		TlsVersion:     commonpb.TLSVersion_TLS1_3,
 		TlsCiphersuite: commonpb.Ciphersuite_AES_128_GCM_SHA256,
 		InKey:          []byte(inKey),
@@ -286,7 +287,7 @@ func (hs *FakeHandshakerService) getSessionResult() *grpcpb.SessionResult {
 	return &res
 }
 
-func (hs *FakeHandshakerService) authenticateRequest(request *grpcpb.SessionReq) error {
+func (hs *FakeHandshakerService) authenticateRequest(request *s2apb.SessionReq) error {
 	// If the S2A_ACCESS_TOKEN environment variable has not been set, then do not
 	// enforce anything on the request.
 	acceptedToken := os.Getenv(accessTokenEnvVariable)

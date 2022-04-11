@@ -23,7 +23,7 @@ import (
 	"fmt"
 	"os"
 
-	commonpb "github.com/s2a-go/internal/proto/common_go_proto"
+	commonpb "github.com/google/s2a-go/internal/proto/common_go_proto"
 )
 
 const (
