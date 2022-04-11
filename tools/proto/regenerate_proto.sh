@@ -29,9 +29,11 @@ mv internal/proto/common.pb.go internal/proto/common_go_proto/common.pb.go
 mkdir -p internal/proto/s2a_go_proto
 mv internal/proto/s2a.pb.go internal/proto/s2a_go_proto/s2a.pb.go
 mv internal/proto/s2a_grpc.pb.go internal/proto/s2a_go_proto/s2a_grpc.pb.go
+sed -i 's/common_go_proto \"github.com\/google\/s2a\/internal\/proto\/common_go_proto\"/common_go_proto \"github.com\/google\/s2a-go\/internal\/proto\/common_go_proto\"/g' internal/proto/s2a_go_proto/s2a.pb.go
 
 mkdir -p internal/proto/s2a_context_go_proto
 mv internal/proto/s2a_context.pb.go internal/proto/s2a_context_go_proto/s2a_context.pb.go
+sed -i 's/common_go_proto \"github.com\/google\/s2a\/internal\/proto\/common_go_proto\"/common_go_proto \"github.com\/google\/s2a-go\/internal\/proto\/common_go_proto\"/g' internal/proto/s2a_context_go_proto/s2a_context.pb.go
 
 # Regenerate the example protos.
 protoc --go_out=. --go_opt=paths=source_relative \
