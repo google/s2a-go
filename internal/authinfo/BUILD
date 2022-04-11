@@ -26,8 +26,6 @@ package(
 go_library(
     name = "authinfo",
     srcs = ["authinfo.go"],
-    # The "importpath" field must be set when using the OSS go_library rule,
-    # but must be commented out otherwise.
     importpath = "github.com/google/s2a-go/internal/authinfo",
     deps = [
         "//internal/proto/common_go_proto:common_go_proto",
@@ -48,3 +46,4 @@ go_test(
         "@org_golang_google_grpc//credentials:go_default_library",
     ],
 )
+

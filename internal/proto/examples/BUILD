@@ -29,16 +29,12 @@ proto_library(
 
 go_proto_library(
     name = "helloworld_go_proto",
-    # The "importpath" field must be set when using the OSS go_library rule,
-    # but must be commented out otherwise.
     importpath = "github.com/google/s2a-go/internal/proto/examples/helloworld_go_proto",
     protos = [":helloworld_proto"],
 )
 
 go_grpc_library(
     name = "helloworld_go_grpc_proto",
-    # The "importpath" field must be set when using the OSS go_library rule,
-    # but must be commented out otherwise.
     importpath = "github.com/google/s2a-go/internal/proto/examples/helloworld_go_grpc_proto",
     protos = [":helloworld_proto"],
 )

@@ -29,7 +29,5 @@ go_library(
         "common.go",
         "wycheproofutil.go",
     ],
-    # The "importpath" field must be set when using the OSS go_library rule,
-    # but must be commented out otherwise.
     importpath = "github.com/google/s2a-go/internal/record/internal/aeadcrypter/testutil",
 )

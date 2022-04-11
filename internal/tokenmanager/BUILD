@@ -26,8 +26,6 @@ package(
 go_library(
     name = "tokenmanager",
     srcs = ["tokenmanager.go"],
-    # The "importpath" field must be set when using the OSS go_library rule,
-    # but must be commented out otherwise.
     importpath = "github.com/google/s2a-go/internal/tokenmanager",
     deps = ["//internal/proto/common_go_proto:common_go_proto"],
 )
