@@ -31,10 +31,9 @@ import (
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/grpclog"
 	"github.com/golang/protobuf/proto"
-	"github.com/s2a-go/internal/handshaker"
-	"github.com/s2a-go/internal/handshaker/service"
-
-	commonpb "github.com/s2a-go/internal/proto/common_go_proto"
+	"github.com/google/s2a-go/internal/handshaker"
+	"github.com/google/s2a-go/internal/handshaker/service"
+	commonpb "github.com/google/s2a-go/internal/proto/common_go_proto"
 )
 
 const (

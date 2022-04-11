@@ -28,12 +28,11 @@ go_library(
     srcs = ["handshaker.go"],
     # The "importpath" field must be set when using the OSS go_library rule,
     # but must be commented out otherwise.
-    importpath = "github.com/s2a-go/internal/handshaker",
+    importpath = "github.com/google/s2a-go/internal/handshaker",
     deps = [
         "//internal/authinfo",
-        "//internal/proto:common_go_proto",
-        "//internal/proto:s2a_go_grpc_proto",
-        "//internal/proto:s2a_go_proto",
+        "//internal/proto/common_go_proto:common_go_proto",
+        "//internal/proto/s2a_go_proto:s2a_go_proto",
         "//internal/record",
         "//internal/tokenmanager",
         "@org_golang_google_grpc//:go_default_library",
@@ -50,9 +49,8 @@ go_test(
     srcs = ["handshaker_test.go"],
     embed = [":handshaker"],
     deps = [
-        "//internal/proto:common_go_proto",
-        "//internal/proto:s2a_go_grpc_proto",
-        "//internal/proto:s2a_go_proto",
+        "//internal/proto/common_go_proto:common_go_proto",
+        "//internal/proto/s2a_go_proto:s2a_go_proto",
         "//internal/tokenmanager",
         "@com_github_google_go_cmp//cmp:go_default_library",
         "@com_github_google_go_cmp//cmp/cmpopts:go_default_library",

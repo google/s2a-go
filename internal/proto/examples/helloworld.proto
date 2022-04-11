@@ -16,6 +16,8 @@ syntax = "proto3";
 
 package s2a.examples;
 
+option go_package = "github.com/google/s2a/internal/proto/examples/helloworld_go_proto";
+
 // The greeting service definition.
 service Greeter {
   // A unary RPC.

@@ -28,12 +28,11 @@ go_library(
     srcs = ["authinfo.go"],
     # The "importpath" field must be set when using the OSS go_library rule,
     # but must be commented out otherwise.
-    importpath = "github.com/s2a-go/internal/authinfo",
+    importpath = "github.com/google/s2a-go/internal/authinfo",
     deps = [
-        "//internal/proto:common_go_proto",
-        "//internal/proto:s2a_context_go_proto",
-        "//internal/proto:s2a_go_grpc_proto",
-        "//internal/proto:s2a_go_proto",
+        "//internal/proto/common_go_proto:common_go_proto",
+        "//internal/proto/s2a_context_go_proto:s2a_context_go_proto",
+        "//internal/proto/s2a_go_proto:s2a_go_proto",
         "@org_golang_google_grpc//credentials:go_default_library",
     ],
 )
@@ -44,9 +43,8 @@ go_test(
     srcs = ["authinfo_test.go"],
     embed = [":authinfo"],
     deps = [
-        "//internal/proto:common_go_proto",
-        "//internal/proto:s2a_go_grpc_proto",
-        "//internal/proto:s2a_go_proto",
+        "//internal/proto/common_go_proto:common_go_proto",
+        "//internal/proto/s2a_go_proto:s2a_go_proto",
         "@org_golang_google_grpc//credentials:go_default_library",
     ],
 )

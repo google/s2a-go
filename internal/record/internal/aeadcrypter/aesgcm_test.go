@@ -22,7 +22,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/s2a-go/internal/record/internal/aeadcrypter/testutil"
+	"github.com/google/s2a-go/internal/record/internal/aeadcrypter/testutil"
 )
 
 // getGCMCryptoPair outputs a sender/receiver pair on AES-GCM.

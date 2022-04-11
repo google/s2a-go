@@ -33,7 +33,7 @@ go_library(
     ],
     # The "importpath" field must be set when using the OSS go_library rule,
     # but must be commented out otherwise.
-    importpath = "github.com/s2a-go/internal/record/internal/aeadcrypter",
+    importpath = "github.com/google/s2a-go/internal/record/internal/aeadcrypter",
     deps = ["@org_golang_x_crypto//chacha20poly1305"],
 )
 

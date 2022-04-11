@@ -28,11 +28,10 @@ go_library(
     srcs = ["s2a_service.go"],
     # The "importpath" field must be set when using the OSS go_library rule,
     # but must be commented out otherwise.
-    importpath = "github.com/s2a-go/internal/fakehandshaker/service",
+    importpath = "github.com/google/s2a-go/internal/fakehandshaker/service",
     deps = [
-        "//internal/proto:common_go_proto",
-        "//internal/proto:s2a_go_grpc_proto",
-        "//internal/proto:s2a_go_proto",
+        "//internal/proto/common_go_proto:common_go_proto",
+        "//internal/proto/s2a_go_proto:s2a_go_proto",
         "@org_golang_google_grpc//codes:go_default_library",
     ],
 )
@@ -43,9 +42,8 @@ go_test(
     srcs = ["s2a_service_test.go"],
     embed = [":service"],
     deps = [
-        "//internal/proto:common_go_proto",
-        "//internal/proto:s2a_go_grpc_proto",
-        "//internal/proto:s2a_go_proto",
+        "//internal/proto/common_go_proto:common_go_proto",
+        "//internal/proto/s2a_go_proto:s2a_go_proto",
         "@com_github_google_go_cmp//cmp:go_default_library",
         "@org_golang_google_grpc//:go_default_library",
         "@org_golang_google_grpc//codes:go_default_library",

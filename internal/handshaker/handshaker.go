@@ -27,16 +27,15 @@ import (
 	"net"
 	"sync"
 
-	commonpb "github.com/s2a-go/internal/proto/common_go_proto"
-	grpcpb "github.com/s2a-go/internal/proto/s2a_go_grpc_proto"
-	
+	commonpb "github.com/google/s2a-go/internal/proto/common_go_proto"
+	s2apb "github.com/google/s2a-go/internal/proto/s2a_go_proto"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials"
 	grpc "google.golang.org/grpc"
 	"google.golang.org/grpc/grpclog"
-	"github.com/s2a-go/internal/authinfo"
-	record "github.com/s2a-go/internal/record"
-	"github.com/s2a-go/internal/tokenmanager"
+	"github.com/google/s2a-go/internal/authinfo"
+	"github.com/google/s2a-go/internal/record"
+	"github.com/google/s2a-go/internal/tokenmanager"
 )
 
 var (
@@ -105,7 +104,7 @@ type ServerHandshakerOptions struct {
 // s2aHandshaker performs a TLS handshake using the S2A handshaker service.
 type s2aHandshaker struct {
 	// stream is used to communicate with the S2A handshaker service.
-	stream grpcpb.S2AService_SetUpSessionClient
+	stream s2apb.S2AService_SetUpSessionClient
 	// conn is the connection to the peer.
 	conn net.Conn
 	// clientOpts should be non-nil iff the handshaker is client-side.
@@ -127,7 +126,7 @@ type s2aHandshaker struct {
 // NewClientHandshaker creates an s2aHandshaker instance that performs a
 // client-side TLS handshake using the S2A handshaker service.
 func NewClientHandshaker(ctx context.Context, conn *grpc.ClientConn, c net.Conn, hsAddr string, opts *ClientHandshakerOptions) (Handshaker, error) {
-	stream, err := grpcpb.NewS2AServiceClient(conn).SetUpSession(ctx, grpc.WaitForReady(true))
+	stream, err := s2apb.NewS2AServiceClient(conn).SetUpSession(ctx, grpc.WaitForReady(true))
 	if err != nil {
 		return nil, err
 	}
@@ -138,7 +137,7 @@ func NewClientHandshaker(ctx context.Context, conn *grpc.ClientConn, c net.Conn,
 	return newClientHandshaker(stream, c, hsAddr, opts, tokenManager), nil
 }
 
-func newClientHandshaker(stream grpcpb.S2AService_SetUpSessionClient, c net.Conn, hsAddr string, opts *ClientHandshakerOptions, tokenManager tokenmanager.AccessTokenManager) *s2aHandshaker {
+func newClientHandshaker(stream s2apb.S2AService_SetUpSessionClient, c net.Conn, hsAddr string, opts *ClientHandshakerOptions, tokenManager tokenmanager.AccessTokenManager) *s2aHandshaker {
 	var localIdentities []*commonpb.Identity
 	if opts != nil {
 		localIdentities = []*commonpb.Identity{opts.LocalIdentity}
@@ -157,7 +156,7 @@ func newClientHandshaker(stream grpcpb.S2AService_SetUpSessionClient, c net.Conn
 // NewServerHandshaker creates an s2aHandshaker instance that performs a
 // server-side TLS handshake using the S2A handshaker service.
 func NewServerHandshaker(ctx context.Context, conn *grpc.ClientConn, c net.Conn, hsAddr string, opts *ServerHandshakerOptions) (Handshaker, error) {
-	stream, err := grpcpb.NewS2AServiceClient(conn).SetUpSession(ctx, grpc.WaitForReady(true))
+	stream, err := s2apb.NewS2AServiceClient(conn).SetUpSession(ctx, grpc.WaitForReady(true))
 	if err != nil {
 		return nil, err
 	}
@@ -168,7 +167,7 @@ func NewServerHandshaker(ctx context.Context, conn *grpc.ClientConn, c net.Conn,
 	return newServerHandshaker(stream, c, hsAddr, opts, tokenManager), nil
 }
 
-func newServerHandshaker(stream grpcpb.S2AService_SetUpSessionClient, c net.Conn, hsAddr string, opts *ServerHandshakerOptions, tokenManager tokenmanager.AccessTokenManager) *s2aHandshaker {
+func newServerHandshaker(stream s2apb.S2AService_SetUpSessionClient, c net.Conn, hsAddr string, opts *ServerHandshakerOptions, tokenManager tokenmanager.AccessTokenManager) *s2aHandshaker {
 	var localIdentities []*commonpb.Identity
 	if opts != nil {
 		localIdentities = opts.LocalIdentities
@@ -198,9 +197,9 @@ func (h *s2aHandshaker) ClientHandshake(_ context.Context) (net.Conn, credential
 	}
 
 	// Prepare a client start message to send to the S2A handshaker service.
-	req := &grpcpb.SessionReq{
-		ReqOneof: &grpcpb.SessionReq_ClientStart{
-			ClientStart: &grpcpb.ClientSessionStartReq{
+	req := &s2apb.SessionReq{
+		ReqOneof: &s2apb.SessionReq_ClientStart{
+			ClientStart: &s2apb.ClientSessionStartReq{
 				ApplicationProtocols: []string{appProtocol},
 				MinTlsVersion:        h.clientOpts.MinTLSVersion,
 				MaxTlsVersion:        h.clientOpts.MaxTLSVersion,
@@ -235,9 +234,9 @@ func (h *s2aHandshaker) ServerHandshake(_ context.Context) (net.Conn, credential
 		return nil, nil, err
 	}
 	// Prepare a server start message to send to the S2A handshaker service.
-	req := &grpcpb.SessionReq{
-		ReqOneof: &grpcpb.SessionReq_ServerStart{
-			ServerStart: &grpcpb.ServerSessionStartReq{
+	req := &s2apb.SessionReq{
+		ReqOneof: &s2apb.SessionReq_ServerStart{
+			ServerStart: &s2apb.ServerSessionStartReq{
 				ApplicationProtocols: []string{appProtocol},
 				MinTlsVersion:        h.serverOpts.MinTLSVersion,
 				MaxTlsVersion:        h.serverOpts.MaxTLSVersion,
@@ -261,7 +260,7 @@ func (h *s2aHandshaker) ServerHandshake(_ context.Context) (net.Conn, credential
 
 // setUpSession proxies messages between the peer and the S2A handshaker
 // service.
-func (h *s2aHandshaker) setUpSession(req *grpcpb.SessionReq) (net.Conn, *grpcpb.SessionResult, error) {
+func (h *s2aHandshaker) setUpSession(req *s2apb.SessionReq) (net.Conn, *s2apb.SessionResult, error) {
 	resp, err := h.accessHandshakerService(req)
 	if err != nil {
 		return nil, nil, err
@@ -319,7 +318,7 @@ func (h *s2aHandshaker) ensureProcessSessionTickets() *sync.WaitGroup {
 
 // accessHandshakerService sends the session request to the S2A handshaker
 // service and returns the session response.
-func (h *s2aHandshaker) accessHandshakerService(req *grpcpb.SessionReq) (*grpcpb.SessionResp, error) {
+func (h *s2aHandshaker) accessHandshakerService(req *s2apb.SessionReq) (*s2apb.SessionResp, error) {
 	if err := h.stream.Send(req); err != nil {
 		return nil, err
 	}
@@ -333,7 +332,7 @@ func (h *s2aHandshaker) accessHandshakerService(req *grpcpb.SessionReq) (*grpcpb
 // processUntilDone continues proxying messages between the peer and the S2A
 // handshaker service until the handshaker service returns the SessionResult at
 // the end of the handshake or an error occurs.
-func (h *s2aHandshaker) processUntilDone(resp *grpcpb.SessionResp, unusedBytes []byte) (*grpcpb.SessionResult, []byte, error) {
+func (h *s2aHandshaker) processUntilDone(resp *s2apb.SessionResp, unusedBytes []byte) (*s2apb.SessionResult, []byte, error) {
 	for {
 		if len(resp.OutFrames) > 0 {
 			if _, err := h.conn.Write(resp.OutFrames); err != nil {
@@ -360,9 +359,9 @@ func (h *s2aHandshaker) processUntilDone(resp *grpcpb.SessionResp, unusedBytes [
 		// service with the current buffer read from conn.
 		p := append(unusedBytes, buf[:n]...)
 		// From here on, p and unusedBytes point to the same slice.
-		resp, err = h.accessHandshakerService(&grpcpb.SessionReq{
-			ReqOneof: &grpcpb.SessionReq_Next{
-				Next: &grpcpb.SessionNextReq{
+		resp, err = h.accessHandshakerService(&s2apb.SessionReq{
+			ReqOneof: &s2apb.SessionReq_Next{
+				Next: &s2apb.SessionNextReq{
 					InBytes: p,
 				},
 			},
@@ -395,7 +394,7 @@ func (h *s2aHandshaker) Close() error {
 	return h.stream.CloseSend()
 }
 
-func (h *s2aHandshaker) getAuthMechanisms() []*grpcpb.AuthenticationMechanism {
+func (h *s2aHandshaker) getAuthMechanisms() []*s2apb.AuthenticationMechanism {
 	if h.tokenManager == nil {
 		return nil
 	}
@@ -408,9 +407,9 @@ func (h *s2aHandshaker) getAuthMechanisms() []*grpcpb.AuthenticationMechanism {
 			grpclog.Infof("unable to get token for empty local identity: %v", err)
 			return nil
 		}
-		return []*grpcpb.AuthenticationMechanism{
-			&grpcpb.AuthenticationMechanism{
-				MechanismOneof: &grpcpb.AuthenticationMechanism_Token{
+		return []*s2apb.AuthenticationMechanism{
+			&s2apb.AuthenticationMechanism{
+				MechanismOneof: &s2apb.AuthenticationMechanism_Token{
 					Token: token,
 				},
 			},
@@ -419,7 +418,7 @@ func (h *s2aHandshaker) getAuthMechanisms() []*grpcpb.AuthenticationMechanism {
 
 	// Next, handle the case where the application (or the S2A) has provided
 	// one or more local identities.
-	var authMechanisms []*grpcpb.AuthenticationMechanism
+	var authMechanisms []*s2apb.AuthenticationMechanism
 	for _, localIdentity := range h.localIdentities {
 		token, err := h.tokenManager.Token(localIdentity)
 		if err != nil {
@@ -427,9 +426,9 @@ func (h *s2aHandshaker) getAuthMechanisms() []*grpcpb.AuthenticationMechanism {
 			continue
 		}
 
-		authMechanism := &grpcpb.AuthenticationMechanism{
+		authMechanism := &s2apb.AuthenticationMechanism{
 			Identity: localIdentity,
-			MechanismOneof: &grpcpb.AuthenticationMechanism_Token{
+			MechanismOneof: &s2apb.AuthenticationMechanism_Token{
 				Token: token,
 			},
 		}

@@ -16,6 +16,8 @@ syntax = "proto3";
 
 package s2a.proto;
 
+option go_package = "github.com/google/s2a/internal/proto/s2a_go_proto";
+
 import "internal/proto/common.proto";
 
 message AuthenticationMechanism {

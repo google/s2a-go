@@ -22,7 +22,7 @@ import (
 	"bytes"
 	"testing"
 
-	"github.com/s2a-go/internal/record/internal/aeadcrypter/testutil"
+	"github.com/google/s2a-go/internal/record/internal/aeadcrypter/testutil"
 )
 
 // fakeAEAD is a fake implementation of an AEAD interface used for testing.

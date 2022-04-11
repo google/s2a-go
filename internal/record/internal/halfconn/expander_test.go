@@ -23,7 +23,7 @@ import (
 	"crypto/sha256"
 	"testing"
 
-	"github.com/s2a-go/internal/record/internal/aeadcrypter/testutil"
+	"github.com/google/s2a-go/internal/record/internal/aeadcrypter/testutil"
 )
 
 func TestExpand(t *testing.T) {

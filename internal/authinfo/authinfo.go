@@ -23,9 +23,9 @@ package authinfo
 import (
 	"errors"
 
-	commonpb "github.com/s2a-go/internal/proto/common_go_proto"
-	contextpb "github.com/s2a-go/internal/proto/s2a_context_go_proto"
-	grpcpb "github.com/s2a-go/internal/proto/s2a_go_grpc_proto"
+	commonpb "github.com/google/s2a-go/internal/proto/common_go_proto"
+	contextpb "github.com/google/s2a-go/internal/proto/s2a_context_go_proto"
+	grpcpb "github.com/google/s2a-go/internal/proto/s2a_go_proto"
 	"google.golang.org/grpc/credentials"
 )
 

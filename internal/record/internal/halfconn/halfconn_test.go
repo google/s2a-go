@@ -23,9 +23,9 @@ import (
 	"math"
 	"testing"
 
-	s2apb "github.com/s2a-go/internal/proto/common_go_proto"
-	"github.com/s2a-go/internal/record/internal/aeadcrypter"
-	"github.com/s2a-go/internal/record/internal/aeadcrypter/testutil"
+	s2apb "github.com/google/s2a-go/internal/proto/common_go_proto"
+	"github.com/google/s2a-go/internal/record/internal/aeadcrypter"
+	"github.com/google/s2a-go/internal/record/internal/aeadcrypter/testutil"
 )
 
 // getHalfConnPair returns a sender/receiver pair of S2A Half Connections.

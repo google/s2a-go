@@ -31,12 +31,11 @@ go_library(
     ],
     # The "importpath" field must be set when using the OSS go_library rule,
     # but must be commented out otherwise.
-    importpath = "github.com/s2a-go/internal/record",
+    importpath = "github.com/google/s2a-go/internal/record",
     deps = [
         "//internal/handshaker/service",
-        "//internal/proto:common_go_proto",
-        "//internal/proto:s2a_go_grpc_proto",
-        "//internal/proto:s2a_go_proto",
+        "//internal/proto/common_go_proto:common_go_proto",
+        "//internal/proto/s2a_go_proto:s2a_go_proto",
         "//internal/record/internal/halfconn",
         "//internal/tokenmanager",
         "@org_golang_google_grpc//codes:go_default_library",
@@ -53,9 +52,8 @@ go_test(
     ],
     embed = [":record"],
     deps = [
-        "//internal/proto:common_go_proto",
-        "//internal/proto:s2a_go_grpc_proto",
-        "//internal/proto:s2a_go_proto",
+        "//internal/proto/common_go_proto:common_go_proto",
+        "//internal/proto/s2a_go_proto:s2a_go_proto",
         "//internal/record/internal/aeadcrypter/testutil",
         "//internal/tokenmanager",
         "@com_github_google_go_cmp//cmp:go_default_library",

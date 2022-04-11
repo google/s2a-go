@@ -25,9 +25,9 @@ import (
 	"reflect"
 	"testing"
 
-	s2apb "github.com/s2a-go/internal/proto/common_go_proto"
-	"github.com/s2a-go/internal/record/internal/aeadcrypter"
-	"github.com/s2a-go/internal/record/internal/aeadcrypter/testutil"
+	s2apb "github.com/google/s2a-go/internal/proto/common_go_proto"
+	"github.com/google/s2a-go/internal/record/internal/aeadcrypter"
+	"github.com/google/s2a-go/internal/record/internal/aeadcrypter/testutil"
 )
 
 func TestCiphersuites(t *testing.T) {

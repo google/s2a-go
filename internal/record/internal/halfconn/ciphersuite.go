@@ -24,8 +24,8 @@ import (
 	"fmt"
 	"hash"
 
-	s2apb "github.com/s2a-go/internal/proto/common_go_proto"
-	"github.com/s2a-go/internal/record/internal/aeadcrypter"
+	s2apb "github.com/google/s2a-go/internal/proto/common_go_proto"
+	"github.com/google/s2a-go/internal/record/internal/aeadcrypter"
 )
 
 // ciphersuite is the interface for retrieving ciphersuite-specific information

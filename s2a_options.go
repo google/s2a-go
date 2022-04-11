@@ -22,7 +22,7 @@ import (
 	"errors"
 	"sync"
 
-	s2apb "github.com/s2a-go/internal/proto/common_go_proto"
+	s2apb "github.com/google/s2a-go/internal/proto/common_go_proto"
 )
 
 // Identity is the interface for S2A identities.

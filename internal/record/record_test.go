@@ -28,8 +28,8 @@ import (
 	"google.golang.org/protobuf/testing/protocmp"
 	"github.com/google/go-cmp/cmp"
 
-	commonpb "github.com/s2a-go/internal/proto/common_go_proto"
-	"github.com/s2a-go/internal/record/internal/aeadcrypter/testutil"
+	commonpb "github.com/google/s2a-go/internal/proto/common_go_proto"
+	"github.com/google/s2a-go/internal/record/internal/aeadcrypter/testutil"
 )
 
 var errFakeConnEOF = errors.New("fakeConn is out of bounds")

@@ -24,8 +24,8 @@ import (
 
 	"google.golang.org/grpc/credentials"
 
-	commonpb "github.com/s2a-go/internal/proto/common_go_proto"
-	grpcpb "github.com/s2a-go/internal/proto/s2a_go_grpc_proto"
+	commonpb "github.com/google/s2a-go/internal/proto/common_go_proto"
+	grpcpb "github.com/google/s2a-go/internal/proto/s2a_go_proto"
 )
 
 func TestS2AAuthInfo(t *testing.T) {

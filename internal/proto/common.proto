@@ -16,6 +16,8 @@ syntax = "proto3";
 
 package s2a.proto;
 
+option go_package = "github.com/google/s2a/internal/proto/common_go_proto";
+
 // The ciphersuites supported by S2A. The name determines the confidentiality,
 // and authentication ciphers as well as the hash algorithm used for PRF in
 // TLS 1.2 or HKDF in TLS 1.3. Thus, the components of the name are:
