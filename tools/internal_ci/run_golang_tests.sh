@@ -20,6 +20,8 @@ set -e
 # Display commands being run.
 set -x
 
+readonly PLATFORM="$(uname | tr '[:upper:]' '[:lower:]')"
+
 fail_with_debug_output() {
   ls -l
   df -h /
