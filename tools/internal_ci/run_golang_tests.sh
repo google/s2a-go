@@ -34,26 +34,22 @@ run_tests() {
 }
 
 main() {
-  # Install Go 1.17.1.
+  # Install a newer Golang version on GCP Ubuntu VMs.
   which go
   sudo rm -rf /usr/local/go
   case "${PLATFORM}" in
     'linux')
+      sudo rm -rf /usr/local/go
       curl -O https://dl.google.com/go/go1.17.1.linux-amd64.tar.gz
       tar -xvf go1.17.1.linux-amd64.tar.gz
-      ;;
-    'darwin')
-      curl -O https://dl.google.com/go/go1.17.1.darwin-amd64.tar.gz
-      tar -xvf go1.17.1.darwin-amd64.tar.gz
+      sudo mv go /usr/local
+      export GOROOT=/usr/local/go
+      export PATH=$PATH:$GOROOT/bin
       ;;
     *)
-      echo "Unsupported platform, unable to re-install Go."
-      exit 1
+      echo "Using existing Go installation."
       ;;
   esac
-  sudo mv go /usr/local
-  export GOROOT=/usr/local/go
-  export PATH=$PATH:$GOROOT/bin
   go version
 
   run_tests
