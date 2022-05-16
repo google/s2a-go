@@ -35,6 +35,24 @@ mkdir -p internal/proto/s2a_context_go_proto
 mv internal/proto/s2a_context.pb.go internal/proto/s2a_context_go_proto/s2a_context.pb.go
 sed -i 's/common_go_proto \"github.com\/google\/s2a\/internal\/proto\/common_go_proto\"/common_go_proto \"github.com\/google\/s2a-go\/internal\/proto\/common_go_proto\"/g' internal/proto/s2a_context_go_proto/s2a_context.pb.go
 
+# Regenerate the S2Av2 protos.
+protoc --go_out=. --go_opt=paths=source_relative \
+       --go-grpc_out=. --go-grpc_opt=paths=source_relative \
+      internal/proto/v2/common.proto internal/proto/v2/s2a_context.proto internal/proto/v2/s2a.proto
+
+mkdir -p internal/proto/v2/common_go_proto
+mv internal/proto/v2/common.pb.go internal/proto/v2/common_go_proto/common.pb.go
+
+mkdir -p internal/proto/v2/s2a_go_proto
+mv internal/proto/v2/s2a.pb.go internal/proto/v2/s2a_go_proto/s2a.pb.go
+mv internal/proto/v2/s2a_grpc.pb.go internal/proto/v2/s2a_go_proto/s2a_grpc.pb.go
+sed -i 's/common_go_proto \"github.com\/google\/s2a\/internal\/proto\/common_go_proto\"/common_go_proto \"github.com\/google\/s2a-go\/internal\/proto\/common_go_proto\"/g' internal/proto/v2/s2a_go_proto/s2a.pb.go
+sed -i 's/common_go_proto1 \"github.com\/google\/s2a\/internal\/proto\/v2\/common_go_proto\"/common_go_proto1 \"github.com\/google\/s2a-go\/internal\/proto\/v2\/common_go_proto\"/g' internal/proto/v2/s2a_go_proto/s2a.pb.go
+sed -i 's/s2a_context_go_proto \"github.com\/google\/s2a\/internal\/proto\/v2\/s2a_context_go_proto\"/s2a_context_go_proto \"github.com\/google\/s2a-go\/internal\/proto\/v2\/s2a_context_go_proto\"/g' internal/proto/v2/s2a_go_proto/s2a.pb.go
+
+mkdir -p internal/proto/v2/s2a_context_go_proto
+mv internal/proto/v2/s2a_context.pb.go internal/proto/v2/s2a_context_go_proto/s2a_context.pb.go
+
 # Regenerate the example protos.
 protoc --go_out=. --go_opt=paths=source_relative \
        --go-grpc_out=. --go-grpc_opt=paths=source_relative \
