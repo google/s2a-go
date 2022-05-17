@@ -87,18 +87,18 @@ message GetTlsConfigurationResp {
     // maximum version of the client's TLS library.
     TLSVersion max_tls_version = 3;
 
-    // The list of ciphersuites used for TLS handshake that the server MUST
+    // The list of ciphersuites used for TLS handshake that the client MUST
     // negotiate in the TLS handshake.
     //
-    // If the list is empty, then the server SHOULD negotiate the TLS handshake
-    // using the default ciphersuites of the server's TLS stack.
+    // If the list is empty, then the client SHOULD negotiate the TLS handshake
+    // using the default ciphersuites of the client's TLS stack.
     repeated HandshakeCiphersuite handshake_ciphersuites = 4;
 
-    // The list of ciphersuites used for record protocol that the server MUST
+    // The list of ciphersuites used for record protocol that the client MUST
     // negotiate in the TLS handshake.
     //
-    // If the list is empty, then the server SHOULD negotiate the TLS handshake
-    // using the default ciphersuites of the server's TLS stack.
+    // If the list is empty, then the client SHOULD negotiate the TLS handshake
+    // using the default ciphersuites of the client's TLS stack.
     repeated RecordCiphersuite record_ciphersuites = 5;
 
     // The signature algorithm to be used for signing operations during the TLS

@@ -1302,17 +1302,17 @@ type GetTlsConfigurationResp_ClientTlsConfiguration struct {
 	// handshake. If this field is not provided, the client MUST use the default
 	// maximum version of the client's TLS library.
 	MaxTlsVersion common_go_proto1.TLSVersion `protobuf:"varint,3,opt,name=max_tls_version,json=maxTlsVersion,proto3,enum=s2a.proto.v2.TLSVersion" json:"max_tls_version,omitempty"`
-	// The list of ciphersuites used for TLS handshake that the server MUST
+	// The list of ciphersuites used for TLS handshake that the client MUST
 	// negotiate in the TLS handshake.
 	//
-	// If the list is empty, then the server SHOULD negotiate the TLS handshake
-	// using the default ciphersuites of the server's TLS stack.
+	// If the list is empty, then the client SHOULD negotiate the TLS handshake
+	// using the default ciphersuites of the client's TLS stack.
 	HandshakeCiphersuites []common_go_proto1.HandshakeCiphersuite `protobuf:"varint,4,rep,packed,name=handshake_ciphersuites,json=handshakeCiphersuites,proto3,enum=s2a.proto.v2.HandshakeCiphersuite" json:"handshake_ciphersuites,omitempty"`
-	// The list of ciphersuites used for record protocol that the server MUST
+	// The list of ciphersuites used for record protocol that the client MUST
 	// negotiate in the TLS handshake.
 	//
-	// If the list is empty, then the server SHOULD negotiate the TLS handshake
-	// using the default ciphersuites of the server's TLS stack.
+	// If the list is empty, then the client SHOULD negotiate the TLS handshake
+	// using the default ciphersuites of the client's TLS stack.
 	RecordCiphersuites []common_go_proto1.RecordCiphersuite `protobuf:"varint,5,rep,packed,name=record_ciphersuites,json=recordCiphersuites,proto3,enum=s2a.proto.v2.RecordCiphersuite" json:"record_ciphersuites,omitempty"`
 	// The signature algorithm to be used for signing operations during the TLS
 	// handshake.
