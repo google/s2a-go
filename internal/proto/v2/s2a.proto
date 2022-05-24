@@ -67,7 +67,8 @@ message GetTlsConfigurationReq {
   ConnectionSide connection_side = 1;
 
   // The server name indication (SNI) extension, which MAY be populated when a
-  // server is offloading to S2A.
+  // server is offloading to S2A. The SNI is used to determine the server
+  // identity if the local identity in the request is empty.
   string sni = 2;
 }
 
@@ -100,13 +101,6 @@ message GetTlsConfigurationResp {
     // If the list is empty, then the client SHOULD negotiate the TLS handshake
     // using the default ciphersuites of the client's TLS stack.
     repeated RecordCiphersuite record_ciphersuites = 5;
-
-    // The signature algorithm to be used for signing operations during the TLS
-    // handshake.
-    //
-    // The algorithm is set to SSL_SIGN_UNSPECIFIED if the private key does not
-    // support signing operations.
-    SignatureAlgorithm signature_algorithm = 6;
   }
 
   message ServerTlsConfiguration {
@@ -150,13 +144,6 @@ message GetTlsConfigurationResp {
     // Whether the server MUST request a client certificate (i.e. to negotiate
     // TLS vs. mTLS).
     RequestClientCertificate request_client_certificate = 7;
-
-    // The signature algorithm to be used for signing operations during the TLS
-    // handshake.
-    //
-    // The algorithm is set to SSL_SIGN_UNSPECIFIED if the private key does not
-    // support signing operations.
-    SignatureAlgorithm signature_algorithm = 8;
 
     // Returns the maximum number of extra bytes that
     // |OffloadResumptionKeyOperation| can add to the number of unencrypted
