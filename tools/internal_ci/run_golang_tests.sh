@@ -46,6 +46,14 @@ main() {
       export GOROOT=/usr/local/go
       export PATH=$PATH:$GOROOT/bin
       ;;
+    'darwin')
+      sudo rm -rf /usr/local/go
+      curl -O https://dl.google.com/go/go1.17.1.darwin-amd64.tar.gz
+      tar -xvf go1.17.1.darwin-amd64.tar.gz
+      sudo mv go /usr/local
+      export GOROOT=/usr/local/go
+      export PATH="${GOROOT}/bin:${PATH}"
+      ;;
     *)
       echo "Using existing Go installation."
       ;;
