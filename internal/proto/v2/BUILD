@@ -31,7 +31,10 @@ proto_library(
 proto_library(
     name = "s2a_context_proto",
     srcs = ["s2a_context.proto"],
-    deps = [":common_proto"],
+    deps = [
+      ":common_proto",
+      "//internal/proto:common_proto",
+    ],
 )
 
 proto_library(
