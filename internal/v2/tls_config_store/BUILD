@@ -9,10 +9,10 @@ go_library(
   srcs = ["tls_config_store.go"],
   importpath = "github.com/google/s2a-go/internal/v2/tls_config_store",
   embedsrcs = [
-    "example_cert_key/client_cert.pem",
-    "example_cert_key/client_key.pem",
-    "example_cert_key/server_cert.pem",
-    "example_cert_key/server_key.pem",
+    "s2a-go/internal/v2/example_cert_key/client_cert.pem",
+    "s2a-go/internal/v2/example_cert_key/client_key.pem",
+    "s2a-go/internal/v2/example_cert_key/server_cert.pem",
+    "s2a-go/internal/v2/example_cert_key/server_key.pem",
   ],
 )
 
@@ -21,9 +21,9 @@ go_test(
   srcs = ["tls_config_store_test.go"],
   embed = [":tls_config_store"],
   embedsrcs = [
-    "example_cert_key/client_cert.pem",
-    "example_cert_key/client_key.pem",
-    "example_cert_key/server_cert.pem",
-    "example_cert_key/server_key.pem",
+    "s2a-go/internal/v2/example_cert_key/client_cert.pem",
+    "s2a-go/internal/v2/example_cert_key/client_key.pem",
+    "s2a-go/internal/v2/example_cert_key/server_cert.pem",
+    "s2a-go/internal/v2/example_cert_key/server_key.pem",
   ],
 )

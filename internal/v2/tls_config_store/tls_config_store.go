@@ -12,13 +12,13 @@ import (
 )
 
 var (
-	//go:embed example_cert_key/client_cert.pem
+	//go:embed s2a-go/internal/v2/example_cert_key/client_cert.pem
 	clientCert []byte
-	//go:embed example_cert_key/server_cert.pem
+	//go:embed s2a-go/internal/v2/example_cert_key/server_cert.pem
 	serverCert []byte
-	//go:embed example_cert_key/client_key.pem
+	//go:embed s2a-go/internal/v2/example_cert_key/client_key.pem
 	clientKey []byte
-	//go:embed example_cert_key/server_key.pem
+	//go:embed s2a-go/internal/v2/example_cert_key/server_key.pem
 	serverKey []byte
 )
 
