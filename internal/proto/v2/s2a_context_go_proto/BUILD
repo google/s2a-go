@@ -30,6 +30,7 @@ go_library(
     ],
     importpath = "github.com/google/s2a-go/internal/proto/v2/s2a_context_go_proto",
     deps = [
+        "//internal/proto/common_go_proto:common_go_proto",
         "@org_golang_google_protobuf//reflect/protoreflect:go_default_library",
         "@org_golang_google_protobuf//runtime/protoimpl:go_default_library",
     ],

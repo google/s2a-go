@@ -31,7 +31,10 @@ proto_library(
 proto_library(
     name = "s2a_context_proto",
     srcs = ["s2a_context.proto"],
-    deps = [":common_proto"],
+    deps = [
+      ":common_proto",
+      "//internal/proto:common_proto",
+    ],
 )
 
 proto_library(
@@ -54,7 +57,10 @@ go_proto_library(
     name = "s2a_context_go_proto",
     importpath = "github.com/google/s2a-go/internal/proto/v2/s2a_context_go_proto",
     protos = [":s2a_context_proto"],
-    deps = [":common_go_proto"],
+    deps = [
+      ":common_go_proto",
+      "//internal/proto:common_go_proto",
+    ],
 )
 
 go_proto_library(

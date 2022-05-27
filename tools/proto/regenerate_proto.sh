@@ -52,6 +52,7 @@ sed -i 's/s2a_context_go_proto \"github.com\/google\/s2a\/internal\/proto\/v2\/s
 
 mkdir -p internal/proto/v2/s2a_context_go_proto
 mv internal/proto/v2/s2a_context.pb.go internal/proto/v2/s2a_context_go_proto/s2a_context.pb.go
+sed -i 's/common_go_proto \"github.com\/google\/s2a\/internal\/proto\/common_go_proto\"/common_go_proto \"github.com\/google\/s2a-go\/internal\/proto\/common_go_proto\"/g' internal/proto/v2/s2a_context_go_proto/s2a_context.pb.go
 
 # Regenerate the example protos.
 protoc --go_out=. --go_opt=paths=source_relative \
