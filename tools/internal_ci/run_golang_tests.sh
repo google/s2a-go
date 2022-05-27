@@ -52,7 +52,8 @@ main() {
       tar -xvf go1.17.1.darwin-amd64.tar.gz
       sudo mv go /usr/local
       export GOROOT=/usr/local/go
-      export PATH=$PATH:$GOROOT/bin
+      #export PATH=$PATH:$GOROOT/bin
+      export PATH="${GOROOT}/bin:${PATH}"
       ;;
     *)
       echo "Using existing Go installation."
