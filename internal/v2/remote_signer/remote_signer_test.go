@@ -7,7 +7,6 @@ import (
 	_ "embed"
 )
 
-// TODO(rmehta19): Modify lifetime of cert from 365 days to 20 years.
 var (
 	//go:embed example_cert_key/cert.pem
 	cert []byte
