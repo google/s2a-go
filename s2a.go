@@ -132,7 +132,7 @@ func NewServerCreds(opts *ServerOptions) (credentials.TransportCredentials, erro
 }
 
 // ClientHandshake initiates a client-side TLS handshake using the S2A.
-func (c *s2aTransportCreds) ClientHandshake(ctx context.Context, serverAuthority string, rawConn net.Conn) (_ net.Conn, _ credentials.AuthInfo, err error) {
+func (c *s2aTransportCreds) ClientHandshake(ctx context.Context, serverAuthority string, rawConn net.Conn) (net.Conn, credentials.AuthInfo, error) {
 	if !c.isClient {
 		return nil, nil, errors.New("client handshake called using server transport credentials")
 	}
