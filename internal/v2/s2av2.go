@@ -52,16 +52,20 @@ func (c *s2av2TransportCreds) ClientHandshake(ctx context.Context, serverAuthori
 	if !c.isClient {
 		return nil, nil, errors.New("client handshake called using server transport credentials")
 	}
-	// TODO(rmehta19): Remove the port from serverAuthority.
+	// Remove the port from serverAuthority.
+	serverName, _, err := net.SplitHostPort(serverAuthority)
+	if err != nil {
+		serverName = serverAuthority
+	}
 	// TODO(rmehta19): Create a stub to S2Av2.
 	var config *tls.Config
 	if c.serverName == "" {
-		config = tlsconfigstore.GetTlsConfigurationForClient(serverAuthority)
+		config = tlsconfigstore.GetTlsConfigurationForClient(serverName)
 	} else {
 		config = tlsconfigstore.GetTlsConfigurationForClient(c.serverName)
 	}
 	creds := credentials.NewTLS(config)
-	return creds.ClientHandshake(context.Background(), serverAuthority, rawConn)
+	return creds.ClientHandshake(context.Background(), serverName, rawConn)
 }
 
 // ServerHandshake performs a server-side mTLS handshake using the S2Av2.
@@ -93,9 +97,13 @@ func (c * s2av2TransportCreds) Clone() credentials.TransportCredentials {
 
 // OverrideServerName sets the ServerName in the s2av2TransportCreds protocol
 // info. The ServerName MUST be a hostname.
-func (c *s2av2TransportCreds) OverrideServerName(serverNameOverride string) error {
-	// TODO(rmehta19): Remove the port from serverNameOverride.
-	c.info.ServerName = serverNameOverride
-	c.serverName = serverNameOverride
+func (c *s2av2TransportCreds) OverrideServerName(serverNameOverride string) error{
+	// Remove the port from serverNameOverride.
+	serverName, _, err := net.SplitHostPort(serverNameOverride)
+	if err != nil {
+		serverName = serverNameOverride
+	}
+	c.info.ServerName = serverName
+	c.serverName = serverName
 	return nil
 }
