@@ -129,7 +129,7 @@ func TestCloneServer(t *testing.T) {
 }
 
 func TestOverrideServerName(t *testing.T) {
-	wantServerName := "server.name"
+	// Setup test.
 	c, err := NewClientCreds()
 	s2av2Creds, ok := c.(*s2av2TransportCreds)
 	if !ok {
@@ -144,13 +144,41 @@ func TestOverrideServerName(t *testing.T) {
 	if got, want := s2av2Creds.serverName, ""; got != want {
 		t.Errorf("c.serverName = %v, want %v", got, want)
 	}
-	if err := c.OverrideServerName(wantServerName); err != nil {
-		t.Fatalf("c.OverrideServerName(%v) failed: %v", wantServerName, err)
-	}
-	if got, want := c.Info().ServerName, wantServerName; got != want {
-		t.Errorf("c.Info().ServerName = %v, want %v", got, want)
-	}
-	if got, want := s2av2Creds.serverName, wantServerName; got != want {
-		t.Errorf("c.serverName = %v, want %v", got, want)
+	for _, tc := range []struct {
+		description string
+		override string
+		wantServerName string
+		expectError bool
+	} {
+		{
+			description: "empty string",
+			override: "",
+			wantServerName: "",
+		},
+		{
+			description: "host only",
+			override: "server.name",
+			wantServerName: "server.name",
+		},
+		{
+			description: "invalid syntax",
+			override: "server::",
+			wantServerName: "server::",
+		},
+		{
+			description: "split host port",
+			override: "host:port",
+			wantServerName: "host",
+		},
+	} {
+		t.Run(tc.description, func(t *testing.T) {
+			c.OverrideServerName(tc.override)
+			if got, want := c.Info().ServerName, tc.wantServerName; got != want {
+				t.Errorf("c.Info().ServerName = %v, want %v", got, want)
+			}
+			if got, want := s2av2Creds.serverName, tc.wantServerName; got != want {
+				t.Errorf("c.serverName = %v, want %v", got, want)
+			}
+		})
 	}
 }
