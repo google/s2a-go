@@ -33,6 +33,7 @@ func TestTLSConfigStoreClient(t *testing.T) {
 	for _, tc := range []struct {
 		description		    string
 		Certificates                []tls.Certificate
+		ServerName	            string
 		InsecureSkipVerify          bool
 		ClientSessionCache	    tls.ClientSessionCache
 		MinVersion	            uint16
@@ -41,6 +42,7 @@ func TestTLSConfigStoreClient(t *testing.T) {
 		{
 			description: "static",
 			Certificates: []tls.Certificate{cert},
+			ServerName: "host",
 			InsecureSkipVerify: true,
 			ClientSessionCache: nil,
 			MinVersion: tls.VersionTLS13,
@@ -48,7 +50,7 @@ func TestTLSConfigStoreClient(t *testing.T) {
 		},
 	} {
 		t.Run(tc.description, func(t *testing.T) {
-			config := GetTlsConfigurationForClient()
+			config := GetTlsConfigurationForClient(tc.ServerName)
 			if got, want := config.Certificates[0].Certificate[0], tc.Certificates[0].Certificate[0]; !bytes.Equal(got, want) {
 				t.Errorf("config.Certificates[0].Certificate[0] = %v, want %v", got, want)
 			}

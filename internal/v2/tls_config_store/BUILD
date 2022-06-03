@@ -16,6 +16,9 @@ go_library(
     "example_cert_key/server_cert.pem",
     "example_cert_key/server_key.pem",
   ],
+  deps = [
+    "//internal/v2/cert_verifier",
+  ],
 )
 
 go_test(
