@@ -63,3 +63,11 @@ mkdir -p internal/proto/examples/helloworld_go_proto
 mv internal/proto/examples/helloworld.pb.go internal/proto/examples/helloworld_go_proto/helloworld.pb.go
 mv internal/proto/examples/helloworld_grpc.pb.go internal/proto/examples/helloworld_go_proto/helloworld_grpc.pb.go
 
+# Regenerate the echo example protos.
+protoc --go_out=. --go_opt=paths=source_relative \
+       --go-grpc_out=. --go-grpc_opt=paths=source_relative \
+      example/proto/echo.proto
+
+mkdir -p example/proto/echo_go_proto
+mv example/proto/echo.pb.go example/proto/echo_go_proto/echo.pb.go
+mv example/proto/echo_grpc.pb.go example/proto/echo_go_proto/echo_grpc.pb.go
