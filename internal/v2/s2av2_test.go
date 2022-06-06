@@ -1,4 +1,4 @@
-package s2av2
+package v2
 
 import (
 	"testing"
