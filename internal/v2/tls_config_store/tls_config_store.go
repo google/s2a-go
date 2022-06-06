@@ -8,6 +8,7 @@ import (
 	"github.com/google/s2a-go/internal/v2/cert_verifier"
 
 	_ "embed"
+	pb "github.com/google/s2a-go/internal/proto/v2/s2a_go_proto"
 )
 
 var (
