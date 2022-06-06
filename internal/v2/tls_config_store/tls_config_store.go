@@ -19,10 +19,6 @@ import (
 
 var (
 	fakes2av2Addr = flag.String("fakes2av2_Addr", "0.0.0.0:8080", "Fake S2Av2 service address.")
-	//go:embed example_cert_key/client_cert.pem
-	clientCert []byte
-	//go:embed example_cert_key/server_cert.pem
-	serverCert []byte
 	//go:embed example_cert_key/client_key.pem
 	clientKey []byte
 	//go:embed example_cert_key/server_key.pem

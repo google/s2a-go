@@ -8,6 +8,10 @@ go_library(
   name = "fake_s2av2",
   srcs = ["fake_s2av2.go"],
   importpath = "github.com/google/s2a-go/internal/v2/fake_s2av2",
+  embedsrcs = [
+    "example_cert_key/client_cert.pem",
+    "example_cert_key/server_cert.pem",
+  ],
   deps = [
     "//internal/proto/v2/common_go_proto:common_go_proto",
     "//internal/proto/v2/s2a_go_proto:s2a_go_proto",

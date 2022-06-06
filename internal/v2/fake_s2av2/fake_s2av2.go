@@ -3,8 +3,15 @@ package fake_s2av2
 import (
 	"context"
 
+	_ "embed"
 	s2av2pb "github.com/google/s2a-go/internal/proto/v2/s2a_go_proto"
 	commonpb "github.com/google/s2a-go/internal/proto/v2/common_go_proto"
+)
+var (
+	//go:embed example_cert_key/client_cert.pem
+	clientCert []byte
+	//go:embed example_cert_key/server_cert.pem
+	serverCert []byte
 )
 
 type Server struct {
@@ -17,8 +24,7 @@ func (s *Server) GetTlsConfiguration(ctx context.Context, req *s2av2pb.GetTlsCon
 			TlsConfiguration: &s2av2pb.GetTlsConfigurationResp_ClientTlsConfiguration_{
 				&s2av2pb.GetTlsConfigurationResp_ClientTlsConfiguration{
 					CertificateChain: []string{
-						/*TODO(rmehta19)*/
-						"",
+						string(clientCert),
 					},
 					MinTlsVersion: commonpb.TLSVersion_TLS_VERSION_1_3,
 					MaxTlsVersion: commonpb.TLSVersion_TLS_VERSION_1_3,
@@ -32,8 +38,7 @@ func (s *Server) GetTlsConfiguration(ctx context.Context, req *s2av2pb.GetTlsCon
 			TlsConfiguration: &s2av2pb.GetTlsConfigurationResp_ServerTlsConfiguration_{
 				&s2av2pb.GetTlsConfigurationResp_ServerTlsConfiguration{
 					CertificateChain: []string{
-						/*TODO(rmehta19)*/
-						"",
+						string(serverCert),
 					},
 					MinTlsVersion: commonpb.TLSVersion_TLS_VERSION_1_3,
 					MaxTlsVersion: commonpb.TLSVersion_TLS_VERSION_1_3,
