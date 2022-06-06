@@ -8,9 +8,9 @@ import (
 	commonpb "github.com/google/s2a-go/internal/proto/v2/common_go_proto"
 )
 var (
-	//go:embed example_cert_key/client_cert.pem
+	//go:embed example_cert/client_cert.pem
 	clientCert []byte
-	//go:embed example_cert_key/server_cert.pem
+	//go:embed example_cert/server_cert.pem
 	serverCert []byte
 )
 
