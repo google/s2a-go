@@ -1,6 +1,6 @@
-// Package s2av2 provides the S2Av2 transport credentials used by a gRPC
+// Package v2 provides the S2Av2 transport credentials used by a gRPC
 // application.
-package s2av2
+package v2
 
 import (
 	"errors"

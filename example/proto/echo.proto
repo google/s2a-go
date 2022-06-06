@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+package s2av2.example.proto;
+
+option go_package = "github.com/google/s2a/example/proto/echo_go_proto";
+
+service Echo {
+  // The echo service replies back the same message in the request.
+  rpc Echo(EchoRequest) returns (EchoResponse) {}
+}
+
+message EchoRequest {
+  string msg = 1;
+}
+
+message EchoResponse {
+  string msg = 1;
+}
