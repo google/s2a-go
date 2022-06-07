@@ -14,6 +14,7 @@ import (
 
 	_ "embed"
 	s2av2pb "github.com/google/s2a-go/internal/proto/v2/s2a_go_proto"
+	commonv1pb "github.com/google/s2a-go/internal/proto/common_go_proto"
 	commonpb "github.com/google/s2a-go/internal/proto/v2/common_go_proto"
 )
 
@@ -51,18 +52,48 @@ func GetTlsConfigurationForClient(serverHostname string) *tls.Config {
 	log.Printf("Client Application: connected to: %s", *fakes2av2Addr)
 	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
 	defer cancel()
-	// Call fake S2Av2 for cofig.
-	r, err := c.GetTlsConfiguration(ctx, &s2av2pb.GetTlsConfigurationReq{
-		ConnectionSide: commonpb.ConnectionSide_CONNECTION_SIDE_CLIENT,
-		Sni: "",
-	})
-	if err != nil {
-		log.Fatalf("Client Application: failed to send GetTlsConfigurationReq: %v", err)
+	// Setup bidrectional streaming session
+	s2av2_opts := []grpc.CallOption{
+		// TODO(rmehta19)
 	}
-	log.Printf("Client Application: recieved GetTlsConfigurationResponse from server")
+	cstream, err := c.SetUpSession(ctx, s2av2_opts...)
+	if err != nil {
+		log.Fatalf("Client Application: failed to setup bidirectional streaming RPC session: %v", err)
+	}
+	log.Printf("Client Application: set up bidirectional streaming RPC session.")
+	// Request GetTlsConfigurationReq
+	err1 := cstream.Send(&s2av2pb.SessionReq{
+		LocalIdentity: &commonv1pb.Identity{
+			IdentityOneof: &commonv1pb.Identity_Hostname {"localhost"},
+		},
+		AuthenticationMechanisms: []*s2av2pb.AuthenticationMechanism {
+			{
+				Identity: &commonv1pb.Identity{
+					IdentityOneof: &commonv1pb.Identity_Hostname {"localhost"},
+				},
+				MechanismOneof: &s2av2pb.AuthenticationMechanism_Token{"token"},
+			},
+		},
+		ReqOneof: &s2av2pb.SessionReq_GetTlsConfigurationReq {
+			ConnectionSide: commonpb.ConnectionSide_CONNECTION_SIDE_CLIENT,
+			Sni: "",
+		},
+	})
+	if err1 != nil {
+		log.Fatalf("Client Application: failed to send SessionReq containing GetTlsConfigurationReq: %v", err1)
+	}
+	log.Printf("Client Application: sent SessionReq containing GetTlsConfigurationReq")
+	// Receive GetTlsConfigurationResp
+	sessionr, err := cstream.Recv()
+	if err != nil {
+		log.Fatalf("Client Application: failed to recieve SessionResp containing GetTlsConfigurationResp: %v", err)
+	}
+	// TODO(rmehta19): Handle sessionr.getStatus()?
+	log.Printf("Client Application: recieved SessionResp containing GetTlsConfigurationResp")
+	r := sessionr.GetGetTlsConfigurationResp().GetClientTlsConfiguration()
 
 	// TODO(rmehta19): Call remote signer library for private key.
-	cert, err := tls.X509KeyPair(r.certificate_chain[0], clientKey)
+	cert, err := tls.X509KeyPair(r.CertificateChain[0], clientKey)
 	if err != nil {
 		log.Fatalf("Failed to generate X509KeyPair: %v", err)
 	}
@@ -78,8 +109,8 @@ func GetTlsConfigurationForClient(serverHostname string) *tls.Config {
 		ServerName: serverHostname,
 		InsecureSkipVerify: true,
 		ClientSessionCache: nil,
-		MinVersion: r.min_tls_version,
-		MaxVersion: r.max_tls_version,
+		MinVersion: r.MinTlsVersion,
+		MaxVersion: r.MaxTlsVersion,
 	}
 }
 

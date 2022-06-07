@@ -18,7 +18,7 @@ go_library(
   ],
   deps = [
     "//internal/v2/cert_verifier",
-    #"//internal/v2/fake_s2av2",
+    "//internal/proto/common_go_proto",
     "//internal/proto/v2/s2a_go_proto:s2a_go_proto",
     "//internal/proto/v2/common_go_proto:common_go_proto",
     "@org_golang_google_grpc//:go_default_library",
