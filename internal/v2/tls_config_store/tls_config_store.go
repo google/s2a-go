@@ -27,6 +27,10 @@ var (
 	clientKey []byte
 	//go:embed example_cert_key/server_key.pem
 	serverKey []byte
+	//go:embed example_cert_key/server_cert.pem
+	serverCert []byte
+	//go:embed example_cert_key/client_cert.pem
+	clientCert []byte
 )
 
 // GetTlsConfigurationForClient returns a tls.Config instance for use by a client application.

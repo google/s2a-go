@@ -13,6 +13,8 @@ go_library(
   embedsrcs = [
     "example_cert_key/client_key.pem",
     "example_cert_key/server_key.pem",
+    "example_cert_key/server_cert.pem",
+    "example_cert_key/client_cert.pem",
   ],
   deps = [
     "//internal/v2/cert_verifier",
