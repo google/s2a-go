@@ -2,11 +2,12 @@
 package tlsconfigstore
 
 import (
-	"log"
 	"crypto/tls"
 	"crypto/x509"
 	"context"
 	"flag"
+	"log"
+	"time"
 	"github.com/google/s2a-go/internal/v2/cert_verifier"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -14,7 +15,10 @@ import (
 	_ "embed"
 	s2av2pb "github.com/google/s2a-go/internal/proto/v2/s2a_go_proto"
 	commonpb "github.com/google/s2a-go/internal/proto/v2/common_go_proto"
-	fakes2av2 ""
+)
+
+const (
+	defaultTimeout = 10.0 * time.Second
 )
 
 var (
@@ -40,18 +44,18 @@ func GetTlsConfigurationForClient(serverHostname string) *tls.Config {
 	}
 	defer conn.Close()
 	c := s2av2pb.NewS2AServiceClient(conn)
-	log.Infof("Client Application: connected to: %s", *fakes2av2Addr)
+	log.Printf("Client Application: connected to: %s", *fakes2av2Addr)
 	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
 	defer cancel()
 	// Call fake S2Av2 for cofig.
-	r, err := fakes2av2.GetTlsConfiguration(ctx, &s2av2pb.GetTlsConfigurationReq{
-		connection_side: commonpb.ConnectionSide_CONNECTION_SIDE_CLIENT,
-		sni: "",
+	r, err := c.GetTlsConfiguration(ctx, &s2av2pb.GetTlsConfigurationReq{
+		ConnectionSide: commonpb.ConnectionSide_CONNECTION_SIDE_CLIENT,
+		Sni: "",
 	})
 	if err != nil {
 		log.Fatalf("Client Application: failed to send GetTlsConfigurationReq: %v", err)
 	}
-	log.Infof("Client Application: recieved GetTlsConfigurationResponse from server")
+	log.Printf("Client Application: recieved GetTlsConfigurationResponse from server")
 
 	// TODO(rmehta19): Call remote signer library for private key.
 	cert, err := tls.X509KeyPair(r.certificate_chain[0], clientKey)
