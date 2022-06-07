@@ -13,19 +13,19 @@ var (
 	listenPort = flag.String("listen_port", ":8080", "Fake S2Av2 service address port.")
 )
 
-func runFakeS2Av2Server(listenAddr *string) {
+func runFakeS2Av2Server(listenPort *string) {
 	listener, err := net.Listen("tcp", *listenPort)
 	if err != nil {
 		log.Fatalf("failed to listen on port %s: %v", *listenPort, err)
 	}
 	s := grpc.NewServer()
-	log.Infof("Server: started gRPC Fake S2Av2 Server at port: %s", *listenPort)
-	grpcpb.RegisterS2AServiceServer(s, &fake_s2av2.Server{})
+	log.Printf("Server: started gRPC Fake S2Av2 Server at port: %s", *listenPort)
+	s2av2pb.RegisterS2AServiceServer(s, &fake_s2av2.Server{})
 	if err := s.Serve(listener); err != nil {
 		log.Fatalf("failed to serve: %v", err)
 	}
 }
 
 func main() {
-	runServer(listenPort)
+	runFakeS2Av2Server(listenPort)
 }

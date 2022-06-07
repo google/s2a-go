@@ -9,3 +9,4 @@ go_binary(
     "//internal/proto/v2/s2a_go_proto:s2a_go_proto",
     "@org_golang_google_grpc//:go_default_library",
   ],
+)
