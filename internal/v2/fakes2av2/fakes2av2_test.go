@@ -40,6 +40,14 @@ func startFakeS2Av2Server(wg *sync.WaitGroup) (address string, stop func(), err 
 }
 
 func TestSetUpSession(t *testing.T) {
+	// Start up fake S2Av2 server.
+	var wg sync.WaitGroup
+	wg.Add(1)
+	address, stop, err := startFakeS2Av2Server(&wg)
+	wg.Wait()
+	if err != nil {
+		log.Fatalf("failed to set up fake S2Av2 server.")
+	}
 	for _, tc := range []struct {
 		description		string
 		request			*s2av2pb.SessionReq
@@ -128,12 +136,6 @@ func TestSetUpSession(t *testing.T) {
 		},
 	}{
 		t.Run(tc.description, func(t *testing.T) {
-			// Start up Fake S2Av2 Server.
-			var wg sync.WaitGroup
-			wg.Add(1)
-			address, stop, err := startFakeS2Av2Server(&wg)
-			wg.Wait()
-
 			// Create stream to server.
 			opts := []grpc.DialOption{
 				grpc.WithTransportCredentials(insecure.NewCredentials()),
@@ -164,7 +166,7 @@ func TestSetUpSession(t *testing.T) {
 			}
 			log.Printf("Client: sent SessionReq")
 
-			// Get the Response.
+			// Get the response.
 			resp, err := cstream.Recv()
 			if err != nil {
 				t.Fatalf("Client: failed to receive SessionResp: %v", err)
@@ -174,7 +176,7 @@ func TestSetUpSession(t *testing.T) {
 				t.Errorf("cstream.Recv() returned incorrect SessionResp, (-want +got):\n%s", diff)
 			}
 			log.Printf("resp matches tc.expectedResponse")
-			stop()
 		})
 	}
+	stop()
 }
