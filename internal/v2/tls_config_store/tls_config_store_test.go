@@ -1,11 +1,17 @@
 package tlsconfigstore
 
 import (
+	"net"
+	"log"
+	"sync"
 	"testing"
 	"crypto/tls"
 	"bytes"
 
 	_ "embed"
+	"google.golang.org/grpc"
+	"github.com/google/s2a-go/internal/v2/fakes2av2"
+	s2av2pb "github.com/google/s2a-go/internal/proto/v2/s2a_go_proto"
 )
 
 var (
@@ -19,6 +25,23 @@ var (
 	serverKeypem []byte
 )
 
+func startFakeS2Av2Server(wg *sync.WaitGroup) (stop func(), err error) {
+	// Pick unused port.
+	listener, err := net.Listen("tcp", ":8008")
+	if err != nil {
+		log.Fatalf("failed to listen on address %s: %v", listener.Addr().String(), err)
+	}
+	s := grpc.NewServer()
+	log.Printf("Server: started gRPC fake S2Av2 Server on address: %s", listener.Addr().String())
+	s2av2pb.RegisterS2AServiceServer(s, &fakes2av2.Server{})
+	go func() {
+		wg.Done()
+		if err := s.Serve(listener); err != nil {
+			log.Printf("failed to serve: %v", err)
+		}
+	}()
+	return func() { s.Stop()}, nil
+}
 
 // TODO(rmehta19): In Client and Server test, verify contents of config.RootCAs once x509.CertPool.Equal function is officially released : https://cs.opensource.google/go/go/+/4aacb7ff0f103d95a724a91736823f44aa599634 .
 
@@ -27,7 +50,16 @@ func TestTLSConfigStoreClient(t *testing.T) {
 	// Setup for static client test.
 	cert, err := tls.X509KeyPair(clientCertpem, clientKeypem)
 	if err != nil {
-		t.Errorf("Test suite setup failed")
+		t.Errorf("tls.X509KeyPair failed: %v", err)
+	}
+
+	// Start up fake S2Av2 server.
+	var wg sync.WaitGroup
+	wg.Add(1)
+	stop, err := startFakeS2Av2Server(&wg)
+	wg.Wait()
+	if err != nil {
+		log.Fatalf("error starting fake S2Av2 Server: %v", err)
 	}
 
 	for _, tc := range []struct {
@@ -68,6 +100,7 @@ func TestTLSConfigStoreClient(t *testing.T) {
 			}
 		})
 	}
+	stop()
 }
 
 // TestTLSConfigStoreServer runs unit tests for GetTLSConfigurationForServer.
@@ -75,7 +108,16 @@ func TestTLSConfigStoreServer(t *testing.T) {
 	// Setup for static server test.
 	cert, err := tls.X509KeyPair(serverCertpem, serverKeypem)
 	if err != nil {
-		t.Errorf("Test suite setup failed")
+		t.Errorf("tls.X509KeyPair failed: %v", err)
+	}
+
+	// Start up fake S2Av2 server.
+	var wg sync.WaitGroup
+	wg.Add(1)
+	stop, err := startFakeS2Av2Server(&wg)
+	wg.Wait()
+	if err != nil {
+		log.Fatalf("error starting fake S2Av2 Server: %v", err)
 	}
 
 	for _, tc := range []struct {
@@ -114,4 +156,5 @@ func TestTLSConfigStoreServer(t *testing.T) {
 			}
 		})
 	}
+	stop()
 }
