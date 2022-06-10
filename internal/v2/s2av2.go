@@ -6,14 +6,25 @@ import (
 	"errors"
 	"context"
 	"net"
+	"time"
+	"flag"
+	"log"
 	"crypto/tls"
 
+	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
+	"google.golang.org/grpc/credentials/insecure"
 	"github.com/google/s2a-go/internal/v2/tls_config_store"
+	s2av2pb "github.com/google/s2a-go/internal/proto/v2/s2a_go_proto"
 )
 
 const (
 	s2aSecurityProtocol = "s2av2"
+	defaultTimeout = 10.0 * time.Second
+)
+
+var (
+	fakes2av2Address = flag.String("address", "0.0.0.0:8008", "Fake S2Av2 address")
 )
 
 type s2av2TransportCreds struct {
@@ -57,12 +68,35 @@ func (c *s2av2TransportCreds) ClientHandshake(ctx context.Context, serverAuthori
 	if err != nil {
 		serverName = serverAuthority
 	}
-	// TODO(rmehta19): Create a stub to S2Av2.
+	// Create a stream to S2Av2.
+	opts := []grpc.DialOption {
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+		grpc.WithReturnConnectionError(),
+		grpc.WithBlock(),
+	}
+	conn, err := grpc.Dial(*fakes2av2Address, opts...)
+	if err != nil {
+		log.Fatalf("Client: failed to connect: %v", err)
+	}
+	defer conn.Close()
+	client := s2av2pb.NewS2AServiceClient(conn)
+	log.Printf("Client: connected to: %s", *fakes2av2Address)
+	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
+	defer cancel()
+
+	// Setup bidrectional streaming session.
+	callOpts := []grpc.CallOption{}
+	cstream, err := client.SetUpSession(ctx, callOpts...)
+	if err != nil  {
+		log.Fatalf("Client: failed to setup bidirectional streaming RPC session: %v", err)
+	}
+	log.Printf("Client: set up bidirectional streaming RPC session.")
+
 	var config *tls.Config
 	if c.serverName == "" {
-		config = tlsconfigstore.GetTlsConfigurationForClient(serverName)
+		config = tlsconfigstore.GetTlsConfigurationForClient(serverName, cstream)
 	} else {
-		config = tlsconfigstore.GetTlsConfigurationForClient(c.serverName)
+		config = tlsconfigstore.GetTlsConfigurationForClient(c.serverName, cstream)
 	}
 	creds := credentials.NewTLS(config)
 	return creds.ClientHandshake(context.Background(), serverName, rawConn)
@@ -73,8 +107,32 @@ func (c *s2av2TransportCreds) ServerHandshake(rawConn net.Conn) (net.Conn, crede
 	if c.isClient {
 		return nil, nil, errors.New("server handshake called using client transport credentials")
 	}
-	// TODO(rmehta19): Create a stub to S2Av2.
-	config := tlsconfigstore.GetTlsConfigurationForServer()
+
+	// Create a stream to S2Av2.
+	opts := []grpc.DialOption {
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+		grpc.WithReturnConnectionError(),
+		grpc.WithBlock(),
+	}
+	conn, err := grpc.Dial(*fakes2av2Address, opts...)
+	if err != nil {
+		log.Fatalf("Client: failed to connect: %v", err)
+	}
+	defer conn.Close()
+	client := s2av2pb.NewS2AServiceClient(conn)
+	log.Printf("Client: connected to: %s", *fakes2av2Address)
+	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
+	defer cancel()
+
+	// Setup bidrectional streaming session.
+	callOpts := []grpc.CallOption{}
+	cstream, err := client.SetUpSession(ctx, callOpts...)
+	if err != nil  {
+		log.Fatalf("Client: failed to setup bidirectional streaming RPC session: %v", err)
+	}
+	log.Printf("Client: set up bidirectional streaming RPC session.")
+
+	config := tlsconfigstore.GetTlsConfigurationForServer(cstream)
 	creds := credentials.NewTLS(config)
 	return creds.ServerHandshake(rawConn)
 }

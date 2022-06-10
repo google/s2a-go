@@ -3,13 +3,8 @@ package tlsconfigstore
 
 import (
 	"log"
-	"flag"
-	"time"
-	"context"
 	"crypto/tls"
 	"crypto/x509"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials/insecure"
 	"github.com/google/s2a-go/internal/v2/cert_verifier"
 
 	_ "embed"
@@ -17,12 +12,7 @@ import (
 	commonpb "github.com/google/s2a-go/internal/proto/v2/common_go_proto"
 )
 
-const (
-	defaultTimeout = 10.0 * time.Second
-)
-
 var (
-	fakes2av2Address = flag.String("address", "0.0.0.0:8008", "Fake S2Av2 address")
 	//go:embed example_cert_key/client_cert.pem
 	clientCert []byte
 	//go:embed example_cert_key/server_cert.pem
@@ -33,39 +23,13 @@ var (
 	serverKey []byte
 )
 
-// TODO(rmehta19): Consider refactoring stream creation for client/server into
-// a helper function.
-
 // GetTlsConfigurationForClient returns a tls.Config instance for use by a client application.
-func GetTlsConfigurationForClient(serverHostname string) *tls.Config {
-	// Create stream to S2Av2.
-	opts := []grpc.DialOption {
-		grpc.WithTransportCredentials(insecure.NewCredentials()),
-		grpc.WithReturnConnectionError(),
-		grpc.WithBlock(),
-	}
-	conn, err := grpc.Dial(*fakes2av2Address, opts...)
-	if err != nil {
-		log.Fatalf("Client: failed to connect: %v", err)
-	}
-	defer conn.Close()
-	c := s2av2pb.NewS2AServiceClient(conn)
-	log.Printf("Client: connected to: %s", *fakes2av2Address)
-	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
-	defer cancel()
-
-	// Setup bidrectional streaming session.
-	callOpts := []grpc.CallOption{}
-	cstream, err := c.SetUpSession(ctx, callOpts...)
-	if err != nil  {
-		log.Fatalf("Client: failed to setup bidirectional streaming RPC session: %v", err)
-	}
-	log.Printf("Client: set up bidirectional streaming RPC session.")
-
+func GetTlsConfigurationForClient(serverHostname string, cstream s2av2pb.S2AService_SetUpSessionClient) *tls.Config {
 	// Send request to S2Av2 for config.
-	err = cstream.Send(&s2av2pb.SessionReq {
+	err := cstream.Send(&s2av2pb.SessionReq {
 		AuthenticationMechanisms: []*s2av2pb.AuthenticationMechanism {
 			{
+				// TODO(rmehta19): Populate Authentication Mechanism using tokenmanager.
 				MechanismOneof: &s2av2pb.AuthenticationMechanism_Token{"token"},
 			},
 		},
@@ -111,8 +75,6 @@ func GetTlsConfigurationForClient(serverHostname string) *tls.Config {
 	var minVersion uint16
 	var maxVersion uint16
 	switch x := tlsConfig.MinTlsVersion; x {
-	case commonpb.TLSVersion_TLS_VERSION_UNSPECIFIED:
-		minVersion = tls.VersionTLS13 // use tls 1.3 in this case.
 	case commonpb.TLSVersion_TLS_VERSION_1_0:
 		minVersion = tls.VersionTLS10
 	case commonpb.TLSVersion_TLS_VERSION_1_1:
@@ -126,8 +88,6 @@ func GetTlsConfigurationForClient(serverHostname string) *tls.Config {
 	}
 
 	switch x := tlsConfig.MaxTlsVersion; x {
-	case commonpb.TLSVersion_TLS_VERSION_UNSPECIFIED:
-		maxVersion = tls.VersionTLS13 // use tls 1.3 in this case.
 	case commonpb.TLSVersion_TLS_VERSION_1_0:
 		maxVersion = tls.VersionTLS10
 	case commonpb.TLSVersion_TLS_VERSION_1_1:
@@ -156,35 +116,12 @@ func GetTlsConfigurationForClient(serverHostname string) *tls.Config {
 }
 
 // GetTlsConfigurationForServer returns a tls.Config instance for use by a server application.
-func GetTlsConfigurationForServer() *tls.Config {
-	// Create stream to S2Av2.
-	opts := []grpc.DialOption{
-		grpc.WithTransportCredentials(insecure.NewCredentials()),
-		grpc.WithReturnConnectionError(),
-		grpc.WithBlock(),
-	}
-	conn, err := grpc.Dial(*fakes2av2Address, opts...)
-	if err != nil {
-		log.Fatalf("Client: failed to connect: %v", err)
-	}
-	defer conn.Close()
-	c := s2av2pb.NewS2AServiceClient(conn)
-	log.Printf("Client: connected to: %s", *fakes2av2Address)
-	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
-	defer cancel()
-
-	// Setup bidrectional streaming session.
-	callOpts := []grpc.CallOption{}
-	cstream, err := c.SetUpSession(ctx, callOpts...)
-	if err != nil  {
-		log.Fatalf("Client: failed to setup bidirectional streaming RPC session: %v", err)
-	}
-	log.Printf("Client: set up bidirectional streaming RPC session.")
-
+func GetTlsConfigurationForServer(cstream s2av2pb.S2AService_SetUpSessionClient) *tls.Config {
 	// Send request to S2Av2 for config.
-	err = cstream.Send(&s2av2pb.SessionReq {
+	err := cstream.Send(&s2av2pb.SessionReq {
 		AuthenticationMechanisms: []*s2av2pb.AuthenticationMechanism {
 			{
+				// TODO(rmehta19): Populate Authentication Mechanism using tokenmanager.
 				MechanismOneof: &s2av2pb.AuthenticationMechanism_Token{"token"},
 			},
 		},
@@ -229,8 +166,6 @@ func GetTlsConfigurationForServer() *tls.Config {
 	var minVersion uint16
 	var maxVersion uint16
 	switch x := tlsConfig.MinTlsVersion; x {
-	case commonpb.TLSVersion_TLS_VERSION_UNSPECIFIED:
-		minVersion = tls.VersionTLS13 // use tls 1.3 in this case.
 	case commonpb.TLSVersion_TLS_VERSION_1_0:
 		minVersion = tls.VersionTLS10
 	case commonpb.TLSVersion_TLS_VERSION_1_1:
@@ -244,8 +179,6 @@ func GetTlsConfigurationForServer() *tls.Config {
 	}
 
 	switch x := tlsConfig.MaxTlsVersion; x {
-	case commonpb.TLSVersion_TLS_VERSION_UNSPECIFIED:
-		maxVersion = tls.VersionTLS13 // use tls 1.3 in this case.
 	case commonpb.TLSVersion_TLS_VERSION_1_0:
 		maxVersion = tls.VersionTLS10
 	case commonpb.TLSVersion_TLS_VERSION_1_1:
@@ -256,6 +189,10 @@ func GetTlsConfigurationForServer() *tls.Config {
 		maxVersion = tls.VersionTLS13
 	default:
 		maxVersion = tls.VersionTLS13
+	}
+
+	if minVersion > maxVersion {
+		log.Printf("S2Av2 provided minVersion > maxVersion")
 	}
 
 	// Create mTLS credentials for server.
