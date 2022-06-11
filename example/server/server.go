@@ -11,17 +11,17 @@ import (
 )
 
 var (
-	listenPort = flag.String("listen_port", ":8080", "Echo service address port.")
+	port = flag.String("port", ":8080", "Echo service address port.")
 )
 
 func runServer(listenPort *string) {
-	creds, err := v2.NewServerCreds()
-	listener, err := net.Listen("tcp", *listenPort)
+	creds, err := v2.NewServerCreds("0.0.0.0:8008")
+	listener, err := net.Listen("tcp", *port)
 	if err != nil {
-		log.Fatalf("failed to listen on addres %s: %v", *listenPort, err)
+		log.Fatalf("failed to listen on addres %s: %v", *port, err)
 	}
 	s := grpc.NewServer(grpc.Creds(creds))
-	log.Printf("Server: started gRPC Echo Server at: %s", *listenPort)
+	log.Printf("Server: started gRPC Echo Server at: %s", *port)
 	pb.RegisterEchoServer(s, &echo.Server{})
 	if err := s.Serve(listener); err != nil {
 		log.Fatalf("failed to serve: %v", err)
@@ -29,5 +29,5 @@ func runServer(listenPort *string) {
 }
 
 func main() {
-	runServer(listenPort)
+	runServer(port)
 }

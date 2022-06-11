@@ -32,14 +32,14 @@ var (
 	serverKeypem []byte
 )
 
-func startFakeS2Av2Server(wg *sync.WaitGroup) (stop func(), err error) {
-	// Pick unused port.
-	listener, err := net.Listen("tcp", ":8008")
+func startFakeS2Av2Server(wg *sync.WaitGroup) (stop func(), err error, address string) {
+	listener, err := net.Listen("tcp", ":0")
+	address = listener.Addr().String()
 	if err != nil {
-		log.Fatalf("failed to listen on address %s: %v", listener.Addr().String(), err)
+		log.Fatalf("failed to listen on address %s: %v", address, err)
 	}
 	s := grpc.NewServer()
-	log.Printf("Server: started gRPC fake S2Av2 Server on address: %s", listener.Addr().String())
+	log.Printf("Server: started gRPC fake S2Av2 Server on address: %s", address)
 	s2av2pb.RegisterS2AServiceServer(s, &fakes2av2.Server{})
 	go func() {
 		wg.Done()
@@ -47,7 +47,7 @@ func startFakeS2Av2Server(wg *sync.WaitGroup) (stop func(), err error) {
 			log.Printf("failed to serve: %v", err)
 		}
 	}()
-	return func() { s.Stop()}, nil
+	return func() { s.Stop()}, nil, address
 }
 
 // TODO(rmehta19): In Client and Server test, verify contents of config.RootCAs once x509.CertPool.Equal function is officially released : https://cs.opensource.google/go/go/+/4aacb7ff0f103d95a724a91736823f44aa599634 .
@@ -63,7 +63,7 @@ func TestTLSConfigStoreClient(t *testing.T) {
 	// Start up fake S2Av2 server.
 	var wg sync.WaitGroup
 	wg.Add(1)
-	stop, err := startFakeS2Av2Server(&wg)
+	stop, err, address := startFakeS2Av2Server(&wg)
 	wg.Wait()
 	if err != nil {
 		log.Fatalf("error starting fake S2Av2 Server: %v", err)
@@ -75,13 +75,13 @@ func TestTLSConfigStoreClient(t *testing.T) {
 		grpc.WithReturnConnectionError(),
 		grpc.WithBlock(),
 	}
-	conn, err := grpc.Dial("0.0.0.0:8008", opts...)
+	conn, err := grpc.Dial(address, opts...)
 	if err != nil {
 		log.Fatalf("Client: failed to connect: %v", err)
 	}
 	defer conn.Close()
 	c := s2av2pb.NewS2AServiceClient(conn)
-	log.Printf("Client: connected to: %s", "0.0.0.0:8008")
+	log.Printf("Client: connected to: %s", address)
 	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
 	defer cancel()
 
@@ -113,7 +113,10 @@ func TestTLSConfigStoreClient(t *testing.T) {
 		},
 	} {
 		t.Run(tc.description, func(t *testing.T) {
-			config := GetTlsConfigurationForClient(tc.ServerName, cstream)
+			config, err := GetTlsConfigurationForClient(tc.ServerName, cstream)
+			if err != nil {
+				t.Errorf("GetTlsConfigurationForClient failed: %v", err)
+			}
 			if got, want := config.Certificates[0].Certificate[0], tc.Certificates[0].Certificate[0]; !bytes.Equal(got, want) {
 				t.Errorf("config.Certificates[0].Certificate[0] = %v, want %v", got, want)
 			}
@@ -145,7 +148,7 @@ func TestTLSConfigStoreServer(t *testing.T) {
 	// Start up fake S2Av2 server.
 	var wg sync.WaitGroup
 	wg.Add(1)
-	stop, err := startFakeS2Av2Server(&wg)
+	stop, err, address := startFakeS2Av2Server(&wg)
 	wg.Wait()
 	if err != nil {
 		log.Fatalf("error starting fake S2Av2 Server: %v", err)
@@ -157,13 +160,13 @@ func TestTLSConfigStoreServer(t *testing.T) {
 		grpc.WithReturnConnectionError(),
 		grpc.WithBlock(),
 	}
-	conn, err := grpc.Dial("0.0.0.0:8008", opts...)
+	conn, err := grpc.Dial(address, opts...)
 	if err != nil {
 		log.Fatalf("Client: failed to connect: %v", err)
 	}
 	defer conn.Close()
 	c := s2av2pb.NewS2AServiceClient(conn)
-	log.Printf("Client: connected to: %s", "0.0.0.0:8008")
+	log.Printf("Client: connected to: %s", address)
 	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
 	defer cancel()
 
@@ -193,7 +196,10 @@ func TestTLSConfigStoreServer(t *testing.T) {
 		},
 	} {
 		t.Run(tc.description, func(t *testing.T) {
-			config := GetTlsConfigurationForServer(cstream)
+			config, err := GetTlsConfigurationForServer(cstream)
+			if err != nil {
+				t.Errorf("GetTlsConfigurationForClient failed: %v", err)
+			}
 			if got, want := config.Certificates[0].Certificate[0], tc.Certificates[0].Certificate[0]; !bytes.Equal(got,want) {
 				t.Errorf("config.Certificates[0].Certificate[0] = %v, want %v", got, want)
 			}

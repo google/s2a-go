@@ -10,7 +10,7 @@ import (
 )
 
 var (
-	port = flag.String("port", ":0", "Fake S2Av2 server address port.")
+	port = flag.String("port", ":8008", "Fake S2Av2 server address port.")
 )
 
 func runFakeS2Av2Server(listenPort *string) {

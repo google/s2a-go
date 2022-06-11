@@ -3,57 +3,55 @@
 package v2
 
 import (
+	"log"
 	"errors"
 	"context"
 	"net"
 	"time"
-	"flag"
-	"log"
 	"crypto/tls"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
-	"google.golang.org/grpc/credentials/insecure"
 	"github.com/google/s2a-go/internal/v2/tls_config_store"
+	"github.com/google/s2a-go/internal/handshaker/service"
 	s2av2pb "github.com/google/s2a-go/internal/proto/v2/s2a_go_proto"
 )
 
 const (
 	s2aSecurityProtocol = "s2av2"
-	defaultTimeout = 10.0 * time.Second
-)
-
-var (
-	fakes2av2Address = flag.String("address", "0.0.0.0:8008", "Fake S2Av2 address")
+	defaultTimeout = 20.0 * time.Second
 )
 
 type s2av2TransportCreds struct {
 	info     *credentials.ProtocolInfo
 	isClient bool
 	serverName string
+	s2av2Address string
 }
 
 // NewClientCreds returns a client-side transport credentials object that uses
 // the S2Av2 to establish a secure connection with a server.
-func NewClientCreds() (credentials.TransportCredentials, error) {
+func NewClientCreds(s2av2Address string) (credentials.TransportCredentials, error) {
 	creds := &s2av2TransportCreds{
 		info: &credentials.ProtocolInfo{
 			SecurityProtocol: s2aSecurityProtocol,
 		},
 		isClient: true,
 		serverName: "",
+		s2av2Address: s2av2Address,
 	}
 	return creds, nil
 }
 
 // NewServerCreds returns a server-side transport credentials object that uses
 // the S2Av2 to establish a secure connection with a client.
-func NewServerCreds() (credentials.TransportCredentials, error) {
+func NewServerCreds(s2av2Address string) (credentials.TransportCredentials, error) {
 	creds := &s2av2TransportCreds{
 		info: &credentials.ProtocolInfo{
 			SecurityProtocol: s2aSecurityProtocol,
 		},
 		isClient: false,
+		s2av2Address: s2av2Address,
 	}
 	return creds, nil
 }
@@ -61,80 +59,61 @@ func NewServerCreds() (credentials.TransportCredentials, error) {
 // ClientHandshake performs a client-side mTLS handshake using the S2Av2.
 func (c *s2av2TransportCreds) ClientHandshake(ctx context.Context, serverAuthority string, rawConn net.Conn) (net.Conn, credentials.AuthInfo, error) {
 	if !c.isClient {
-		return nil, nil, errors.New("client handshake called using server transport credentials")
+		return nil, nil, errors.New("client handshake called using server transport credentials.")
 	}
 	// Remove the port from serverAuthority.
 	serverName, _, err := net.SplitHostPort(serverAuthority)
 	if err != nil {
 		serverName = serverAuthority
 	}
-	// Create a stream to S2Av2.
-	opts := []grpc.DialOption {
-		grpc.WithTransportCredentials(insecure.NewCredentials()),
-		grpc.WithReturnConnectionError(),
-		grpc.WithBlock(),
-	}
-	conn, err := grpc.Dial(*fakes2av2Address, opts...)
+	cstream, err := c.createStream()
 	if err != nil {
-		log.Fatalf("Client: failed to connect: %v", err)
+		log.Printf("error in createStream(): %v", err)
+		return nil, nil, err
 	}
-	defer conn.Close()
-	client := s2av2pb.NewS2AServiceClient(conn)
-	log.Printf("Client: connected to: %s", *fakes2av2Address)
-	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
-	defer cancel()
-
-	// Setup bidrectional streaming session.
-	callOpts := []grpc.CallOption{}
-	cstream, err := client.SetUpSession(ctx, callOpts...)
-	if err != nil  {
-		log.Fatalf("Client: failed to setup bidirectional streaming RPC session: %v", err)
-	}
-	log.Printf("Client: set up bidirectional streaming RPC session.")
-
+	log.Printf("created stream to s2av2")
 	var config *tls.Config
+	log.Printf("calling GetTlsConfigurationForClient")
 	if c.serverName == "" {
-		config = tlsconfigstore.GetTlsConfigurationForClient(serverName, cstream)
+		config, err = tlsconfigstore.GetTlsConfigurationForClient(serverName, cstream)
+		if err != nil {
+			return nil, nil, err
+		}
 	} else {
-		config = tlsconfigstore.GetTlsConfigurationForClient(c.serverName, cstream)
+		config, err = tlsconfigstore.GetTlsConfigurationForClient(c.serverName, cstream)
+		if err != nil {
+			return nil, nil, err
+		}
 	}
+	log.Printf("got config fromt GetTlsConfigurationForClient")
 	creds := credentials.NewTLS(config)
-	return creds.ClientHandshake(context.Background(), serverName, rawConn)
+
+	n, a, err := creds.ClientHandshake(context.Background(), serverName, rawConn)
+	log.Printf("tls client handshake error: %v", err)
+	return n, a, err
 }
 
 // ServerHandshake performs a server-side mTLS handshake using the S2Av2.
 func (c *s2av2TransportCreds) ServerHandshake(rawConn net.Conn) (net.Conn, credentials.AuthInfo, error) {
 	if c.isClient {
-		return nil, nil, errors.New("server handshake called using client transport credentials")
+		return nil, nil, errors.New("server handshake called using client transport credentials.")
 	}
-
-	// Create a stream to S2Av2.
-	opts := []grpc.DialOption {
-		grpc.WithTransportCredentials(insecure.NewCredentials()),
-		grpc.WithReturnConnectionError(),
-		grpc.WithBlock(),
-	}
-	conn, err := grpc.Dial(*fakes2av2Address, opts...)
+	cstream, err := c.createStream()
 	if err != nil {
-		log.Fatalf("Client: failed to connect: %v", err)
+		log.Printf("error in createStream(): %v", err)
+		return nil, nil, err
 	}
-	defer conn.Close()
-	client := s2av2pb.NewS2AServiceClient(conn)
-	log.Printf("Client: connected to: %s", *fakes2av2Address)
-	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
-	defer cancel()
-
-	// Setup bidrectional streaming session.
-	callOpts := []grpc.CallOption{}
-	cstream, err := client.SetUpSession(ctx, callOpts...)
-	if err != nil  {
-		log.Fatalf("Client: failed to setup bidirectional streaming RPC session: %v", err)
+	log.Printf("created stream to s2av2")
+	log.Printf("calling GetTlsConfigurationForServer")
+	config, err := tlsconfigstore.GetTlsConfigurationForServer(cstream)
+	if err != nil {
+		return nil, nil, err
 	}
-	log.Printf("Client: set up bidirectional streaming RPC session.")
-
-	config := tlsconfigstore.GetTlsConfigurationForServer(cstream)
+	log.Printf("got config fromt GetTlsConfigurationForServer")
 	creds := credentials.NewTLS(config)
-	return creds.ServerHandshake(rawConn)
+	n, a, err := creds.ServerHandshake(rawConn)
+	log.Printf("tls server handshake error: %v", err)
+	return n, a, err
 }
 
 // Info returns protocol info of s2av2TransportCreds.
@@ -146,10 +125,12 @@ func (c *s2av2TransportCreds) Info() credentials.ProtocolInfo {
 func (c * s2av2TransportCreds) Clone() credentials.TransportCredentials {
 	info := *c.info
 	serverName := c.serverName
+	s2av2Address := c.s2av2Address
 	return &s2av2TransportCreds{
 		info: &info,
 		isClient: c.isClient,
 		serverName: serverName,
+		s2av2Address : s2av2Address,
 	}
 }
 
@@ -164,4 +145,23 @@ func (c *s2av2TransportCreds) OverrideServerName(serverNameOverride string) erro
 	c.info.ServerName = serverName
 	c.serverName = serverName
 	return nil
+}
+
+func (c* s2av2TransportCreds) createStream() (s2av2pb.S2AService_SetUpSessionClient, error) {
+	// TODO(rmehta19): Consider whether to close the connection to S2Av2.
+	conn, err := service.Dial(c.s2av2Address)
+	if err != nil {
+		return nil, err
+	}
+	log.Printf("dialed s2av2")
+	client := s2av2pb.NewS2AServiceClient(conn)
+	log.Printf("created new S2Av2 service client")
+	ctx, _ := context.WithTimeout(context.Background(), defaultTimeout)
+	// TODO(rmehta19): Consider canceling the context(defer cancel()) when it
+	// times out.
+	cstream, err := client.SetUpSession(ctx, []grpc.CallOption{}...)
+	if err != nil  {
+		return nil, err
+	}
+	return cstream, nil
 }
