@@ -3,7 +3,6 @@
 package v2
 
 import (
-	"log"
 	"errors"
 	"context"
 	"net"
@@ -68,12 +67,9 @@ func (c *s2av2TransportCreds) ClientHandshake(ctx context.Context, serverAuthori
 	}
 	cstream, err := c.createStream()
 	if err != nil {
-		log.Printf("error in createStream(): %v", err)
 		return nil, nil, err
 	}
-	log.Printf("created stream to s2av2")
 	var config *tls.Config
-	log.Printf("calling GetTlsConfigurationForClient")
 	if c.serverName == "" {
 		config, err = tlsconfigstore.GetTlsConfigurationForClient(serverName, cstream)
 		if err != nil {
@@ -85,12 +81,9 @@ func (c *s2av2TransportCreds) ClientHandshake(ctx context.Context, serverAuthori
 			return nil, nil, err
 		}
 	}
-	log.Printf("got config fromt GetTlsConfigurationForClient")
 	creds := credentials.NewTLS(config)
 
-	n, a, err := creds.ClientHandshake(context.Background(), serverName, rawConn)
-	log.Printf("tls client handshake error: %v", err)
-	return n, a, err
+	return creds.ClientHandshake(context.Background(), serverName, rawConn)
 }
 
 // ServerHandshake performs a server-side mTLS handshake using the S2Av2.
@@ -100,20 +93,14 @@ func (c *s2av2TransportCreds) ServerHandshake(rawConn net.Conn) (net.Conn, crede
 	}
 	cstream, err := c.createStream()
 	if err != nil {
-		log.Printf("error in createStream(): %v", err)
 		return nil, nil, err
 	}
-	log.Printf("created stream to s2av2")
-	log.Printf("calling GetTlsConfigurationForServer")
 	config, err := tlsconfigstore.GetTlsConfigurationForServer(cstream)
 	if err != nil {
 		return nil, nil, err
 	}
-	log.Printf("got config fromt GetTlsConfigurationForServer")
 	creds := credentials.NewTLS(config)
-	n, a, err := creds.ServerHandshake(rawConn)
-	log.Printf("tls server handshake error: %v", err)
-	return n, a, err
+	return creds.ServerHandshake(rawConn)
 }
 
 // Info returns protocol info of s2av2TransportCreds.
@@ -153,9 +140,7 @@ func (c* s2av2TransportCreds) createStream() (s2av2pb.S2AService_SetUpSessionCli
 	if err != nil {
 		return nil, err
 	}
-	log.Printf("dialed s2av2")
 	client := s2av2pb.NewS2AServiceClient(conn)
-	log.Printf("created new S2Av2 service client")
 	ctx, _ := context.WithTimeout(context.Background(), defaultTimeout)
 	// TODO(rmehta19): Consider canceling the context(defer cancel()) when it
 	// times out.

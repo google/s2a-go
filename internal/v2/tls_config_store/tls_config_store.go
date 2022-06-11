@@ -2,7 +2,6 @@
 package tlsconfigstore
 
 import (
-	"log"
 	"errors"
 	"crypto/tls"
 	"encoding/pem"
@@ -41,18 +40,14 @@ func GetTlsConfigurationForClient(serverHostname string, cstream s2av2pb.S2AServ
 			},
 		},
 	}); err != nil {
-		log.Printf("client did not send SessionReq: %v", err)
 		return nil, err
 	}
-	log.Printf("client sent SessionReq")
 
 	// Get the response containing config from S2Av2.
 	resp, err := cstream.Recv()
 	if err != nil {
-		log.Printf("client did not recieve SessionResp: %v", err)
 		return nil, err
 	}
-	log.Printf("client recieved SessionResp")
 
 	// TODO(rmehta19): Handle resp.GetStatus().
 
@@ -79,8 +74,8 @@ func GetTlsConfigurationForClient(serverHostname string, cstream s2av2pb.S2AServ
 	tlsCert, _ := tls.X509KeyPair([]byte(tlsConfig.CertificateChain[0]), clientKey)
 	cert.PrivateKey = tlsCert.PrivateKey
 
-	// TODO(rmehta19): Remove rootCertPool once cert
-	// implemented.
+	// TODO(rmehta19): Remove certPool when RPC containing
+	// ValidatePeerCertificateChainReq implemented.
 	rootCertPool := x509.NewCertPool()
 	rootCertPool.AppendCertsFromPEM(serverCert)
 
@@ -122,18 +117,14 @@ func GetTlsConfigurationForServer(cstream s2av2pb.S2AService_SetUpSessionClient)
 		},
 	})
 	if err != nil {
-		log.Printf("server failed to send SessionReq")
 		return nil, err
 	}
-	log.Printf("server sent SessionReq")
 
 	// Get the response containing config from S2Av2.
 	resp, err := cstream.Recv()
 	if err != nil {
-		log.Printf("server failed to recieve SessionResp")
 		return nil, err
 	}
-	log.Printf("server received SessionResp")
 
 	// TODO(rmehta19): Handle resp.GetStatus().
 
@@ -160,8 +151,8 @@ func GetTlsConfigurationForServer(cstream s2av2pb.S2AService_SetUpSessionClient)
 	tlsCert, _ := tls.X509KeyPair([]byte(tlsConfig.CertificateChain[0]), serverKey)
 	cert.PrivateKey = tlsCert.PrivateKey
 
-	// TODO(rmehta19): Remove certPool once fake VerifyPeerCertificateChain
-	// implemented.
+	// TODO(rmehta19): Remove certPool when RPC containing
+	// ValidatePeerCertificateChainReq implemented.
 	certPool := x509.NewCertPool()
 	certPool.AppendCertsFromPEM(clientCert)
 

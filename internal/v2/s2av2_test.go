@@ -12,6 +12,8 @@ var (
 	fakes2av2Address = flag.String("address", "0.0.0.0:8008", "Fake S2Av2 address")
 )
 
+// TODO(rmehta19): add unit tests to test success of ClientHandshake and ServerHandshake.
+
 func TestNewClientCreds(t *testing.T) {
 	for _, tc := range []struct {
 		description string

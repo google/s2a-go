@@ -22,7 +22,6 @@ type Server struct {
 // SetUpSession receives SessionReq, performs request, and returns a
 // SessionResp, all on the server stream.
 func (s *Server) SetUpSession(stream s2av2pb.S2AService_SetUpSessionServer) error {
-	log.Printf("recieved SetUpSession Req from s2av2 client")
 	for {
 		req, err := stream.Recv()
 		if err != nil {

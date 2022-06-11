@@ -23,8 +23,6 @@ func runClient(serverAddr *string) {
 	if err != nil {
 		log.Fatalf("NewClientCreds() failed: %v", err)
 	}
-	//Test
-	log.Printf("created client creds")
 	opts := []grpc.DialOption{
 		grpc.WithTransportCredentials(creds),
 		grpc.WithReturnConnectionError(),
@@ -36,8 +34,6 @@ func runClient(serverAddr *string) {
 		log.Fatalf("Client: failed to connect: %v", err)
 	}
 	defer conn.Close()
-	//Test
-	log.Printf("dialed server")
 	c := pb.NewEchoClient(conn)
 	log.Printf("Client: connected to: %s", *serverAddr)
 	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
