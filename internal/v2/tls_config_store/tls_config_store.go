@@ -55,7 +55,8 @@ func GetTlsConfigurationForClient(serverHostname string, cstream s2av2pb.S2AServ
 	tlsConfig := resp.GetGetTlsConfigurationResp().GetClientTlsConfiguration()
 
 	var cert tls.Certificate
-	for _, v := range tlsConfig.CertificateChain {
+	lenChain := len(tlsConfig.CertificateChain)
+	for i, v := range tlsConfig.CertificateChain {
 		// Populate Certificates field
 		block, _ := pem.Decode([]byte(v))
 		if block == nil {
@@ -66,11 +67,14 @@ func GetTlsConfigurationForClient(serverHostname string, cstream s2av2pb.S2AServ
 			return nil, err
 		}
 		cert.Certificate = append(cert.Certificate, x509Cert.Raw)
+		if i == lenChain {
+			cert.Leaf = x509Cert
+		}
 	}
 
 	// Until TODO resolved, populate PrivateKey field using leaf cert and
 	// corresponding key.
-	// TODO(rmehta19): Call remote signer library for private key.
+	// TODO(rmehta19): Move below two lines to remote signer library.
 	tlsCert, _ := tls.X509KeyPair([]byte(tlsConfig.CertificateChain[0]), clientKey)
 	cert.PrivateKey = tlsCert.PrivateKey
 
@@ -79,9 +83,9 @@ func GetTlsConfigurationForClient(serverHostname string, cstream s2av2pb.S2AServ
 	rootCertPool := x509.NewCertPool()
 	rootCertPool.AppendCertsFromPEM(serverCert)
 
-	minVersion, maxVersion := getTLSMinMaxVersionsClient(tlsConfig)
-	if minVersion > maxVersion {
-		return nil, errors.New("S2Av2 provided minVersion > maxVersion.")
+	minVersion, maxVersion, err := getTLSMinMaxVersionsClient(tlsConfig)
+	if err != nil {
+		return nil, err
 	}
 
 	// Create mTLS credentials for client.
@@ -103,7 +107,7 @@ func GetTlsConfigurationForClient(serverHostname string, cstream s2av2pb.S2AServ
 func GetTlsConfigurationForServer(cstream s2av2pb.S2AService_SetUpSessionClient) (*tls.Config, error) {
 	// TODO(rmehta19): move call to S2Av2 to a helper function.
 	// Send request to S2Av2 for config.
-	err := cstream.Send(&s2av2pb.SessionReq {
+	if err := cstream.Send(&s2av2pb.SessionReq {
 		AuthenticationMechanisms: []*s2av2pb.AuthenticationMechanism {
 			{
 				// TODO(rmehta19): Populate Authentication Mechanism using tokenmanager.
@@ -115,8 +119,7 @@ func GetTlsConfigurationForServer(cstream s2av2pb.S2AService_SetUpSessionClient)
 				ConnectionSide: commonpb.ConnectionSide_CONNECTION_SIDE_SERVER,
 			},
 		},
-	})
-	if err != nil {
+	}); err != nil {
 		return nil, err
 	}
 
@@ -132,7 +135,8 @@ func GetTlsConfigurationForServer(cstream s2av2pb.S2AService_SetUpSessionClient)
 	tlsConfig := resp.GetGetTlsConfigurationResp().GetServerTlsConfiguration()
 
 	var cert tls.Certificate
-	for _, v := range tlsConfig.CertificateChain {
+	lenChain := len(tlsConfig.CertificateChain)
+	for i, v := range tlsConfig.CertificateChain {
 		// Populate Certificates field
 		block, _ := pem.Decode([]byte(v))
 		if block == nil {
@@ -143,11 +147,14 @@ func GetTlsConfigurationForServer(cstream s2av2pb.S2AService_SetUpSessionClient)
 			return nil, err
 		}
 		cert.Certificate = append(cert.Certificate, x509Cert.Raw)
+		if i == lenChain {
+			cert.Leaf = x509Cert
+		}
 	}
 
 	// Until TODO resolved, populate PrivateKey field using leaf cert and
 	// corresponding key.
-	// TODO(rmehta19): Call remote signer library for private key.
+	// TODO(rmehta19): Move below two lines to remote signer library.
 	tlsCert, _ := tls.X509KeyPair([]byte(tlsConfig.CertificateChain[0]), serverKey)
 	cert.PrivateKey = tlsCert.PrivateKey
 
@@ -156,9 +163,9 @@ func GetTlsConfigurationForServer(cstream s2av2pb.S2AService_SetUpSessionClient)
 	certPool := x509.NewCertPool()
 	certPool.AppendCertsFromPEM(clientCert)
 
-	minVersion, maxVersion := getTLSMinMaxVersionsServer(tlsConfig)
-	if minVersion > maxVersion {
-		return nil, errors.New("S2Av2 provided minVersion > maxVersion")
+	minVersion, maxVersion, err := getTLSMinMaxVersionsServer(tlsConfig)
+	if err != nil {
+		return nil, err
 	}
 
 	// Create mTLS credentials for server.
@@ -176,7 +183,7 @@ func GetTlsConfigurationForServer(cstream s2av2pb.S2AService_SetUpSessionClient)
 	}, nil
 }
 
-func getTLSMinMaxVersionsClient(tlsConfig *s2av2pb.GetTlsConfigurationResp_ClientTlsConfiguration) (uint16, uint16){
+func getTLSMinMaxVersionsClient(tlsConfig *s2av2pb.GetTlsConfigurationResp_ClientTlsConfiguration) (uint16, uint16, error) {
 	// Map S2Av2 TLSVersion to consts defined in tls package.
 	var minVersion uint16
 	var maxVersion uint16
@@ -205,10 +212,13 @@ func getTLSMinMaxVersionsClient(tlsConfig *s2av2pb.GetTlsConfigurationResp_Clien
 	default:
 		maxVersion = tls.VersionTLS13
 	}
-	return minVersion, maxVersion
+	if minVersion > maxVersion {
+		return minVersion, maxVersion, errors.New("S2Av2 provided minVersion > maxVersion")
+	}
+	return minVersion, maxVersion, nil
 }
 
-func getTLSMinMaxVersionsServer(tlsConfig *s2av2pb.GetTlsConfigurationResp_ServerTlsConfiguration) (uint16, uint16){
+func getTLSMinMaxVersionsServer(tlsConfig *s2av2pb.GetTlsConfigurationResp_ServerTlsConfiguration) (uint16, uint16, error) {
 	// Map S2Av2 TLSVersion to consts defined in tls package.
 	var minVersion uint16
 	var maxVersion uint16
@@ -237,5 +247,8 @@ func getTLSMinMaxVersionsServer(tlsConfig *s2av2pb.GetTlsConfigurationResp_Serve
 	default:
 		maxVersion = tls.VersionTLS13
 	}
-	return minVersion, maxVersion
+	if minVersion > maxVersion {
+		return minVersion, maxVersion, errors.New("S2Av2 provided minVersion > maxVersion")
+	}
+	return minVersion, maxVersion, nil
 }

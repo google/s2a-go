@@ -144,9 +144,5 @@ func (c* s2av2TransportCreds) createStream() (s2av2pb.S2AService_SetUpSessionCli
 	ctx, _ := context.WithTimeout(context.Background(), defaultTimeout)
 	// TODO(rmehta19): Consider canceling the context(defer cancel()) when it
 	// times out.
-	cstream, err := client.SetUpSession(ctx, []grpc.CallOption{}...)
-	if err != nil  {
-		return nil, err
-	}
-	return cstream, nil
+	return client.SetUpSession(ctx, []grpc.CallOption{}...)
 }

@@ -1,7 +1,6 @@
 package v2
 
 import (
-	"flag"
 	"testing"
 	"context"
 	"github.com/google/go-cmp/cmp"
@@ -9,10 +8,12 @@ import (
 )
 
 var (
-	fakes2av2Address = flag.String("address", "0.0.0.0:8008", "Fake S2Av2 address")
+	fakes2av2Address = "0.0.0.0:0"
 )
 
-// TODO(rmehta19): add unit tests to test success of ClientHandshake and ServerHandshake.
+// TODO(rmehta19): Consider adding unit tests to test success of ClientHandshake
+// and ServerHandshake. Current testing of success is through use of
+// example/server, example/client and internal/v2/fakes2av2_server.
 
 func TestNewClientCreds(t *testing.T) {
 	for _, tc := range []struct {
@@ -23,7 +24,7 @@ func TestNewClientCreds(t *testing.T) {
 		},
 	}{
 		t.Run(tc.description, func(t *testing.T){
-			c, err := NewClientCreds(*fakes2av2Address)
+			c, err := NewClientCreds(fakes2av2Address)
 			if err != nil {
 				t.Fatalf("NewClientCreds() failed: %v", err)
 			}
@@ -47,7 +48,7 @@ func TestNewServerCreds(t *testing.T) {
 		},
 	}{
 		t.Run(tc.description, func(t *testing.T){
-			c, err := NewServerCreds(*fakes2av2Address)
+			c, err := NewServerCreds(fakes2av2Address)
 			if err != nil {
 				t.Fatalf("NewServerCreds() failed: %v", err)
 			}
@@ -77,7 +78,7 @@ func TestServerHandshakeFail(t *testing.T) {
 }
 
 func TestInfo(t *testing.T) {
-	c, err := NewClientCreds(*fakes2av2Address)
+	c, err := NewClientCreds(fakes2av2Address)
 	if err != nil {
 		t.Fatalf("NewClientCreds() failed: %v", err)
 	}
@@ -88,7 +89,7 @@ func TestInfo(t *testing.T) {
 }
 
 func TestCloneClient(t *testing.T) {
-	c, err := NewClientCreds(*fakes2av2Address)
+	c, err := NewClientCreds(fakes2av2Address)
 	if err != nil {
 		t.Fatalf("NewClientCreds() failed: %v", err)
 	}
@@ -112,7 +113,7 @@ func TestCloneClient(t *testing.T) {
 }
 
 func TestCloneServer(t *testing.T) {
-	c, err := NewServerCreds(*fakes2av2Address)
+	c, err := NewServerCreds(fakes2av2Address)
 	if err != nil {
 		t.Fatalf("NewServerCreds() failed: %v", err)
 	}
@@ -137,7 +138,7 @@ func TestCloneServer(t *testing.T) {
 
 func TestOverrideServerName(t *testing.T) {
 	// Setup test.
-	c, err := NewClientCreds(*fakes2av2Address)
+	c, err := NewClientCreds(fakes2av2Address)
 	s2av2Creds, ok := c.(*s2av2TransportCreds)
 	if !ok {
 		t.Fatal("the created creds is not of type s2av2TransportCreds")

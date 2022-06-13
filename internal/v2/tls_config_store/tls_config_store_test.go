@@ -15,6 +15,7 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 	"github.com/google/s2a-go/internal/v2/fakes2av2"
 	s2av2pb "github.com/google/s2a-go/internal/proto/v2/s2a_go_proto"
+	commonpb "github.com/google/s2a-go/internal/proto/v2/common_go_proto"
 )
 
 const (
@@ -32,12 +33,12 @@ var (
 	serverKeypem []byte
 )
 
-func startFakeS2Av2Server(wg *sync.WaitGroup) (stop func(), err error, address string) {
+func startFakeS2Av2Server(wg *sync.WaitGroup) (stop func(), address string, err error) {
 	listener, err := net.Listen("tcp", ":0")
-	address = listener.Addr().String()
 	if err != nil {
 		log.Fatalf("failed to listen on address %s: %v", address, err)
 	}
+	address = listener.Addr().String()
 	s := grpc.NewServer()
 	log.Printf("Server: started gRPC fake S2Av2 Server on address: %s", address)
 	s2av2pb.RegisterS2AServiceServer(s, &fakes2av2.Server{})
@@ -47,7 +48,7 @@ func startFakeS2Av2Server(wg *sync.WaitGroup) (stop func(), err error, address s
 			log.Printf("failed to serve: %v", err)
 		}
 	}()
-	return func() { s.Stop()}, nil, address
+	return func() { s.Stop()}, address, nil
 }
 
 // TODO(rmehta19): In Client and Server test, verify contents of config.RootCAs once x509.CertPool.Equal function is officially released : https://cs.opensource.google/go/go/+/4aacb7ff0f103d95a724a91736823f44aa599634 .
@@ -63,7 +64,7 @@ func TestTLSConfigStoreClient(t *testing.T) {
 	// Start up fake S2Av2 server.
 	var wg sync.WaitGroup
 	wg.Add(1)
-	stop, err, address := startFakeS2Av2Server(&wg)
+	stop, address, err := startFakeS2Av2Server(&wg)
 	wg.Wait()
 	if err != nil {
 		log.Fatalf("error starting fake S2Av2 Server: %v", err)
@@ -148,7 +149,7 @@ func TestTLSConfigStoreServer(t *testing.T) {
 	// Start up fake S2Av2 server.
 	var wg sync.WaitGroup
 	wg.Add(1)
-	stop, err, address := startFakeS2Av2Server(&wg)
+	stop, address, err := startFakeS2Av2Server(&wg)
 	wg.Wait()
 	if err != nil {
 		log.Fatalf("error starting fake S2Av2 Server: %v", err)
@@ -218,4 +219,32 @@ func TestTLSConfigStoreServer(t *testing.T) {
 		})
 	}
 	stop()
+}
+
+func TestgetTLSMinMaxVersionsClient(t *testing.T) {
+	var tlsconfig s2av2pb.GetTlsConfigurationResp_ClientTlsConfiguration
+	tlsconfig.MinTlsVersion = commonpb.TLSVersion_TLS_VERSION_1_0
+	tlsconfig.MaxTlsVersion = commonpb.TLSVersion_TLS_VERSION_1_1
+	if _, _, err := getTLSMinMaxVersionsClient(&tlsconfig); err != nil {
+		t.Errorf("error in getTlsMinMaxVersionsClient logic: %v", err)
+	}
+	tlsconfig.MinTlsVersion = commonpb.TLSVersion_TLS_VERSION_1_1
+	tlsconfig.MaxTlsVersion = commonpb.TLSVersion_TLS_VERSION_1_0
+	if _, _, err := getTLSMinMaxVersionsClient(&tlsconfig); err == nil {
+		t.Errorf("getTlsMinMaxVersionsClient returned nil, should have returned error")
+	}
+}
+
+func TestgetTLSMinMaxVersionsServer(t *testing.T) {
+	var tlsconfig s2av2pb.GetTlsConfigurationResp_ServerTlsConfiguration
+	tlsconfig.MinTlsVersion = commonpb.TLSVersion_TLS_VERSION_1_0
+	tlsconfig.MaxTlsVersion = commonpb.TLSVersion_TLS_VERSION_1_1
+	if _, _, err := getTLSMinMaxVersionsServer(&tlsconfig); err != nil {
+		t.Errorf("error in getTlsMinMaxVersionsServer logic: %v", err)
+	}
+	tlsconfig.MinTlsVersion = commonpb.TLSVersion_TLS_VERSION_1_1
+	tlsconfig.MaxTlsVersion = commonpb.TLSVersion_TLS_VERSION_1_0
+	if _, _, err := getTLSMinMaxVersionsServer(&tlsconfig); err == nil {
+		t.Errorf("getTlsMinMaxVersionsServer returned nil, should have returned error")
+	}
 }
