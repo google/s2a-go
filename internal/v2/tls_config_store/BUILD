@@ -12,12 +12,14 @@ go_library(
   importpath = "github.com/google/s2a-go/internal/v2/tls_config_store",
   embedsrcs = [
     "example_cert_key/client_cert.pem",
-    "example_cert_key/client_key.pem",
     "example_cert_key/server_cert.pem",
+    "example_cert_key/client_key.pem",
     "example_cert_key/server_key.pem",
   ],
   deps = [
     "//internal/v2/cert_verifier",
+    "//internal/proto/v2/common_go_proto:common_go_proto",
+    "//internal/proto/v2/s2a_go_proto:s2a_go_proto",
   ],
 )
 
@@ -30,5 +32,11 @@ go_test(
     "example_cert_key/client_key.pem",
     "example_cert_key/server_cert.pem",
     "example_cert_key/server_key.pem",
+  ],
+  deps = [
+    "//internal/v2/fakes2av2",
+    "//internal/proto/v2/s2a_go_proto:s2a_go_proto",
+    "@org_golang_google_grpc//:go_default_library",
+    "@org_golang_google_grpc//credentials/insecure:go_default_library",
   ],
 )

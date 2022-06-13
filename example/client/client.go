@@ -19,13 +19,14 @@ var (
 )
 
 func runClient(serverAddr *string) {
-	creds, err := v2.NewClientCreds()
+	creds, err := v2.NewClientCreds("0.0.0.0:8008")
 	if err != nil {
 		log.Fatalf("NewClientCreds() failed: %v", err)
 	}
 	opts := []grpc.DialOption{
 		grpc.WithTransportCredentials(creds),
 		grpc.WithReturnConnectionError(),
+		grpc.WithDisableRetry(),
 		grpc.WithBlock(),
 	}
 	conn, err := grpc.Dial(*serverAddr, opts...)
