@@ -221,7 +221,7 @@ func TestTLSConfigStoreServer(t *testing.T) {
 	stop()
 }
 
-func TestgetTLSMinMaxVersionsClient(t *testing.T) {
+func TestGetTLSMinMaxVersionsClient(t *testing.T) {
 	var tlsconfig s2av2pb.GetTlsConfigurationResp_ClientTlsConfiguration
 	tlsconfig.MinTlsVersion = commonpb.TLSVersion_TLS_VERSION_1_0
 	tlsconfig.MaxTlsVersion = commonpb.TLSVersion_TLS_VERSION_1_1
@@ -235,7 +235,7 @@ func TestgetTLSMinMaxVersionsClient(t *testing.T) {
 	}
 }
 
-func TestgetTLSMinMaxVersionsServer(t *testing.T) {
+func TestGetTLSMinMaxVersionsServer(t *testing.T) {
 	var tlsconfig s2av2pb.GetTlsConfigurationResp_ServerTlsConfiguration
 	tlsconfig.MinTlsVersion = commonpb.TLSVersion_TLS_VERSION_1_0
 	tlsconfig.MaxTlsVersion = commonpb.TLSVersion_TLS_VERSION_1_1

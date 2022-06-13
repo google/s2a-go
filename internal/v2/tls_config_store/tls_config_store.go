@@ -55,7 +55,6 @@ func GetTlsConfigurationForClient(serverHostname string, cstream s2av2pb.S2AServ
 	tlsConfig := resp.GetGetTlsConfigurationResp().GetClientTlsConfiguration()
 
 	var cert tls.Certificate
-	lenChain := len(tlsConfig.CertificateChain)
 	for i, v := range tlsConfig.CertificateChain {
 		// Populate Certificates field
 		block, _ := pem.Decode([]byte(v))
@@ -67,7 +66,7 @@ func GetTlsConfigurationForClient(serverHostname string, cstream s2av2pb.S2AServ
 			return nil, err
 		}
 		cert.Certificate = append(cert.Certificate, x509Cert.Raw)
-		if i == lenChain {
+		if i == 0 {
 			cert.Leaf = x509Cert
 		}
 	}
@@ -135,7 +134,6 @@ func GetTlsConfigurationForServer(cstream s2av2pb.S2AService_SetUpSessionClient)
 	tlsConfig := resp.GetGetTlsConfigurationResp().GetServerTlsConfiguration()
 
 	var cert tls.Certificate
-	lenChain := len(tlsConfig.CertificateChain)
 	for i, v := range tlsConfig.CertificateChain {
 		// Populate Certificates field
 		block, _ := pem.Decode([]byte(v))
@@ -147,7 +145,7 @@ func GetTlsConfigurationForServer(cstream s2av2pb.S2AService_SetUpSessionClient)
 			return nil, err
 		}
 		cert.Certificate = append(cert.Certificate, x509Cert.Raw)
-		if i == lenChain {
+		if i == 0 {
 			cert.Leaf = x509Cert
 		}
 	}
@@ -183,6 +181,7 @@ func GetTlsConfigurationForServer(cstream s2av2pb.S2AService_SetUpSessionClient)
 	}, nil
 }
 
+// TODO(rmehta19): Test every possible case of input/outputs for this function.
 func getTLSMinMaxVersionsClient(tlsConfig *s2av2pb.GetTlsConfigurationResp_ClientTlsConfiguration) (uint16, uint16, error) {
 	// Map S2Av2 TLSVersion to consts defined in tls package.
 	var minVersion uint16
@@ -213,11 +212,12 @@ func getTLSMinMaxVersionsClient(tlsConfig *s2av2pb.GetTlsConfigurationResp_Clien
 		maxVersion = tls.VersionTLS13
 	}
 	if minVersion > maxVersion {
-		return minVersion, maxVersion, errors.New("S2Av2 provided minVersion > maxVersion")
+		return minVersion, maxVersion, errors.New("S2Av2 provided minVersion > maxVersion.")
 	}
 	return minVersion, maxVersion, nil
 }
 
+// TODO(rmehta19): Test every possible case of input/outputs for this function.
 func getTLSMinMaxVersionsServer(tlsConfig *s2av2pb.GetTlsConfigurationResp_ServerTlsConfiguration) (uint16, uint16, error) {
 	// Map S2Av2 TLSVersion to consts defined in tls package.
 	var minVersion uint16
@@ -248,7 +248,7 @@ func getTLSMinMaxVersionsServer(tlsConfig *s2av2pb.GetTlsConfigurationResp_Serve
 		maxVersion = tls.VersionTLS13
 	}
 	if minVersion > maxVersion {
-		return minVersion, maxVersion, errors.New("S2Av2 provided minVersion > maxVersion")
+		return minVersion, maxVersion, errors.New("S2Av2 provided minVersion > maxVersion.")
 	}
 	return minVersion, maxVersion, nil
 }
