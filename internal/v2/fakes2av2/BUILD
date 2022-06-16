@@ -11,11 +11,14 @@ go_library(
   testonly = True,
   embedsrcs = [
     "example_cert/client_cert.pem",
+    "example_cert/client_cert.der",
     "example_cert/server_cert.pem",
+    "example_cert/server_cert.der",
   ],
   deps = [
     "//internal/proto/v2/common_go_proto:common_go_proto",
     "//internal/proto/v2/s2a_go_proto:s2a_go_proto",
+    "//internal/proto/v2/s2a_context_go_proto:s2a_context_go_proto",
   ],
 )
 
@@ -27,6 +30,7 @@ go_test(
     "//internal/proto/v2/common_go_proto:common_go_proto",
     "//internal/proto/v2/s2a_go_proto:s2a_go_proto",
     "//internal/proto/common_go_proto:common_go_proto",
+    "//internal/proto/v2/s2a_context_go_proto:s2a_context_go_proto",
     "@org_golang_google_protobuf//testing/protocmp:go_default_library",
     "@com_github_google_go_cmp//cmp:go_default_library",
     "@org_golang_google_grpc//credentials/insecure:go_default_library",

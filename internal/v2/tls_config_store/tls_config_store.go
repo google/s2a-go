@@ -92,7 +92,7 @@ func GetTlsConfigurationForClient(serverHostname string, cstream s2av2pb.S2AServ
 		// TODO(rmehta19): Make use of tlsConfig.HandshakeCiphersuites /
 		// RecordCiphersuites.
 		Certificates: []tls.Certificate{cert},
-		VerifyPeerCertificate: certverifier.VerifyServerCertificateChain("s2a_test_cert", serverHostname, rootCertPool),
+		VerifyPeerCertificate: certverifier.VerifyServerCertificateChain(serverHostname, cstream),
 		RootCAs: rootCertPool,
 		ServerName: serverHostname,
 		InsecureSkipVerify: true,
@@ -171,7 +171,7 @@ func GetTlsConfigurationForServer(cstream s2av2pb.S2AService_SetUpSessionClient)
 		// TODO(rmehta19): Make use of tlsConfig.HandshakeCiphersuites /
 		// RecordCiphersuites / TlsResumptionEnabled / MaxOverheadOfTicketAead.
 		Certificates: []tls.Certificate{cert},
-		VerifyPeerCertificate: certverifier.VerifyClientCertificateChain("s2a_test_cert", certPool),
+		VerifyPeerCertificate: certverifier.VerifyClientCertificateChain(cstream),
 		ClientCAs: certPool,
 		// TODO(rmehta19): Remove "+ 2" when proto file enum change is merged.
 		ClientAuth: tls.ClientAuthType(tlsConfig.RequestClientCertificate) + 2,
