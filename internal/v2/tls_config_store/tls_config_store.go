@@ -77,10 +77,6 @@ func GetTlsConfigurationForClient(serverHostname string, cstream s2av2pb.S2AServ
 	tlsCert, _ := tls.X509KeyPair([]byte(tlsConfig.CertificateChain[0]), clientKey)
 	cert.PrivateKey = tlsCert.PrivateKey
 
-	// TODO(rmehta19): Remove certPool when RPC containing
-	// ValidatePeerCertificateChainReq implemented.
-	rootCertPool := x509.NewCertPool()
-	rootCertPool.AppendCertsFromPEM(serverCert)
 
 	minVersion, maxVersion, err := getTLSMinMaxVersionsClient(tlsConfig)
 	if err != nil {
@@ -93,7 +89,6 @@ func GetTlsConfigurationForClient(serverHostname string, cstream s2av2pb.S2AServ
 		// RecordCiphersuites.
 		Certificates: []tls.Certificate{cert},
 		VerifyPeerCertificate: certverifier.VerifyServerCertificateChain(serverHostname, cstream),
-		RootCAs: rootCertPool,
 		ServerName: serverHostname,
 		InsecureSkipVerify: true,
 		ClientSessionCache: nil,
@@ -156,10 +151,6 @@ func GetTlsConfigurationForServer(cstream s2av2pb.S2AService_SetUpSessionClient)
 	tlsCert, _ := tls.X509KeyPair([]byte(tlsConfig.CertificateChain[0]), serverKey)
 	cert.PrivateKey = tlsCert.PrivateKey
 
-	// TODO(rmehta19): Remove certPool when RPC containing
-	// ValidatePeerCertificateChainReq implemented.
-	certPool := x509.NewCertPool()
-	certPool.AppendCertsFromPEM(clientCert)
 
 	minVersion, maxVersion, err := getTLSMinMaxVersionsServer(tlsConfig)
 	if err != nil {
@@ -172,7 +163,6 @@ func GetTlsConfigurationForServer(cstream s2av2pb.S2AService_SetUpSessionClient)
 		// RecordCiphersuites / TlsResumptionEnabled / MaxOverheadOfTicketAead.
 		Certificates: []tls.Certificate{cert},
 		VerifyPeerCertificate: certverifier.VerifyClientCertificateChain(cstream),
-		ClientCAs: certPool,
 		// TODO(rmehta19): Remove "+ 2" when proto file enum change is merged.
 		ClientAuth: tls.ClientAuthType(tlsConfig.RequestClientCertificate) + 2,
 		InsecureSkipVerify: true,
