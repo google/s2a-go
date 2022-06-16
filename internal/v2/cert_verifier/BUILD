@@ -9,6 +9,9 @@ go_library(
   name = "cert_verifier",
   srcs = ["cert_verifier.go"],
   importpath = "github.com/google/s2a-go/internal/v2/cert_verifier",
+  deps = [
+    "//internal/proto/v2/s2a_go_proto:s2a_go_proto",
+  ],
 )
 
 go_test(
@@ -16,9 +19,18 @@ go_test(
   srcs = ["cert_verifier_test.go"],
   embed = [":cert_verifier"],
   embedsrcs = [
-    "example_cert_key/client_cert.pem",
-    "example_cert_key/client_key.pem",
-    "example_cert_key/server_cert.pem",
-    "example_cert_key/server_key.pem",
+    "example_cert_key/client_root_cert.der",
+    "example_cert_key/server_root_cert.der",
+    "example_cert_key/client_intermediate_cert.der",
+    "example_cert_key/server_intermediate_cert.der",
+    "example_cert_key/client_leaf_cert.der",
+    "example_cert_key/server_leaf_cert.der",
+
+  ],
+  deps = [
+    "//internal/v2/fakes2av2",
+    "//internal/proto/v2/s2a_go_proto:s2a_go_proto",
+    "@org_golang_google_grpc//:go_default_library",
+    "@org_golang_google_grpc//credentials/insecure:go_default_library",
   ],
 )

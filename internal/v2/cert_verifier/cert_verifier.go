@@ -3,64 +3,81 @@ package certverifier
 
 import (
 	"crypto/x509"
-	"fmt"
-	"time"
+
+	s2av2pb "github.com/google/s2a-go/internal/proto/v2/s2a_go_proto"
 )
 
-// VerifyClientCertificateChain verifies a client's certificate chain against
-// the roots in the provided pool and checks that the common name in the
-// client's leaf certificate matches the expected common name.
-func VerifyClientCertificateChain(expectedCommonName string, pool *x509.CertPool) func(rawCerts [][]byte, verifiedChains [][]*x509.Certificate) error {
+// VerifyClientCertificateChain builds a SessionReq, sends it to S2Av2 and
+// receives a SessionResp.
+func VerifyClientCertificateChain(cstream s2av2pb.S2AService_SetUpSessionClient) func(rawCerts [][]byte, verifiedChains [][]*x509.Certificate) error {
 	return func(rawCerts [][]byte, verifiedChains [][]*x509.Certificate) error {
-		if len(rawCerts) == 0 {
-			return nil
-		}
-		cert, err := x509.ParseCertificate(rawCerts[0])
-		if err != nil {
-			return fmt.Errorf("ParseCertificate failed: %v", err)
-		}
-
-		opts := x509.VerifyOptions{
-			CurrentTime: time.Now(),
-			Roots:       pool,
-		}
-
-		if _, err = cert.Verify(opts); err != nil {
+		// Offload verification to S2Av2.
+		if err := cstream.Send(&s2av2pb.SessionReq {
+			AuthenticationMechanisms: []*s2av2pb.AuthenticationMechanism {
+				{
+					// TODO(rmehta19): Populate Authentication Mechanism using tokenmanager.
+					MechanismOneof: &s2av2pb.AuthenticationMechanism_Token{"token"},
+				},
+			},
+			ReqOneof: &s2av2pb.SessionReq_ValidatePeerCertificateChainReq {
+				&s2av2pb.ValidatePeerCertificateChainReq {
+					Mode: s2av2pb.ValidatePeerCertificateChainReq_CONNECT_TO_GOOGLE,
+					PeerOneof: &s2av2pb.ValidatePeerCertificateChainReq_ClientPeer_ {
+						&s2av2pb.ValidatePeerCertificateChainReq_ClientPeer {
+							CertificateChain: rawCerts,
+						},
+					},
+				},
+			},
+		}); err != nil {
 			return err
 		}
 
-		if cert.Subject.CommonName != expectedCommonName {
-			return fmt.Errorf("certificate had Common Name %q, expected %q", cert.Subject.CommonName, expectedCommonName)
+		// Get the response from S2Av2.
+		_, err := cstream.Recv()
+		if err != nil {
+			return err
 		}
+
+		// TODO(rmehta19): Parse response.
 		return nil
 	}
 }
 
-// VerifyServerCertificateChain verifies a servers' certificate chain against
-// the roots in the provided pool and checks that the common name in the
-// servers' leaf certificate matches the expected common name.
-func VerifyServerCertificateChain(expectedCommonName string, hostname string, pool *x509.CertPool) func(rawCerts [][]byte, verifiedChains [][]*x509.Certificate) error {
+// VerifyServerCertificateChain builds a SessionReq, sends it to S2Av2 and
+// receives a SessionResp.
+func VerifyServerCertificateChain(hostname string, cstream s2av2pb.S2AService_SetUpSessionClient) func(rawCerts [][]byte, verifiedChains [][]*x509.Certificate) error {
 	return func(rawCerts [][]byte, verifiedChains [][]*x509.Certificate) error {
-		if len(rawCerts) == 0 {
-			return nil
-		}
-		cert, err := x509.ParseCertificate(rawCerts[0])
-		if err != nil {
-			return fmt.Errorf("ParseCertificate failed: %v", err)
-		}
-
-		opts := x509.VerifyOptions{
-			CurrentTime: time.Now(),
-			Roots:       pool,
-		}
-
-		if _, err = cert.Verify(opts); err != nil {
+		// Offload verification to S2Av2.
+		if err := cstream.Send(&s2av2pb.SessionReq {
+			AuthenticationMechanisms: []*s2av2pb.AuthenticationMechanism {
+				{
+					// TODO(rmehta19): Populate Authentication Mechanism using tokenmanager.
+					MechanismOneof: &s2av2pb.AuthenticationMechanism_Token{"token"},
+				},
+			},
+			ReqOneof: &s2av2pb.SessionReq_ValidatePeerCertificateChainReq {
+				&s2av2pb.ValidatePeerCertificateChainReq {
+					Mode: s2av2pb.ValidatePeerCertificateChainReq_CONNECT_TO_GOOGLE,
+					PeerOneof: &s2av2pb.ValidatePeerCertificateChainReq_ServerPeer_ {
+						&s2av2pb.ValidatePeerCertificateChainReq_ServerPeer {
+							CertificateChain: rawCerts,
+							ServerHostname: hostname,
+						},
+					},
+				},
+			},
+		}); err != nil {
 			return err
 		}
 
-		if cert.Subject.CommonName != expectedCommonName {
-			return fmt.Errorf("certificate had Common Name %q, expected %q", cert.Subject.CommonName, expectedCommonName)
+		// Get the response from S2Av2.
+		_, err := cstream.Recv()
+		if err != nil {
+			return err
 		}
+
+		// TODO(rmehta19): Parse response.
 		return nil
 	}
 }

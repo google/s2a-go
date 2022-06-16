@@ -12,6 +12,7 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/protobuf/testing/protocmp"
 
+	s2av2ctx "github.com/google/s2a-go/internal/proto/v2/s2a_context_go_proto"
 	s2av2pb "github.com/google/s2a-go/internal/proto/v2/s2a_go_proto"
 	commonpb "github.com/google/s2a-go/internal/proto/v2/common_go_proto"
 )
@@ -48,6 +49,8 @@ func TestSetUpSession(t *testing.T) {
 	if err != nil {
 		log.Fatalf("failed to set up fake S2Av2 server.")
 	}
+
+
 	for _, tc := range []struct {
 		description		string
 		request			*s2av2pb.SessionReq
@@ -134,9 +137,77 @@ func TestSetUpSession(t *testing.T) {
 				},
 			},
 		},
+		{
+			description: "Client Peer Verification",
+			request: &s2av2pb.SessionReq {
+				AuthenticationMechanisms: []*s2av2pb.AuthenticationMechanism {
+					{
+						// TODO(rmehta19): Populate Authentication Mechanism using tokenmanager.
+						MechanismOneof: &s2av2pb.AuthenticationMechanism_Token{"token"},
+					},
+				},
+				ReqOneof: &s2av2pb.SessionReq_ValidatePeerCertificateChainReq {
+					&s2av2pb.ValidatePeerCertificateChainReq {
+						Mode: s2av2pb.ValidatePeerCertificateChainReq_SPIFFE,
+						PeerOneof: &s2av2pb.ValidatePeerCertificateChainReq_ClientPeer_ {
+							&s2av2pb.ValidatePeerCertificateChainReq_ClientPeer {
+								CertificateChain: [][]byte{clientDERCert,},
+							},
+						},
+					},
+				},
+			},
+			expectedResponse: &s2av2pb.SessionResp {
+				Status: &s2av2pb.Status {
+					Code: 0,
+					Details: "",
+				},
+				RespOneof: &s2av2pb.SessionResp_ValidatePeerCertificateChainResp {
+					&s2av2pb.ValidatePeerCertificateChainResp {
+						ValidationResult: s2av2pb.ValidatePeerCertificateChainResp_SUCCESS,
+						ValidationDetails: "Client Peer Verification succeeded",
+						Context: &s2av2ctx.S2AContext{},
+					},
+				},
+			},
+		},
+		{
+			description: "Server Peer Verification",
+			request: &s2av2pb.SessionReq {
+				AuthenticationMechanisms: []*s2av2pb.AuthenticationMechanism {
+					{
+						// TODO(rmehta19): Populate Authentication Mechanism using tokenmanager.
+						MechanismOneof: &s2av2pb.AuthenticationMechanism_Token{"token"},
+					},
+				},
+				ReqOneof: &s2av2pb.SessionReq_ValidatePeerCertificateChainReq {
+					&s2av2pb.ValidatePeerCertificateChainReq {
+						Mode: s2av2pb.ValidatePeerCertificateChainReq_SPIFFE,
+						PeerOneof: &s2av2pb.ValidatePeerCertificateChainReq_ServerPeer_ {
+							&s2av2pb.ValidatePeerCertificateChainReq_ServerPeer {
+								CertificateChain: [][]byte{serverDERCert,},
+							},
+						},
+					},
+				},
+			},
+			expectedResponse: &s2av2pb.SessionResp {
+				Status: &s2av2pb.Status {
+					Code: 0,
+					Details: "",
+				},
+				RespOneof: &s2av2pb.SessionResp_ValidatePeerCertificateChainResp {
+					&s2av2pb.ValidatePeerCertificateChainResp {
+						ValidationResult: s2av2pb.ValidatePeerCertificateChainResp_SUCCESS,
+						ValidationDetails: "Server Peer Verification succeeded",
+						Context: &s2av2ctx.S2AContext{},
+					},
+				},
+			},
+		},
 	}{
 		t.Run(tc.description, func(t *testing.T) {
-			// Create stream to server.
+			// Create new stream to server.
 			opts := []grpc.DialOption{
 				grpc.WithTransportCredentials(insecure.NewCredentials()),
 				grpc.WithReturnConnectionError(),
@@ -159,7 +230,7 @@ func TestSetUpSession(t *testing.T) {
 				t.Fatalf("Client: failed to setup bidirectional streaming RPC session: %v", err)
 			}
 			log.Printf("Client: set up bidirectional streaming RPC session.")
-
+			
 			// Send request.
 			if err := cstream.Send(tc.request); err != nil {
 				t.Fatalf("Client: failed to send SessionReq: %v", err)
