@@ -10,10 +10,12 @@ go_library(
   importpath = "github.com/google/s2a-go/internal/v2/fakes2av2",
   testonly = True,
   embedsrcs = [
-    "example_cert/client_cert.pem",
-    "example_cert/client_cert.der",
-    "example_cert/server_cert.pem",
-    "example_cert/server_cert.der",
+    "example_cert_key/client_root_cert.pem",
+    "example_cert_key/client_root_cert.der",
+    "example_cert_key/client_root_key.pem",
+    "example_cert_key/server_root_cert.pem",
+    "example_cert_key/server_root_cert.der",
+    "example_cert_key/server_root_key.pem",
   ],
   deps = [
     "//internal/proto/v2/common_go_proto:common_go_proto",
@@ -27,9 +29,9 @@ go_test(
   srcs = ["fakes2av2_test.go"],
   embed = [":fakes2av2"],
   deps = [
+    "//internal/proto/common_go_proto:common_go_proto",
     "//internal/proto/v2/common_go_proto:common_go_proto",
     "//internal/proto/v2/s2a_go_proto:s2a_go_proto",
-    "//internal/proto/common_go_proto:common_go_proto",
     "//internal/proto/v2/s2a_context_go_proto:s2a_context_go_proto",
     "@org_golang_google_protobuf//testing/protocmp:go_default_library",
     "@com_github_google_go_cmp//cmp:go_default_library",
