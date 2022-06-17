@@ -5,6 +5,9 @@ import (
 	"fmt"
 	"time"
 	"errors"
+	"crypto"
+	"crypto/tls"
+	"crypto/rand"
 	"crypto/x509"
 	_ "embed"
 	s2av2ctx "github.com/google/s2a-go/internal/proto/v2/s2a_context_go_proto"
@@ -12,14 +15,18 @@ import (
 	commonpb "github.com/google/s2a-go/internal/proto/v2/common_go_proto"
 )
 var (
-	//go:embed example_cert/client_cert.pem
+	//go:embed example_cert_key/client_root_cert.pem
 	clientCert []byte
-	//go:embed example_cert/client_cert.der
+	//go:embed example_cert_key/client_root_cert.der
 	clientDERCert []byte
-	//go:embed example_cert/server_cert.pem
+	//go:embed example_cert_key/client_root_key.pem
+	clientKey []byte
+	//go:embed example_cert_key/server_root_cert.pem
 	serverCert []byte
-	//go:embed example_cert/server_cert.der
+	//go:embed example_cert_key/server_root_cert.der
 	serverDERCert []byte
+	//go:embed example_cert_key/server_root_key.pem
+	serverKey []byte
 )
 
 // Server is a fake S2A Server for testing.
@@ -47,7 +54,11 @@ func (s *Server) SetUpSession(stream s2av2pb.S2AService_SetUpSessionServer) erro
 				return err
 			}
 		case *s2av2pb.SessionReq_OffloadPrivateKeyOperationReq:
-			// TODO(rmehta19): Implement fake.
+			resp, err = offloadPrivateKeyOperation(req.GetOffloadPrivateKeyOperationReq(), req.GetLocalIdentity().GetHostname())
+			if err != nil {
+				log.Printf("Fake S2A Service: failed to build SessionResp with OffloadPrivateKeyOperationResp: %v", err)
+				return err
+			}
 		case *s2av2pb.SessionReq_OffloadResumptionKeyOperationReq:
 			// TODO(rmehta19): Implement fake.
 		case *s2av2pb.SessionReq_ValidatePeerCertificateChainReq:
@@ -63,6 +74,55 @@ func (s *Server) SetUpSession(stream s2av2pb.S2AService_SetUpSessionServer) erro
 			log.Printf("Fake S2A Service: failed to send SessionResp: %v", err)
 			return err
 		}
+	}
+}
+
+func offloadPrivateKeyOperation(req *s2av2pb.OffloadPrivateKeyOperationReq, hostname string) (*s2av2pb.SessionResp, error) {
+	switch x := req.GetOperation(); x{
+	case s2av2pb.OffloadPrivateKeyOperationReq_SIGN:
+		var root tls.Certificate
+		var err error
+		// Retrieve S2Av2 implementation of crypto.Signer.
+		switch hostname {
+		case "client_hostname":
+			root, err = tls.X509KeyPair(clientCert, clientKey)
+			if err != nil {
+				return nil, err
+			}
+		case "server_hostname":
+			root, err = tls.X509KeyPair(serverCert, serverKey)
+			if err != nil {
+				return nil, err
+			}
+		default:
+			s := fmt.Sprintf("Invalid hostname tied to SessionReq: %s", hostname)
+			return nil, errors.New(s)
+		}
+
+		// TODO(rmehta19): Parse req.GetSignatureAlgorithm() to find Hash function that
+		// should be used here. Currently hardcoded to use SHA256.
+
+		// Sign the SHA256 hash with the private key.
+		var opts crypto.Hash = crypto.SHA256
+		signedBytes, err := root.PrivateKey.(crypto.Signer).Sign(rand.Reader, req.GetInBytes(), opts)
+		if err != nil {
+			return nil, err
+		}
+		return &s2av2pb.SessionResp {
+			Status: &s2av2pb.Status {
+				Code: 0,
+			},
+			RespOneof: &s2av2pb.SessionResp_OffloadPrivateKeyOperationResp {
+				&s2av2pb.OffloadPrivateKeyOperationResp {
+					OutBytes: signedBytes,
+				},
+			},
+		}, nil
+	case s2av2pb.OffloadPrivateKeyOperationReq_DECRYPT:
+		return nil, errors.New("Decrypt operation not implemented yet.")
+	default:
+		s := fmt.Sprintf("Unspecified private key operation requested: %d", x)
+		return nil, errors.New(s)
 	}
 }
 

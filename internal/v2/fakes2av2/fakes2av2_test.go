@@ -5,6 +5,10 @@ import (
 	"log"
 	"time"
 	"sync"
+	"crypto"
+	"crypto/rand"
+	"crypto/sha256"
+	"crypto/tls"
 	"context"
 	"testing"
 	"google.golang.org/grpc"
@@ -15,6 +19,7 @@ import (
 	s2av2ctx "github.com/google/s2a-go/internal/proto/v2/s2a_context_go_proto"
 	s2av2pb "github.com/google/s2a-go/internal/proto/v2/s2a_go_proto"
 	commonpb "github.com/google/s2a-go/internal/proto/v2/common_go_proto"
+	commonpbv1 "github.com/google/s2a-go/internal/proto/common_go_proto"
 )
 
 const (
@@ -50,6 +55,32 @@ func TestSetUpSession(t *testing.T) {
 		log.Fatalf("failed to set up fake S2Av2 server.")
 	}
 
+	// Setup for client and server offloadPrivateKeyOperation test.
+	clientTlsCert, err := tls.X509KeyPair(clientCert, clientKey)
+	if err != nil {
+		log.Fatalf("failed during test setup: %v", err)
+	}
+
+	serverTlsCert, err := tls.X509KeyPair(serverCert, serverKey)
+	if err != nil {
+		log.Fatalf("failed during test setup: %v", err)
+	}
+
+	testString := "Generate hash and sign this."
+
+	// TODO(rmehta19): Investigate whether go crypto libraries compute hash.
+	// If so, remove this line, and just pass testString to Sign and as InBytes.
+	hsha256 := sha256.Sum256([]byte(testString))
+
+	var opts crypto.Hash = crypto.SHA256
+	signedWithClientKey, err := clientTlsCert.PrivateKey.(crypto.Signer).Sign(rand.Reader, hsha256[:], opts)
+	if err != nil {
+		log.Fatalf("failed during test setup: %v", err)
+	}
+	signedWithServerKey, err := serverTlsCert.PrivateKey.(crypto.Signer).Sign(rand.Reader, hsha256[:], opts)
+	if err != nil {
+		log.Fatalf("failed during test setup: %v", err)
+	}
 
 	for _, tc := range []struct {
 		description		string
@@ -205,6 +236,72 @@ func TestSetUpSession(t *testing.T) {
 				},
 			},
 		},
+		{
+			description: "client side private key operation",
+			request: &s2av2pb.SessionReq {
+				LocalIdentity: &commonpbv1.Identity {
+					IdentityOneof: &commonpbv1.Identity_Hostname {
+						Hostname: "client_hostname",
+					},
+				},
+				AuthenticationMechanisms: []*s2av2pb.AuthenticationMechanism {
+					{
+						// TODO(rmehta19): Populate Authentication Mechanism using tokenmanager.
+						MechanismOneof: &s2av2pb.AuthenticationMechanism_Token{"token"},
+					},
+				},
+				ReqOneof: &s2av2pb.SessionReq_OffloadPrivateKeyOperationReq {
+					&s2av2pb.OffloadPrivateKeyOperationReq {
+						Operation: s2av2pb.OffloadPrivateKeyOperationReq_SIGN,
+						SignatureAlgorithm: s2av2pb.SignatureAlgorithm_S2A_SSL_SIGN_RSA_PSS_RSAE_SHA256,
+						InBytes: []byte(hsha256[:]),
+					},
+				},
+			},
+			expectedResponse: &s2av2pb.SessionResp {
+				Status: &s2av2pb.Status {
+					Code: 0,
+				},
+				RespOneof: &s2av2pb.SessionResp_OffloadPrivateKeyOperationResp {
+					&s2av2pb.OffloadPrivateKeyOperationResp {
+						OutBytes: signedWithClientKey,
+					},
+				},
+			},
+		},
+		{
+			description: "server side private key operation",
+			request: &s2av2pb.SessionReq {
+				LocalIdentity: &commonpbv1.Identity {
+					IdentityOneof: &commonpbv1.Identity_Hostname {
+						Hostname: "server_hostname",
+					},
+				},
+				AuthenticationMechanisms: []*s2av2pb.AuthenticationMechanism {
+					{
+						// TODO(rmehta19): Populate Authentication Mechanism using tokenmanager.
+						MechanismOneof: &s2av2pb.AuthenticationMechanism_Token{"token"},
+					},
+				},
+				ReqOneof: &s2av2pb.SessionReq_OffloadPrivateKeyOperationReq {
+					&s2av2pb.OffloadPrivateKeyOperationReq {
+						Operation: s2av2pb.OffloadPrivateKeyOperationReq_SIGN,
+						SignatureAlgorithm: s2av2pb.SignatureAlgorithm_S2A_SSL_SIGN_RSA_PSS_RSAE_SHA256,
+						InBytes: []byte(hsha256[:]),
+					},
+				},
+			},
+			expectedResponse: &s2av2pb.SessionResp {
+				Status: &s2av2pb.Status {
+					Code: 0,
+				},
+				RespOneof: &s2av2pb.SessionResp_OffloadPrivateKeyOperationResp {
+					&s2av2pb.OffloadPrivateKeyOperationResp {
+						OutBytes: signedWithServerKey,
+					},
+				},
+			},
+		},
 	}{
 		t.Run(tc.description, func(t *testing.T) {
 			// Create new stream to server.
@@ -230,7 +327,7 @@ func TestSetUpSession(t *testing.T) {
 				t.Fatalf("Client: failed to setup bidirectional streaming RPC session: %v", err)
 			}
 			log.Printf("Client: set up bidirectional streaming RPC session.")
-			
+
 			// Send request.
 			if err := cstream.Send(tc.request); err != nil {
 				t.Fatalf("Client: failed to send SessionReq: %v", err)
