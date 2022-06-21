@@ -157,12 +157,25 @@ func GetTlsConfigurationForServer(cstream s2av2pb.S2AService_SetUpSessionClient)
 		return nil, err
 	}
 
+	// TODO(rmehta19): Choose (1) or (2)
+	// (1) Remove ClientCAs field if S2Av2 will always give
+	// tls.ClientAuthType = tls.NoClientCert, tls.RequestClientCert or
+	// tls.RequireAnyClientCert. For these 3 ClientAuthType's, go crypto/tls
+	// skips normal verification, and directly calls VerifyPeerCertificate func.
+	// (2) Get ClientCAs field from S2Av2, if S2Av2 gives tls.ClientAuthType =
+	// tls.VerifyClientCertIfGiven or tls.RequireAndVerifyClientCert.
+	// For these 2 ClientAuthType's, go crypto/tls performs normal verification,
+	// which requires ClientCAs, before custom VerifyPeerCertificate func.
+	clientCApool := x509.NewCertPool()
+	clientCApool.AppendCertsFromPEM(clientCert)
+
 	// Create mTLS credentials for server.
 	return &tls.Config {
 		// TODO(rmehta19): Make use of tlsConfig.HandshakeCiphersuites /
 		// RecordCiphersuites / TlsResumptionEnabled / MaxOverheadOfTicketAead.
 		Certificates: []tls.Certificate{cert},
 		VerifyPeerCertificate: certverifier.VerifyClientCertificateChain(cstream),
+		ClientCAs: clientCApool,
 		// TODO(rmehta19): Remove "+ 2" when proto file enum change is merged.
 		ClientAuth: tls.ClientAuthType(tlsConfig.RequestClientCertificate) + 2,
 		InsecureSkipVerify: true,
