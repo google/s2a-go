@@ -183,7 +183,6 @@ func TestTLSConfigStoreServer(t *testing.T) {
 		description		    string
 		Certificates                []tls.Certificate
 		ClientAuth		    tls.ClientAuthType
-		InsecureSkipVerify          bool
 		MinVersion	            uint16
 		MaxVersion		    uint16
 	}{
@@ -191,7 +190,6 @@ func TestTLSConfigStoreServer(t *testing.T) {
 			description: "static",
 			Certificates: []tls.Certificate{cert},
 			ClientAuth: tls.RequireAndVerifyClientCert,
-			InsecureSkipVerify: true,
 			MinVersion: tls.VersionTLS13,
 			MaxVersion: tls.VersionTLS13,
 		},
@@ -206,9 +204,6 @@ func TestTLSConfigStoreServer(t *testing.T) {
 			}
 			if got, want := config.ClientAuth, tc.ClientAuth; got != want {
 				t.Errorf("config.ClientAuth = %v, want %v", got, want)
-			}
-			if got, want := config.InsecureSkipVerify, tc.InsecureSkipVerify; got != want {
-				t.Errorf("config.InsecureSkipVerify = %v, want %v", got, want)
 			}
 			if got, want := config.MinVersion, tc.MinVersion; got != want {
 				t.Errorf("config.MinVersion = %v, want %v", got, want)
