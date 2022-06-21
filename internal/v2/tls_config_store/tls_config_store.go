@@ -178,7 +178,6 @@ func GetTlsConfigurationForServer(cstream s2av2pb.S2AService_SetUpSessionClient)
 		ClientCAs: clientCApool,
 		// TODO(rmehta19): Remove "+ 2" when proto file enum change is merged.
 		ClientAuth: tls.ClientAuthType(tlsConfig.RequestClientCertificate) + 2,
-		InsecureSkipVerify: true,
 		MinVersion: minVersion,
 		MaxVersion: maxVersion,
 	}, nil
