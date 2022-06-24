@@ -75,7 +75,8 @@ message GetTlsConfigurationReq {
 message GetTlsConfigurationResp {
   message ClientTlsConfiguration {
     // The certificate chain that the client MUST use for the TLS handshake.
-    // It's a list of PEM-encoded certificates, ordered from leaf to root.
+    // It's a list of PEM-encoded certificates, ordered from leaf to root,
+    // excluding the root.
     repeated string certificate_chain = 1;
 
     // The minimum TLS version number that the client MUST use for the TLS
@@ -106,12 +107,16 @@ message GetTlsConfigurationResp {
   message ServerTlsConfiguration {
     enum RequestClientCertificate {
       UNSPECIFIED = 0;
-      DO_NOT_REQUEST = 1;
-      REQUEST_AND_VERIFY = 2;
+      DONT_REQUEST_CLIENT_CERTIFICATE = 1;
+      REQUEST_CLIENT_CERTIFICATE_BUT_DONT_VERIFY = 2;
+      REQUEST_CLIENT_CERTIFICATE_AND_VERIFY = 3;
+      REQUEST_AND_REQUIRE_CLIENT_CERTIFICATE_BUT_DONT_VERIFY = 4;
+      REQUEST_AND_REQUIRE_CLIENT_CERTIFICATE_AND_VERIFY = 5;
     }
 
     // The certificate chain that the server MUST use for the TLS handshake.
-    // It's a list of PEM-encoded certificates, ordered from leaf to root.
+    // It's a list of PEM-encoded certificates, ordered from leaf to root,
+    // excluding the root.
     repeated string certificate_chain = 1;
 
     // The minimum TLS version number that the server MUST use for the TLS
@@ -170,7 +175,8 @@ message OffloadPrivateKeyOperationReq {
   // The signature algorithm to be used for signing operations.
   SignatureAlgorithm signature_algorithm = 2;
 
-  // The input bytes to be signed or decrypted.
+  // The input bytes to be signed or decrypted. These bytes MAY be hashed using
+  // the hashing algorithm specified by the signature algorithm.
   bytes in_bytes = 3;
 }
 
@@ -213,13 +219,13 @@ message ValidatePeerCertificateChainReq {
 
   message ClientPeer {
     // The certificate chain to be verified. The chain MUST be a list of
-    // DER-encoded certificates, ordered from leaf to root.
+    // DER-encoded certificates, ordered from leaf to root, excluding the root.
     repeated bytes certificate_chain = 1;
   }
 
   message ServerPeer {
     // The certificate chain to be verified. The chain MUST be a list of
-    // DER-encoded certificates, ordered from leaf to root.
+    // DER-encoded certificates, ordered from leaf to root, excluding the root.
     repeated bytes certificate_chain = 1;
 
     // The expected hostname of the server.
@@ -327,4 +333,3 @@ service S2AService {
   // operations from the TLS handshake.
   rpc SetUpSession(stream SessionReq) returns (stream SessionResp) {}
 }
-
