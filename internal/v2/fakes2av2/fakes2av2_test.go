@@ -3,6 +3,7 @@ package fakes2av2
 import (
 	"net"
 	"log"
+	"fmt"
 	"time"
 	"sync"
 	"crypto"
@@ -253,7 +254,7 @@ func TestSetUpSession(t *testing.T) {
 				ReqOneof: &s2av2pb.SessionReq_OffloadPrivateKeyOperationReq {
 					&s2av2pb.OffloadPrivateKeyOperationReq {
 						Operation: s2av2pb.OffloadPrivateKeyOperationReq_SIGN,
-						SignatureAlgorithm: s2av2pb.SignatureAlgorithm_S2A_SSL_SIGN_RSA_PSS_RSAE_SHA256,
+						SignatureAlgorithm: s2av2pb.SignatureAlgorithm_S2A_SSL_SIGN_RSA_PKCS1_SHA256,
 						InBytes: []byte(hsha256[:]),
 					},
 				},
@@ -286,7 +287,7 @@ func TestSetUpSession(t *testing.T) {
 				ReqOneof: &s2av2pb.SessionReq_OffloadPrivateKeyOperationReq {
 					&s2av2pb.OffloadPrivateKeyOperationReq {
 						Operation: s2av2pb.OffloadPrivateKeyOperationReq_SIGN,
-						SignatureAlgorithm: s2av2pb.SignatureAlgorithm_S2A_SSL_SIGN_RSA_PSS_RSAE_SHA256,
+						SignatureAlgorithm: s2av2pb.SignatureAlgorithm_S2A_SSL_SIGN_RSA_PKCS1_SHA256,
 						InBytes: []byte(hsha256[:]),
 					},
 				},
@@ -299,6 +300,35 @@ func TestSetUpSession(t *testing.T) {
 					&s2av2pb.OffloadPrivateKeyOperationResp {
 						OutBytes: signedWithServerKey,
 					},
+				},
+			},
+		},
+		{
+			description: "client side private key operation -- error",
+			request: &s2av2pb.SessionReq {
+				LocalIdentity: &commonpbv1.Identity {
+					IdentityOneof: &commonpbv1.Identity_Hostname {
+						Hostname: "client_hostname",
+					},
+				},
+				AuthenticationMechanisms: []*s2av2pb.AuthenticationMechanism {
+					{
+						// TODO(rmehta19): Populate Authentication Mechanism using tokenmanager.
+						MechanismOneof: &s2av2pb.AuthenticationMechanism_Token{"token"},
+					},
+				},
+				ReqOneof: &s2av2pb.SessionReq_OffloadPrivateKeyOperationReq {
+					&s2av2pb.OffloadPrivateKeyOperationReq {
+						Operation: s2av2pb.OffloadPrivateKeyOperationReq_SIGN,
+						SignatureAlgorithm: s2av2pb.SignatureAlgorithm_S2A_SSL_SIGN_UNSPECIFIED,
+						InBytes: []byte(hsha256[:]),
+					},
+				},
+			},
+			expectedResponse: &s2av2pb.SessionResp {
+				Status: &s2av2pb.Status {
+					Code: 3,
+					Details: fmt.Sprintf("invalid signature algorithm: %v", s2av2pb.SignatureAlgorithm_S2A_SSL_SIGN_UNSPECIFIED),
 				},
 			},
 		},
