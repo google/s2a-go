@@ -7,10 +7,12 @@ import (
 	"encoding/pem"
 	"crypto/x509"
 	"github.com/google/s2a-go/internal/v2/cert_verifier"
+	"github.com/google/s2a-go/internal/v2/remote_signer"
 
 	_ "embed"
 	s2av2pb "github.com/google/s2a-go/internal/proto/v2/s2a_go_proto"
 	commonpb "github.com/google/s2a-go/internal/proto/v2/common_go_proto"
+	commonpbv1 "github.com/google/s2a-go/internal/proto/common_go_proto"
 )
 
 var (
@@ -71,11 +73,14 @@ func GetTlsConfigurationForClient(serverHostname string, cstream s2av2pb.S2AServ
 		}
 	}
 
-	// Until TODO resolved, populate PrivateKey field using leaf cert and
-	// corresponding key.
-	// TODO(rmehta19): Move below two lines to remote signer library.
-	tlsCert, _ := tls.X509KeyPair([]byte(tlsConfig.CertificateChain[0]), clientKey)
-	cert.PrivateKey = tlsCert.PrivateKey
+	cert.PrivateKey = remotesigner.New(cert.Leaf, cstream, &commonpbv1.Identity {
+		IdentityOneof: &commonpbv1.Identity_Hostname {
+			Hostname: "client_hostname",
+		},
+	})
+	if cert.PrivateKey == nil {
+		return nil, errors.New("failed to retrieve Private Key from Remote Signer Library")
+	}
 
 
 	minVersion, maxVersion, err := getTLSMinMaxVersionsClient(tlsConfig)
@@ -145,11 +150,14 @@ func GetTlsConfigurationForServer(cstream s2av2pb.S2AService_SetUpSessionClient)
 		}
 	}
 
-	// Until TODO resolved, populate PrivateKey field using leaf cert and
-	// corresponding key.
-	// TODO(rmehta19): Move below two lines to remote signer library.
-	tlsCert, _ := tls.X509KeyPair([]byte(tlsConfig.CertificateChain[0]), serverKey)
-	cert.PrivateKey = tlsCert.PrivateKey
+	cert.PrivateKey = remotesigner.New(cert.Leaf, cstream, &commonpbv1.Identity {
+		IdentityOneof: &commonpbv1.Identity_Hostname {
+			Hostname: "server_hostname",
+		},
+	})
+	if cert.PrivateKey == nil {
+		return nil, errors.New("failed to retrieve Private Key from Remote Signer Library")
+	}
 
 
 	minVersion, maxVersion, err := getTLSMinMaxVersionsServer(tlsConfig)

@@ -9,6 +9,7 @@ import (
 	"context"
 	"testing"
 	"crypto"
+	"crypto/rsa"
 	"crypto/rand"
 	"crypto/x509"
 	"crypto/sha256"
@@ -96,29 +97,44 @@ func TestSign(t *testing.T) {
 	if err != nil {
 		log.Fatalf("failed to parse cert: %v", err)
 	}
+	testInBytes := []byte("Test data.")
+
+	// Hash testInBytes because caller of Sign is expected to do so.
+	hsha256 := sha256.Sum256([]byte(testInBytes))
+
+	// Test RSA PKCS1v15 signature algorithm.
 	s := New(clientx509Cert, cstream, &commonpbv1.Identity {
 		IdentityOneof: &commonpbv1.Identity_Hostname {
 			Hostname: "client_hostname",
 		},
 	})
-	testInBytes := []byte("Test data.")
 
-	// TODO(rmehta19): Investigate whether go crypto libraries compute hash.
-	// If so, remove this line, and just pass testInBytes as digest.
-	hsha256 := sha256.Sum256([]byte(testInBytes))
-	signerOpts := crypto.SHA256
-
-	// Test Sign.
-	gotSignedBytes, err := s.Sign(rand.Reader, hsha256[:], signerOpts)
+	gotSignedBytes, err := s.Sign(rand.Reader, hsha256[:], crypto.SHA256)
 	if err != nil {
 		t.Errorf("call to remote signer Sign API failed: %v", err)
 	}
-	wantSignedBytes, err := clientTlsCert.PrivateKey.(crypto.Signer).Sign(rand.Reader, hsha256[:], signerOpts)
+	wantSignedBytes, err := clientTlsCert.PrivateKey.(crypto.Signer).Sign(rand.Reader, hsha256[:], crypto.SHA256)
 	if err != nil {
 		t.Errorf("call to Sign API failed: %v", err)
 	}
 	if !bytes.Equal(gotSignedBytes, wantSignedBytes) {
 		t.Errorf("gotSignedBytes = %v, wantSignedBytes = %v", gotSignedBytes, wantSignedBytes)
+	}
+	if err = rsa.VerifyPKCS1v15(clientx509Cert.PublicKey.(*rsa.PublicKey), crypto.SHA256, hsha256[:], gotSignedBytes); err != nil {
+		t.Errorf("failed to verify RSA PKCS #1 v1.5 signature: %v", err)
+	}
+
+	// Test RSA PSS signature algorithm.
+	s = New(clientx509Cert, cstream, &commonpbv1.Identity {
+		IdentityOneof: &commonpbv1.Identity_Hostname {
+			Hostname: "client_hostname",
+		},
+	})
+	pssSignerOpts := &rsa.PSSOptions {SaltLength: rsa.PSSSaltLengthEqualsHash, Hash: crypto.SHA256 }
+
+	gotSignedBytes, err = s.Sign(rand.Reader, hsha256[:], pssSignerOpts)
+	if err = rsa.VerifyPSS(clientx509Cert.PublicKey.(*rsa.PublicKey), crypto.SHA256, hsha256[:], gotSignedBytes, pssSignerOpts); err != nil {
+		t.Errorf("failed to verify RSA PSS signature: %v", err)
 	}
 	stop()
 }
@@ -147,5 +163,34 @@ func TestNew(t *testing.T) {
 	}
 	if v := got.(*remoteSigner).getLocalIdentity(); v != localIdentity {
 		t.Errorf("RemoteSigner hostname field is incorrect. got: %v, want: %v", v, localIdentity)
+	}
+}
+
+// Test GetSignatureAlgorithm runs unit test for getSignatureAlgorithm.
+func TestGetSignatureAlgorithm(t *testing.T) {
+	for _, tc := range []struct {
+		description string
+		opts crypto.SignerOpts
+		expSignatureAlgorithm s2av2pb.SignatureAlgorithm
+	} {
+		{
+			description: "RSA PSS SHA256",
+			opts: &rsa.PSSOptions{SaltLength: rsa.PSSSaltLengthEqualsHash, Hash: crypto.SHA256},
+			expSignatureAlgorithm: s2av2pb.SignatureAlgorithm_S2A_SSL_SIGN_RSA_PSS_RSAE_SHA256,
+		},
+		{
+			description: "RSA PKCS1 SHA256",
+			opts: crypto.SHA256,
+			expSignatureAlgorithm: s2av2pb.SignatureAlgorithm_S2A_SSL_SIGN_RSA_PKCS1_SHA256,
+		},
+		{
+			description: "UNSPECIFIED",
+			opts: crypto.SHA1,
+			expSignatureAlgorithm: s2av2pb.SignatureAlgorithm_S2A_SSL_SIGN_UNSPECIFIED,
+		},
+	} {
+		if got, want := getSignatureAlgorithm(tc.opts), tc.expSignatureAlgorithm; got != want {
+			t.Errorf("getSignatureAlgorithm(%v): got: %v, want: %v", tc.opts, got, want)
+		}
 	}
 }

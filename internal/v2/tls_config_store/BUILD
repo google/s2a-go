@@ -18,6 +18,8 @@ go_library(
   ],
   deps = [
     "//internal/v2/cert_verifier",
+    "//internal/v2/remote_signer",
+    "//internal/proto/common_go_proto:common_go_proto",
     "//internal/proto/v2/common_go_proto:common_go_proto",
     "//internal/proto/v2/s2a_go_proto:s2a_go_proto",
   ],
