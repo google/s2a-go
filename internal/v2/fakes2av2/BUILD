@@ -36,6 +36,7 @@ go_test(
     "//internal/proto/v2/s2a_context_go_proto:s2a_context_go_proto",
     "@org_golang_google_protobuf//testing/protocmp:go_default_library",
     "@com_github_google_go_cmp//cmp:go_default_library",
+    "@org_golang_google_grpc//codes:go_default_library",
     "@org_golang_google_grpc//credentials/insecure:go_default_library",
     "@org_golang_google_grpc//:go_default_library",
   ],
