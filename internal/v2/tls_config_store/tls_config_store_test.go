@@ -2,6 +2,7 @@ package tlsconfigstore
 
 import (
 	"net"
+	"fmt"
 	"log"
 	"sync"
 	"time"
@@ -217,29 +218,123 @@ func TestTLSConfigStoreServer(t *testing.T) {
 }
 
 func TestGetTLSMinMaxVersionsClient(t *testing.T) {
-	var tlsconfig s2av2pb.GetTlsConfigurationResp_ClientTlsConfiguration
-	tlsconfig.MinTlsVersion = commonpb.TLSVersion_TLS_VERSION_1_0
-	tlsconfig.MaxTlsVersion = commonpb.TLSVersion_TLS_VERSION_1_1
-	if _, _, err := getTLSMinMaxVersionsClient(&tlsconfig); err != nil {
-		t.Errorf("error in getTlsMinMaxVersionsClient logic: %v", err)
+	m := makeMapOfTLSVersions()
+	for min := commonpb.TLSVersion_TLS_VERSION_1_0; min <= commonpb.TLSVersion_TLS_VERSION_1_3; min++ {
+		for max := commonpb.TLSVersion_TLS_VERSION_1_0; max <= commonpb.TLSVersion_TLS_VERSION_1_3; max++ {
+			tlsConfig := &s2av2pb.GetTlsConfigurationResp_ServerTlsConfiguration {
+				MinTlsVersion: min,
+				MaxTlsVersion: max,
+			}
+			tlsMin, tlsMax, err := getTLSMinMaxVersionsServer(tlsConfig)
+			if err != nil {
+				if min <= max {
+					t.Errorf("err = %v, expected err = nil", err)
+				} else {
+					if m[min] != tlsMin {
+						t.Errorf("tlsMin = %v, expected %v", tlsMin, m[min])
+					}
+					if m[max] != tlsMax {
+						t.Errorf("tlsMax = %v, expected %v", tlsMax, m[max])
+					}
+				}
+			} else {
+				if min > max {
+					t.Errorf("err = nil, expected err = S2Av2 provided minVersion > maxVersion.")
+				} else {
+					if m[min] != tlsMin {
+						t.Errorf("tlsMin = %v, expected %v", tlsMin, m[min])
+					}
+					if m[max] != tlsMax {
+						t.Errorf("tlsMax = %v, expected %v", tlsMax, m[max])
+					}
+				}
+			}
+		}
 	}
-	tlsconfig.MinTlsVersion = commonpb.TLSVersion_TLS_VERSION_1_1
-	tlsconfig.MaxTlsVersion = commonpb.TLSVersion_TLS_VERSION_1_0
-	if _, _, err := getTLSMinMaxVersionsClient(&tlsconfig); err == nil {
-		t.Errorf("getTlsMinMaxVersionsClient returned nil, should have returned error")
+	// Test invalid input.
+	tlsConfig := &s2av2pb.GetTlsConfigurationResp_ClientTlsConfiguration {
+		MinTlsVersion: commonpb.TLSVersion_TLS_VERSION_1_0 - 1,
+		MaxTlsVersion: commonpb.TLSVersion_TLS_VERSION_1_3,
+	}
+	expErr := fmt.Errorf("S2Av2 provided invalid MinTlsVersion: %v", tlsConfig.MinTlsVersion)
+	_, _, err := getTLSMinMaxVersionsClient(tlsConfig)
+	if (err == nil) || (err.Error() != expErr.Error()){
+		t.Errorf("err = %v, expErr = %v", err, expErr)
+	}
+
+	tlsConfig = &s2av2pb.GetTlsConfigurationResp_ClientTlsConfiguration {
+		MinTlsVersion: commonpb.TLSVersion_TLS_VERSION_1_0,
+		MaxTlsVersion: commonpb.TLSVersion_TLS_VERSION_1_3 + 1,
+	}
+	expErr = fmt.Errorf("S2Av2 provided invalid MaxTlsVersion: %v", tlsConfig.MaxTlsVersion)
+	_, _, err = getTLSMinMaxVersionsClient(tlsConfig)
+	if (err == nil) || (err.Error() != expErr.Error()){
+		t.Errorf("err = %v, expErr = %v", err, expErr)
 	}
 }
 
 func TestGetTLSMinMaxVersionsServer(t *testing.T) {
-	var tlsconfig s2av2pb.GetTlsConfigurationResp_ServerTlsConfiguration
-	tlsconfig.MinTlsVersion = commonpb.TLSVersion_TLS_VERSION_1_0
-	tlsconfig.MaxTlsVersion = commonpb.TLSVersion_TLS_VERSION_1_1
-	if _, _, err := getTLSMinMaxVersionsServer(&tlsconfig); err != nil {
-		t.Errorf("error in getTlsMinMaxVersionsServer logic: %v", err)
+	m := makeMapOfTLSVersions()
+	for min := commonpb.TLSVersion_TLS_VERSION_1_0; min <= commonpb.TLSVersion_TLS_VERSION_1_3; min++ {
+		for max := commonpb.TLSVersion_TLS_VERSION_1_0; max <= commonpb.TLSVersion_TLS_VERSION_1_3; max++ {
+			tlsConfig := &s2av2pb.GetTlsConfigurationResp_ServerTlsConfiguration {
+				MinTlsVersion: min,
+				MaxTlsVersion: max,
+			}
+			tlsMin, tlsMax, err := getTLSMinMaxVersionsServer(tlsConfig)
+			if err != nil {
+				if min <= max {
+					t.Errorf("err = %v, expected err = nil", err)
+				} else {
+					if m[min] != tlsMin {
+						t.Errorf("tlsMin = %v, expected %v", tlsMin, m[min])
+					}
+					if m[max] != tlsMax {
+						t.Errorf("tlsMax = %v, expected %v", tlsMax, m[max])
+					}
+				}
+			} else {
+				if min > max {
+					t.Errorf("err = nil, expected err = S2Av2 provided minVersion > maxVersion.")
+				} else {
+					if m[min] != tlsMin {
+						t.Errorf("tlsMin = %v, expected %v", tlsMin, m[min])
+					}
+					if m[max] != tlsMax {
+						t.Errorf("tlsMax = %v, expected %v", tlsMax, m[max])
+					}
+				}
+			}
+		}
 	}
-	tlsconfig.MinTlsVersion = commonpb.TLSVersion_TLS_VERSION_1_1
-	tlsconfig.MaxTlsVersion = commonpb.TLSVersion_TLS_VERSION_1_0
-	if _, _, err := getTLSMinMaxVersionsServer(&tlsconfig); err == nil {
-		t.Errorf("getTlsMinMaxVersionsServer returned nil, should have returned error")
+
+	// Test invalid input.
+	tlsConfig := &s2av2pb.GetTlsConfigurationResp_ServerTlsConfiguration {
+		MinTlsVersion: commonpb.TLSVersion_TLS_VERSION_1_0 - 1,
+		MaxTlsVersion: commonpb.TLSVersion_TLS_VERSION_1_3,
 	}
+	expErr := fmt.Errorf("S2Av2 provided invalid MinTlsVersion: %v", tlsConfig.MinTlsVersion)
+	_, _, err := getTLSMinMaxVersionsServer(tlsConfig)
+	if (err == nil) || (err.Error() !=  expErr.Error()){
+		t.Errorf("err = %v, expErr = %v", err, expErr)
+	}
+
+	tlsConfig = &s2av2pb.GetTlsConfigurationResp_ServerTlsConfiguration {
+		MinTlsVersion: commonpb.TLSVersion_TLS_VERSION_1_0,
+		MaxTlsVersion: commonpb.TLSVersion_TLS_VERSION_1_3 + 1,
+	}
+	expErr = fmt.Errorf("S2Av2 provided invalid MaxTlsVersion: %v", tlsConfig.MaxTlsVersion)
+	_, _, err = getTLSMinMaxVersionsServer(tlsConfig)
+	if (err == nil) || (err.Error() != expErr.Error()) {
+		t.Errorf("err = %v, expErr = %v", err, expErr)
+	}
+}
+
+func makeMapOfTLSVersions() map[commonpb.TLSVersion]uint16 {
+	m := make(map[commonpb.TLSVersion]uint16)
+	m[commonpb.TLSVersion_TLS_VERSION_1_0] = tls.VersionTLS10
+	m[commonpb.TLSVersion_TLS_VERSION_1_1] = tls.VersionTLS11
+	m[commonpb.TLSVersion_TLS_VERSION_1_2] = tls.VersionTLS12
+	m[commonpb.TLSVersion_TLS_VERSION_1_3] = tls.VersionTLS13
+	return m
 }

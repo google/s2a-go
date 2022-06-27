@@ -2,6 +2,7 @@
 package tlsconfigstore
 
 import (
+	"fmt"
 	"errors"
 	"crypto/tls"
 	"encoding/pem"
@@ -183,7 +184,7 @@ func GetTlsConfigurationForServer(cstream s2av2pb.S2AService_SetUpSessionClient)
 	}, nil
 }
 
-// TODO(rmehta19): Test every possible case of input/outputs for this function.
+// TODO(rmehta19): refactor switch statements into a helper function.
 func getTLSMinMaxVersionsClient(tlsConfig *s2av2pb.GetTlsConfigurationResp_ClientTlsConfiguration) (uint16, uint16, error) {
 	// Map S2Av2 TLSVersion to consts defined in tls package.
 	var minVersion uint16
@@ -198,7 +199,7 @@ func getTLSMinMaxVersionsClient(tlsConfig *s2av2pb.GetTlsConfigurationResp_Clien
 	case commonpb.TLSVersion_TLS_VERSION_1_3:
 		minVersion = tls.VersionTLS13
 	default:
-		minVersion = tls.VersionTLS13
+		return minVersion, maxVersion, fmt.Errorf("S2Av2 provided invalid MinTlsVersion: %v", x)
 	}
 
 	switch x := tlsConfig.MaxTlsVersion; x {
@@ -211,7 +212,7 @@ func getTLSMinMaxVersionsClient(tlsConfig *s2av2pb.GetTlsConfigurationResp_Clien
 	case commonpb.TLSVersion_TLS_VERSION_1_3:
 		maxVersion = tls.VersionTLS13
 	default:
-		maxVersion = tls.VersionTLS13
+		return minVersion, maxVersion, fmt.Errorf("S2Av2 provided invalid MaxTlsVersion: %v", x)
 	}
 	if minVersion > maxVersion {
 		return minVersion, maxVersion, errors.New("S2Av2 provided minVersion > maxVersion.")
@@ -219,7 +220,6 @@ func getTLSMinMaxVersionsClient(tlsConfig *s2av2pb.GetTlsConfigurationResp_Clien
 	return minVersion, maxVersion, nil
 }
 
-// TODO(rmehta19): Test every possible case of input/outputs for this function.
 func getTLSMinMaxVersionsServer(tlsConfig *s2av2pb.GetTlsConfigurationResp_ServerTlsConfiguration) (uint16, uint16, error) {
 	// Map S2Av2 TLSVersion to consts defined in tls package.
 	var minVersion uint16
@@ -234,7 +234,7 @@ func getTLSMinMaxVersionsServer(tlsConfig *s2av2pb.GetTlsConfigurationResp_Serve
 	case commonpb.TLSVersion_TLS_VERSION_1_3:
 		minVersion = tls.VersionTLS13
 	default:
-		minVersion = tls.VersionTLS13
+		return minVersion, maxVersion, fmt.Errorf("S2Av2 provided invalid MinTlsVersion: %v", x)
 	}
 
 	switch x := tlsConfig.MaxTlsVersion; x {
@@ -247,7 +247,7 @@ func getTLSMinMaxVersionsServer(tlsConfig *s2av2pb.GetTlsConfigurationResp_Serve
 	case commonpb.TLSVersion_TLS_VERSION_1_3:
 		maxVersion = tls.VersionTLS13
 	default:
-		maxVersion = tls.VersionTLS13
+		return minVersion, maxVersion, fmt.Errorf("S2Av2 provided invalid MaxTlsVersion: %v", x)
 	}
 	if minVersion > maxVersion {
 		return minVersion, maxVersion, errors.New("S2Av2 provided minVersion > maxVersion.")
