@@ -14,6 +14,7 @@ import (
 	"testing"
 	"google.golang.org/grpc"
 	"github.com/google/go-cmp/cmp"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/protobuf/testing/protocmp"
 
@@ -166,6 +167,27 @@ func TestSetUpSession(t *testing.T) {
 							},
 						},
 					},
+				},
+			},
+		},
+		{
+			description: "Get TLS config error.",
+			request: &s2av2pb.SessionReq {
+				AuthenticationMechanisms: []*s2av2pb.AuthenticationMechanism {
+					{
+						MechanismOneof: &s2av2pb.AuthenticationMechanism_Token{"token"},
+					},
+				},
+				ReqOneof: &s2av2pb.SessionReq_GetTlsConfigurationReq {
+					&s2av2pb.GetTlsConfigurationReq {
+						ConnectionSide: commonpb.ConnectionSide_CONNECTION_SIDE_UNSPECIFIED,
+					},
+				},
+			},
+			expectedResponse: &s2av2pb.SessionResp {
+				Status: &s2av2pb.Status {
+					Code: uint32(codes.InvalidArgument),
+					Details: "unknown ConnectionSide, req.GetConnectionSide() returned CONNECTION_SIDE_UNSPECIFIED",
 				},
 			},
 		},

@@ -205,8 +205,13 @@ func getTlsConfiguration(req *s2av2pb.GetTlsConfigurationReq) (*s2av2pb.SessionR
 			},
 		}, nil
 	} else {
-		err := fmt.Errorf("unknown ConnectionSide, req.GetConnectionSide() returned %v", req.GetConnectionSide())
-		return nil, err
+		s := fmt.Sprintf("unknown ConnectionSide, req.GetConnectionSide() returned %v", req.GetConnectionSide())
+		return &s2av2pb.SessionResp {
+			Status: &s2av2pb.Status {
+				Code: 3,
+				Details: s,
+			},
+		}, nil
 	}
 }
 

@@ -7,6 +7,7 @@ import (
 	"crypto/tls"
 	"encoding/pem"
 	"crypto/x509"
+	"google.golang.org/grpc/codes"
 	"github.com/google/s2a-go/internal/v2/cert_verifier"
 	"github.com/google/s2a-go/internal/v2/remote_signer"
 
@@ -52,7 +53,10 @@ func GetTlsConfigurationForClient(serverHostname string, cstream s2av2pb.S2AServ
 		return nil, err
 	}
 
-	// TODO(rmehta19): Handle resp.GetStatus().
+	// TODO(rmehta19): Add unit test for this if statement.
+	if resp.GetStatus().Code != uint32(codes.OK) {
+		return nil, fmt.Errorf("Failed to get TLS configuration from S2A: %d, %v", resp.GetStatus().Code, resp.GetStatus().Details)
+	}
 
 	// Extract TLS configiguration from SessionResp.
 	tlsConfig := resp.GetGetTlsConfigurationResp().GetClientTlsConfiguration()
@@ -129,7 +133,10 @@ func GetTlsConfigurationForServer(cstream s2av2pb.S2AService_SetUpSessionClient)
 		return nil, err
 	}
 
-	// TODO(rmehta19): Handle resp.GetStatus().
+	// TODO(rmehta19): Add unit test for this if statement.
+	if resp.GetStatus().Code != uint32(codes.OK) {
+		return nil, fmt.Errorf("Failed to get TLS configuration from S2A: %d, %v", resp.GetStatus().Code, resp.GetStatus().Details)
+	}
 
 	// Extract TLS configiguration from SessionResp.
 	tlsConfig := resp.GetGetTlsConfigurationResp().GetServerTlsConfiguration()
