@@ -105,7 +105,7 @@ func TestSetUpSession(t *testing.T) {
 			},
 			expectedResponse: &s2av2pb.SessionResp {
 				Status: &s2av2pb.Status {
-					Code: 0,
+					Code: uint32(codes.OK),
 				},
 				RespOneof: &s2av2pb.SessionResp_GetTlsConfigurationResp {
 					GetTlsConfigurationResp: &s2av2pb.GetTlsConfigurationResp {
@@ -144,7 +144,7 @@ func TestSetUpSession(t *testing.T) {
 			},
 			expectedResponse: &s2av2pb.SessionResp {
 				Status: &s2av2pb.Status {
-					Code: 0,
+					Code: uint32(codes.OK),
 				},
 				RespOneof: &s2av2pb.SessionResp_GetTlsConfigurationResp {
 					GetTlsConfigurationResp: &s2av2pb.GetTlsConfigurationResp {
@@ -213,7 +213,7 @@ func TestSetUpSession(t *testing.T) {
 			},
 			expectedResponse: &s2av2pb.SessionResp {
 				Status: &s2av2pb.Status {
-					Code: 0,
+					Code: uint32(codes.OK),
 					Details: "",
 				},
 				RespOneof: &s2av2pb.SessionResp_ValidatePeerCertificateChainResp {
@@ -281,7 +281,7 @@ func TestSetUpSession(t *testing.T) {
 			},
 			expectedResponse: &s2av2pb.SessionResp {
 				Status: &s2av2pb.Status {
-					Code: 0,
+					Code: uint32(codes.OK),
 					Details: "",
 				},
 				RespOneof: &s2av2pb.SessionResp_ValidatePeerCertificateChainResp {
@@ -317,7 +317,7 @@ func TestSetUpSession(t *testing.T) {
 			},
 			expectedResponse: &s2av2pb.SessionResp {
 				Status: &s2av2pb.Status {
-					Code: 0,
+					Code: uint32(codes.OK),
 				},
 				RespOneof: &s2av2pb.SessionResp_OffloadPrivateKeyOperationResp {
 					&s2av2pb.OffloadPrivateKeyOperationResp {
@@ -350,7 +350,7 @@ func TestSetUpSession(t *testing.T) {
 			},
 			expectedResponse: &s2av2pb.SessionResp {
 				Status: &s2av2pb.Status {
-					Code: 0,
+					Code: uint32(codes.OK),
 				},
 				RespOneof: &s2av2pb.SessionResp_OffloadPrivateKeyOperationResp {
 					&s2av2pb.OffloadPrivateKeyOperationResp {
@@ -383,7 +383,7 @@ func TestSetUpSession(t *testing.T) {
 			},
 			expectedResponse: &s2av2pb.SessionResp {
 				Status: &s2av2pb.Status {
-					Code: 3,
+					Code: uint32(codes.InvalidArgument),
 					Details: fmt.Sprintf("invalid signature algorithm: %v", s2av2pb.SignatureAlgorithm_S2A_SSL_SIGN_UNSPECIFIED),
 				},
 			},
@@ -412,7 +412,7 @@ func TestSetUpSession(t *testing.T) {
 			},
 			expectedResponse: &s2av2pb.SessionResp {
 				Status: &s2av2pb.Status {
-					Code: 3,
+					Code: uint32(codes.InvalidArgument),
 					Details: fmt.Sprintf("Invalid hostname tied to SessionReq: invalid_hostname"),
 				},
 			},
