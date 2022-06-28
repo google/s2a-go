@@ -100,7 +100,7 @@ func offloadPrivateKeyOperation(req *s2av2pb.OffloadPrivateKeyOperationReq, host
 			s := fmt.Sprintf("Invalid hostname tied to SessionReq: %s", hostname)
 			return &s2av2pb.SessionResp {
 				Status: &s2av2pb.Status {
-					Code: 3,
+					Code: uint32(codes.InvalidArgument),
 					Details: s,
 				},
 			},nil
@@ -127,7 +127,7 @@ func offloadPrivateKeyOperation(req *s2av2pb.OffloadPrivateKeyOperationReq, host
 		}
 		return &s2av2pb.SessionResp {
 			Status: &s2av2pb.Status {
-				Code: 0,
+				Code: uint32(codes.OK),
 			},
 			RespOneof: &s2av2pb.SessionResp_OffloadPrivateKeyOperationResp {
 				&s2av2pb.OffloadPrivateKeyOperationResp {
@@ -151,7 +151,7 @@ func validatePeerCertificateChain(req *s2av2pb.ValidatePeerCertificateChainReq) 
 		return verifyServerPeer(req)
 	default:
 		err := errors.New(fmt.Sprintf("Peer Verification failed: invalid Peer type %T", x))
-		return buildValidatePeerCertificateChainSessionResp(3, err.Error(), s2av2pb.ValidatePeerCertificateChainResp_FAILURE, err.Error(),  &s2av2ctx.S2AContext{}), err
+		return buildValidatePeerCertificateChainSessionResp(uint32(codes.InvalidArgument), err.Error(), s2av2pb.ValidatePeerCertificateChainResp_FAILURE, err.Error(),  &s2av2ctx.S2AContext{}), err
 	}
 }
 
@@ -159,7 +159,7 @@ func getTlsConfiguration(req *s2av2pb.GetTlsConfigurationReq) (*s2av2pb.SessionR
 	if req.GetConnectionSide() == commonpb.ConnectionSide_CONNECTION_SIDE_CLIENT {
 		return &s2av2pb.SessionResp {
 			Status: &s2av2pb.Status {
-				Code: 0,
+				Code: uint32(codes.OK),
 			},
 			RespOneof: &s2av2pb.SessionResp_GetTlsConfigurationResp {
 				GetTlsConfigurationResp: &s2av2pb.GetTlsConfigurationResp {
@@ -184,7 +184,7 @@ func getTlsConfiguration(req *s2av2pb.GetTlsConfigurationReq) (*s2av2pb.SessionR
 	} else if req.GetConnectionSide() == commonpb.ConnectionSide_CONNECTION_SIDE_SERVER {
 		return &s2av2pb.SessionResp {
 			Status: &s2av2pb.Status {
-				Code: 0,
+				Code: uint32(codes.OK),
 			},
 			RespOneof: &s2av2pb.SessionResp_GetTlsConfigurationResp {
 				GetTlsConfigurationResp: &s2av2pb.GetTlsConfigurationResp {
@@ -213,7 +213,7 @@ func getTlsConfiguration(req *s2av2pb.GetTlsConfigurationReq) (*s2av2pb.SessionR
 		s := fmt.Sprintf("unknown ConnectionSide, req.GetConnectionSide() returned %v", req.GetConnectionSide())
 		return &s2av2pb.SessionResp {
 			Status: &s2av2pb.Status {
-				Code: 3,
+				Code: uint32(codes.InvalidArgument),
 				Details: s,
 			},
 		}, nil
@@ -240,14 +240,14 @@ func verifyClientPeer(req *s2av2pb.ValidatePeerCertificateChainReq) (*s2av2pb.Se
 	derCertChain := req.GetClientPeer().CertificateChain
 	if len(derCertChain) == 0 {
 		s := "Client Peer Verification failed: client cert chain is empty."
-		return buildValidatePeerCertificateChainSessionResp(3, s, s2av2pb.ValidatePeerCertificateChainResp_FAILURE, s, &s2av2ctx.S2AContext{}), nil
+		return buildValidatePeerCertificateChainSessionResp(uint32(codes.InvalidArgument), s, s2av2pb.ValidatePeerCertificateChainResp_FAILURE, s, &s2av2ctx.S2AContext{}), nil
 	}
 
 	// Obtain the set of root certificates.
 	rootCertPool := x509.NewCertPool()
 	if ok := rootCertPool.AppendCertsFromPEM(clientCert); ok != true {
 		err := errors.New("Client Peer Verification failed: S2Av2 could not obtain/parse roots.")
-		return buildValidatePeerCertificateChainSessionResp(13, err.Error(), s2av2pb.ValidatePeerCertificateChainResp_FAILURE, err.Error(), &s2av2ctx.S2AContext{}), err
+		return buildValidatePeerCertificateChainSessionResp(uint32(codes.Internal), err.Error(), s2av2pb.ValidatePeerCertificateChainResp_FAILURE, err.Error(), &s2av2ctx.S2AContext{}), err
 	}
 
 	// Set the Intermediates: certs between leaf and root, excluding the leaf and root.
@@ -255,7 +255,7 @@ func verifyClientPeer(req *s2av2pb.ValidatePeerCertificateChainReq) (*s2av2pb.Se
 	for i := 1; i < (len(derCertChain)); i++ {
 		x509Cert, err := x509.ParseCertificate(derCertChain[i])
 		if err != nil {
-			return buildValidatePeerCertificateChainSessionResp(3, err.Error(), s2av2pb.ValidatePeerCertificateChainResp_FAILURE, err.Error(), &s2av2ctx.S2AContext{}), err
+			return buildValidatePeerCertificateChainSessionResp(uint32(codes.InvalidArgument), err.Error(), s2av2pb.ValidatePeerCertificateChainResp_FAILURE, err.Error(), &s2av2ctx.S2AContext{}), err
 		}
 		intermediateCertPool.AddCert(x509Cert)
 	}
@@ -269,27 +269,27 @@ func verifyClientPeer(req *s2av2pb.ValidatePeerCertificateChainReq) (*s2av2pb.Se
 	x509LeafCert, err := x509.ParseCertificate(derCertChain[0])
 	if err != nil {
 		s := fmt.Sprintf("Client Peer Verification failed: %v", err)
-		return buildValidatePeerCertificateChainSessionResp(3, s, s2av2pb.ValidatePeerCertificateChainResp_FAILURE, s, &s2av2ctx.S2AContext{}), err
+		return buildValidatePeerCertificateChainSessionResp(uint32(codes.InvalidArgument), s, s2av2pb.ValidatePeerCertificateChainResp_FAILURE, s, &s2av2ctx.S2AContext{}), err
 	}
 	if _, err := x509LeafCert.Verify(opts); err != nil {
 		s := fmt.Sprintf("Client Peer Verification failed: %v", err)
-		return buildValidatePeerCertificateChainSessionResp(3, s, s2av2pb.ValidatePeerCertificateChainResp_FAILURE, s, &s2av2ctx.S2AContext{}), nil
+		return buildValidatePeerCertificateChainSessionResp(uint32(codes.InvalidArgument), s, s2av2pb.ValidatePeerCertificateChainResp_FAILURE, s, &s2av2ctx.S2AContext{}), nil
 	}
-	return buildValidatePeerCertificateChainSessionResp(0, "", s2av2pb.ValidatePeerCertificateChainResp_SUCCESS, "Client Peer Verification succeeded", &s2av2ctx.S2AContext{}), nil
+	return buildValidatePeerCertificateChainSessionResp(uint32(codes.OK), "", s2av2pb.ValidatePeerCertificateChainResp_SUCCESS, "Client Peer Verification succeeded", &s2av2ctx.S2AContext{}), nil
 }
 
 func verifyServerPeer(req *s2av2pb.ValidatePeerCertificateChainReq) (*s2av2pb.SessionResp, error) {
 	derCertChain := req.GetServerPeer().CertificateChain
 	if len(derCertChain) == 0 {
 		s := "Server Peer Verification failed: server cert chain is empty."
-		return buildValidatePeerCertificateChainSessionResp(3, s, s2av2pb.ValidatePeerCertificateChainResp_FAILURE, s, &s2av2ctx.S2AContext{}), nil
+		return buildValidatePeerCertificateChainSessionResp(uint32(codes.InvalidArgument), s, s2av2pb.ValidatePeerCertificateChainResp_FAILURE, s, &s2av2ctx.S2AContext{}), nil
 	}
 
 	// Obtain the set of root certificates.
 	rootCertPool := x509.NewCertPool()
 	if ok := rootCertPool.AppendCertsFromPEM(serverCert); ok != true {
 		err := errors.New("Server Peer Verification failed: S2Av2 could not obtain/parse roots.")
-		return buildValidatePeerCertificateChainSessionResp(13, err.Error(), s2av2pb.ValidatePeerCertificateChainResp_FAILURE, err.Error(), &s2av2ctx.S2AContext{}), err
+		return buildValidatePeerCertificateChainSessionResp(uint32(codes.Internal), err.Error(), s2av2pb.ValidatePeerCertificateChainResp_FAILURE, err.Error(), &s2av2ctx.S2AContext{}), err
 	}
 
 
@@ -298,7 +298,7 @@ func verifyServerPeer(req *s2av2pb.ValidatePeerCertificateChainReq) (*s2av2pb.Se
 	for i := 1; i < (len(derCertChain)); i++ {
 		x509Cert, err := x509.ParseCertificate(derCertChain[i])
 		if err != nil {
-			return buildValidatePeerCertificateChainSessionResp(3, err.Error(), s2av2pb.ValidatePeerCertificateChainResp_FAILURE, err.Error(), &s2av2ctx.S2AContext{}), err
+			return buildValidatePeerCertificateChainSessionResp(uint32(codes.InvalidArgument), err.Error(), s2av2pb.ValidatePeerCertificateChainResp_FAILURE, err.Error(), &s2av2ctx.S2AContext{}), err
 		}
 		intermediateCertPool.AddCert(x509Cert)
 	}
@@ -312,12 +312,12 @@ func verifyServerPeer(req *s2av2pb.ValidatePeerCertificateChainReq) (*s2av2pb.Se
 	x509LeafCert, err := x509.ParseCertificate(derCertChain[0])
 	if err != nil {
 		s := fmt.Sprintf("Server Peer Verification failed: %v", err)
-		return buildValidatePeerCertificateChainSessionResp(3, s, s2av2pb.ValidatePeerCertificateChainResp_FAILURE, s, &s2av2ctx.S2AContext{}), err
+		return buildValidatePeerCertificateChainSessionResp(uint32(codes.InvalidArgument), s, s2av2pb.ValidatePeerCertificateChainResp_FAILURE, s, &s2av2ctx.S2AContext{}), err
 	}
 	if _, err := x509LeafCert.Verify(opts); err != nil {
 		s := fmt.Sprintf("Server Peer Verification failed: %v", err)
-		return buildValidatePeerCertificateChainSessionResp(3, s, s2av2pb.ValidatePeerCertificateChainResp_FAILURE, s, &s2av2ctx.S2AContext{}), nil
+		return buildValidatePeerCertificateChainSessionResp(uint32(codes.InvalidArgument), s, s2av2pb.ValidatePeerCertificateChainResp_FAILURE, s, &s2av2ctx.S2AContext{}), nil
 	}
 
-	return buildValidatePeerCertificateChainSessionResp(0, "", s2av2pb.ValidatePeerCertificateChainResp_SUCCESS, "Server Peer Verification succeeded",&s2av2ctx.S2AContext{}), nil
+	return buildValidatePeerCertificateChainSessionResp(uint32(codes.OK), "", s2av2pb.ValidatePeerCertificateChainResp_SUCCESS, "Server Peer Verification succeeded",&s2av2ctx.S2AContext{}), nil
 }
