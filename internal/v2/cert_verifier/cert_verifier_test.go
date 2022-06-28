@@ -62,7 +62,7 @@ func TestVerifyClientCertChain(t *testing.T) {
 	stop, address, err := startFakeS2Av2Server(&wg)
 	wg.Wait()
 	if err != nil {
-		log.Fatalf("error starting fake S2Av2 Server: %v", err)
+		t.Fatalf("error starting fake S2Av2 Server: %v", err)
 	}
 
 	for _, tc := range []struct {
@@ -100,7 +100,7 @@ func TestVerifyClientCertChain(t *testing.T) {
 			}
 			conn, err := grpc.Dial(address, opts...)
 			if err != nil {
-				log.Fatalf("Client: failed to connect: %v", err)
+				t.Fatalf("Client: failed to connect: %v", err)
 			}
 			defer conn.Close()
 			c := s2av2pb.NewS2AServiceClient(conn)
@@ -112,7 +112,7 @@ func TestVerifyClientCertChain(t *testing.T) {
 			callOpts := []grpc.CallOption{}
 			cstream, err := c.SetUpSession(ctx, callOpts...)
 			if err != nil  {
-				log.Fatalf("Client: failed to setup bidirectional streaming RPC session: %v", err)
+				t.Fatalf("Client: failed to setup bidirectional streaming RPC session: %v", err)
 			}
 			log.Printf("Client: set up bidirectional streaming RPC session.")
 
@@ -143,7 +143,7 @@ func TestVerifyServerCertChain(t *testing.T) {
 	stop, address, err := startFakeS2Av2Server(&wg)
 	wg.Wait()
 	if err != nil {
-		log.Fatalf("error starting fake S2Av2 Server: %v", err)
+		t.Fatalf("error starting fake S2Av2 Server: %v", err)
 	}
 
 	for _, tc := range []struct {
@@ -180,7 +180,7 @@ func TestVerifyServerCertChain(t *testing.T) {
 			}
 			conn, err := grpc.Dial(address, opts...)
 			if err != nil {
-				log.Fatalf("Client: failed to connect: %v", err)
+				t.Fatalf("Client: failed to connect: %v", err)
 			}
 			defer conn.Close()
 			c := s2av2pb.NewS2AServiceClient(conn)
@@ -192,7 +192,7 @@ func TestVerifyServerCertChain(t *testing.T) {
 			callOpts := []grpc.CallOption{}
 			cstream, err := c.SetUpSession(ctx, callOpts...)
 			if err != nil  {
-				log.Fatalf("Client: failed to setup bidirectional streaming RPC session: %v", err)
+				t.Fatalf("Client: failed to setup bidirectional streaming RPC session: %v", err)
 			}
 			log.Printf("Client: set up bidirectional streaming RPC session.")
 

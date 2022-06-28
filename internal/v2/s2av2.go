@@ -12,8 +12,10 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"github.com/google/s2a-go/internal/v2/tls_config_store"
+	"github.com/google/s2a-go/internal/tokenmanager"
 	"github.com/google/s2a-go/internal/handshaker/service"
 	s2av2pb "github.com/google/s2a-go/internal/proto/v2/s2a_go_proto"
+	commonpbv1 "github.com/google/s2a-go/internal/proto/common_go_proto"
 )
 
 const (
@@ -26,11 +28,17 @@ type s2av2TransportCreds struct {
 	isClient bool
 	serverName string
 	s2av2Address string
+	tokenManager *tokenmanager.AccessTokenManager
 }
 
 // NewClientCreds returns a client-side transport credentials object that uses
 // the S2Av2 to establish a secure connection with a server.
 func NewClientCreds(s2av2Address string) (credentials.TransportCredentials, error) {
+	// Create an AccessTokenManager instance to use to authenticate to S2Av2.
+	accessTokenManager, err := tokenmanager.NewSingleTokenAccessTokenManager()
+	if err != nil {
+		return nil, err
+	}
 	creds := &s2av2TransportCreds{
 		info: &credentials.ProtocolInfo{
 			SecurityProtocol: s2aSecurityProtocol,
@@ -38,6 +46,7 @@ func NewClientCreds(s2av2Address string) (credentials.TransportCredentials, erro
 		isClient: true,
 		serverName: "",
 		s2av2Address: s2av2Address,
+		tokenManager: &accessTokenManager,
 	}
 	return creds, nil
 }
@@ -45,12 +54,18 @@ func NewClientCreds(s2av2Address string) (credentials.TransportCredentials, erro
 // NewServerCreds returns a server-side transport credentials object that uses
 // the S2Av2 to establish a secure connection with a client.
 func NewServerCreds(s2av2Address string) (credentials.TransportCredentials, error) {
+	// Create an AccessTokenManager instance to use to authenticate to S2Av2.
+	accessTokenManager, err := tokenmanager.NewSingleTokenAccessTokenManager()
+	if err != nil {
+		return nil, err
+	}
 	creds := &s2av2TransportCreds{
 		info: &credentials.ProtocolInfo{
 			SecurityProtocol: s2aSecurityProtocol,
 		},
 		isClient: false,
 		s2av2Address: s2av2Address,
+		tokenManager: &accessTokenManager,
 	}
 	return creds, nil
 }
@@ -70,13 +85,16 @@ func (c *s2av2TransportCreds) ClientHandshake(ctx context.Context, serverAuthori
 		return nil, nil, err
 	}
 	var config *tls.Config
+
+	// TODO(rmehta19): Populate localIdentity.
+	var localIdentity commonpbv1.Identity
 	if c.serverName == "" {
-		config, err = tlsconfigstore.GetTlsConfigurationForClient(serverName, cstream)
+		config, err = tlsconfigstore.GetTlsConfigurationForClient(serverName, cstream, *c.tokenManager, &localIdentity)
 		if err != nil {
 			return nil, nil, err
 		}
 	} else {
-		config, err = tlsconfigstore.GetTlsConfigurationForClient(c.serverName, cstream)
+		config, err = tlsconfigstore.GetTlsConfigurationForClient(c.serverName, cstream, *c.tokenManager, &localIdentity)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -95,7 +113,11 @@ func (c *s2av2TransportCreds) ServerHandshake(rawConn net.Conn) (net.Conn, crede
 	if err != nil {
 		return nil, nil, err
 	}
-	config, err := tlsconfigstore.GetTlsConfigurationForServer(cstream)
+
+	// TODO(rmehta19): Populate localIdentites.
+	var localIdentities [] *commonpbv1.Identity
+	localIdentities = append(localIdentities, nil)
+	config, err := tlsconfigstore.GetTlsConfigurationForServer(cstream, *c.tokenManager, localIdentities)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -113,11 +135,13 @@ func (c * s2av2TransportCreds) Clone() credentials.TransportCredentials {
 	info := *c.info
 	serverName := c.serverName
 	s2av2Address := c.s2av2Address
+	tokenManager := *c.tokenManager
 	return &s2av2TransportCreds{
 		info: &info,
 		isClient: c.isClient,
 		serverName: serverName,
 		s2av2Address : s2av2Address,
+		tokenManager: &tokenManager,
 	}
 }
 

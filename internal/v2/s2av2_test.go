@@ -1,9 +1,11 @@
 package v2
 
 import (
+	"os"
 	"testing"
 	"context"
 	"github.com/google/go-cmp/cmp"
+	"github.com/google/s2a-go/internal/tokenmanager"
 	"google.golang.org/protobuf/testing/protocmp"
 )
 
@@ -16,6 +18,7 @@ var (
 // example/server, example/client and internal/v2/fakes2av2_server.
 
 func TestNewClientCreds(t *testing.T) {
+	os.Setenv("S2A_ACCESS_TOKEN", "TestNewClientCreds_s2a_access_token")
 	for _, tc := range []struct {
 		description string
 	}{
@@ -40,6 +43,7 @@ func TestNewClientCreds(t *testing.T) {
 }
 
 func TestNewServerCreds(t *testing.T) {
+	os.Setenv("S2A_ACCESS_TOKEN", "TestNewServerCreds_s2a_access_token")
 	for _, tc := range []struct {
 		description string
 	}{
@@ -78,6 +82,7 @@ func TestServerHandshakeFail(t *testing.T) {
 }
 
 func TestInfo(t *testing.T) {
+	os.Setenv("S2A_ACCESS_TOKEN", "TestInfo_s2a_access_token")
 	c, err := NewClientCreds(fakes2av2Address)
 	if err != nil {
 		t.Fatalf("NewClientCreds() failed: %v", err)
@@ -89,6 +94,7 @@ func TestInfo(t *testing.T) {
 }
 
 func TestCloneClient(t *testing.T) {
+	os.Setenv("S2A_ACCESS_TOKEN", "TestCloneClient_s2a_access_token")
 	c, err := NewClientCreds(fakes2av2Address)
 	if err != nil {
 		t.Fatalf("NewClientCreds() failed: %v", err)
@@ -102,17 +108,46 @@ func TestCloneClient(t *testing.T) {
 	if !ok {
 		t.Fatal("the created clone creds is not of type s2aTransportCreds")
 	}
-	if got, want := cmp.Equal(s2av2Creds, s2av2CloneCreds, protocmp.Transform(), cmp.AllowUnexported(s2av2TransportCreds{})), true; got != want {
-		t.Errorf("cmp.Equal(%v, %v) = %v, want %v", s2av2Creds, s2av2CloneCreds, got, want)
+	if got, want := cmp.Equal(s2av2Creds, s2av2CloneCreds, protocmp.Transform(), cmp.AllowUnexported(s2av2TransportCreds{}), cmp.Comparer(func(x, y tokenmanager.AccessTokenManager) bool {
+		xToken, err := x.DefaultToken()
+		if err != nil {
+			t.Errorf("failed to compare cloned creds: %v", err)
+		}
+		yToken, err := y.DefaultToken()
+		if err != nil {
+			t.Errorf("failed to compare cloned creds: %v", err)
+		}
+		if xToken == yToken {
+			return true
+		} else {
+			return false
+		}
+	})), true; got != want {
+		t.Errorf("cmp.Equal(%+v, %+v) = %v, want %v", s2av2Creds, s2av2CloneCreds, got, want)
 	}
 	// Change the values and verify the creds were deep copied.
 	s2av2CloneCreds.info.SecurityProtocol = "s2a"
-	if got, want := cmp.Equal(s2av2Creds, s2av2CloneCreds, protocmp.Transform(), cmp.AllowUnexported(s2av2TransportCreds{})), false; got != want {
-		t.Errorf("cmp.Equal(%v, %v) = %v, want %v", s2av2Creds, s2av2CloneCreds, got, want)
+	if got, want := cmp.Equal(s2av2Creds, s2av2CloneCreds, protocmp.Transform(), cmp.AllowUnexported(s2av2TransportCreds{}), cmp.Comparer(func(x, y tokenmanager.AccessTokenManager) bool {
+		xToken, err := x.DefaultToken()
+		if err != nil {
+			t.Errorf("failed to compare cloned creds: %v", err)
+		}
+		yToken, err := y.DefaultToken()
+		if err != nil {
+			t.Errorf("failed to compare cloned creds: %v", err)
+		}
+		if xToken == yToken {
+			return true
+		} else {
+			return false
+		}
+	})), false; got != want {
+		t.Errorf("cmp.Equal(%+v, %+v) = %v, want %v", s2av2Creds, s2av2CloneCreds, got, want)
 	}
 }
 
 func TestCloneServer(t *testing.T) {
+	os.Setenv("S2A_ACCESS_TOKEN", "TestCloneServer_s2a_access_token")
 	c, err := NewServerCreds(fakes2av2Address)
 	if err != nil {
 		t.Fatalf("NewServerCreds() failed: %v", err)
@@ -126,18 +161,47 @@ func TestCloneServer(t *testing.T) {
 	if !ok {
 		t.Fatal("the created clone creds is not of type s2aTransportCreds")
 	}
-	if got, want := cmp.Equal(s2av2Creds, s2av2CloneCreds, protocmp.Transform(), cmp.AllowUnexported(s2av2TransportCreds{})), true; got != want {
-		t.Errorf("cmp.Equal(%v, %v) = %v, want %v", s2av2Creds, s2av2CloneCreds, got, want)
+	if got, want := cmp.Equal(s2av2Creds, s2av2CloneCreds, protocmp.Transform(), cmp.AllowUnexported(s2av2TransportCreds{}), cmp.Comparer(func(x, y tokenmanager.AccessTokenManager) bool {
+		xToken, err := x.DefaultToken()
+		if err != nil {
+			t.Errorf("failed to compare cloned creds: %v", err)
+		}
+		yToken, err := y.DefaultToken()
+		if err != nil {
+			t.Errorf("failed to compare cloned creds: %v", err)
+		}
+		if xToken == yToken {
+			return true
+		} else {
+			return false
+		}
+	})), true; got != want {
+		t.Errorf("cmp.Equal(%+v, %+v) = %v, want %v", s2av2Creds, s2av2CloneCreds, got, want)
 	}
 	// Change the values and verify the creds were deep copied.
 	s2av2CloneCreds.info.SecurityProtocol = "s2a"
-	if got, want := cmp.Equal(s2av2Creds, s2av2CloneCreds, protocmp.Transform(), cmp.AllowUnexported(s2av2TransportCreds{})), false; got != want {
-		t.Errorf("cmp.Equal(%v, %v) = %v, want %v", s2av2Creds, s2av2CloneCreds, got, want)
+	if got, want := cmp.Equal(s2av2Creds, s2av2CloneCreds, protocmp.Transform(), cmp.AllowUnexported(s2av2TransportCreds{}), cmp.Comparer(func(x, y tokenmanager.AccessTokenManager) bool {
+		xToken, err := x.DefaultToken()
+		if err != nil {
+			t.Errorf("failed to compare cloned creds: %v", err)
+		}
+		yToken, err := y.DefaultToken()
+		if err != nil {
+			t.Errorf("failed to compare cloned creds: %v", err)
+		}
+		if xToken == yToken {
+			return true
+		} else {
+			return false
+		}
+	})), false; got != want {
+		t.Errorf("cmp.Equal(%+v, %+v) = %v, want %v", s2av2Creds, s2av2CloneCreds, got, want)
 	}
 }
 
 func TestOverrideServerName(t *testing.T) {
 	// Setup test.
+	os.Setenv("S2A_ACCESS_TOKEN", "TestOverrideServerName_s2a_access_token")
 	c, err := NewClientCreds(fakes2av2Address)
 	s2av2Creds, ok := c.(*s2av2TransportCreds)
 	if !ok {

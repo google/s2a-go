@@ -8,6 +8,8 @@ import (
 	"encoding/pem"
 	"crypto/x509"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/grpclog"
+	"github.com/google/s2a-go/internal/tokenmanager"
 	"github.com/google/s2a-go/internal/v2/cert_verifier"
 	"github.com/google/s2a-go/internal/v2/remote_signer"
 
@@ -29,15 +31,11 @@ var (
 )
 
 // GetTlsConfigurationForClient returns a tls.Config instance for use by a client application.
-func GetTlsConfigurationForClient(serverHostname string, cstream s2av2pb.S2AService_SetUpSessionClient) (*tls.Config, error) {
+func GetTlsConfigurationForClient(serverHostname string, cstream s2av2pb.S2AService_SetUpSessionClient, tokenManager tokenmanager.AccessTokenManager, localIdentity *commonpbv1.Identity) (*tls.Config, error) {
+	authMechanisms := getAuthMechanisms(tokenManager, []*commonpbv1.Identity{localIdentity})
 	// Send request to S2Av2 for config.
 	if err := cstream.Send(&s2av2pb.SessionReq {
-		AuthenticationMechanisms: []*s2av2pb.AuthenticationMechanism {
-			{
-				// TODO(rmehta19): Populate Authentication Mechanism using tokenmanager.
-				MechanismOneof: &s2av2pb.AuthenticationMechanism_Token{"token"},
-			},
-		},
+		AuthenticationMechanisms: authMechanisms,
 		ReqOneof: &s2av2pb.SessionReq_GetTlsConfigurationReq {
 			&s2av2pb.GetTlsConfigurationReq {
 				ConnectionSide: commonpb.ConnectionSide_CONNECTION_SIDE_CLIENT,
@@ -108,16 +106,13 @@ func GetTlsConfigurationForClient(serverHostname string, cstream s2av2pb.S2AServ
 }
 
 // GetTlsConfigurationForServer returns a tls.Config instance for use by a server application.
-func GetTlsConfigurationForServer(cstream s2av2pb.S2AService_SetUpSessionClient) (*tls.Config, error) {
+func GetTlsConfigurationForServer(cstream s2av2pb.S2AService_SetUpSessionClient, tokenManager tokenmanager.AccessTokenManager, localIdentities []*commonpbv1.Identity) (*tls.Config, error) {
+	// TODO(rmehta19): Add an extra auth mechanism for the SNI.
 	// TODO(rmehta19): move call to S2Av2 to a helper function.
+	authMechanisms := getAuthMechanisms(tokenManager, localIdentities)
 	// Send request to S2Av2 for config.
 	if err := cstream.Send(&s2av2pb.SessionReq {
-		AuthenticationMechanisms: []*s2av2pb.AuthenticationMechanism {
-			{
-				// TODO(rmehta19): Populate Authentication Mechanism using tokenmanager.
-				MechanismOneof: &s2av2pb.AuthenticationMechanism_Token{"token"},
-			},
-		},
+		AuthenticationMechanisms: authMechanisms,
 		ReqOneof: &s2av2pb.SessionReq_GetTlsConfigurationReq {
 			&s2av2pb.GetTlsConfigurationReq {
 				ConnectionSide: commonpb.ConnectionSide_CONNECTION_SIDE_SERVER,
@@ -197,6 +192,55 @@ func GetTlsConfigurationForServer(cstream s2av2pb.S2AService_SetUpSessionClient)
 		MinVersion: minVersion,
 		MaxVersion: maxVersion,
 	}, nil
+}
+
+func getAuthMechanisms(tokenManager tokenmanager.AccessTokenManager, localIdentities []*commonpbv1.Identity) []*s2av2pb.AuthenticationMechanism {
+	if tokenManager == nil {
+		return nil
+	}
+	if len(localIdentities) == 0 {
+		token, err := tokenManager.DefaultToken()
+		if err != nil {
+			grpclog.Infof("unable to get token for empty local identity: %v", err)
+			return nil
+		}
+		return []*s2av2pb.AuthenticationMechanism{
+			&s2av2pb.AuthenticationMechanism{
+				MechanismOneof: &s2av2pb.AuthenticationMechanism_Token{
+					Token: token,
+				},
+			},
+		}
+	}
+	var authMechanisms []*s2av2pb.AuthenticationMechanism
+	for _, localIdentity := range localIdentities {
+		if localIdentity == nil {
+			token, err := tokenManager.DefaultToken()
+			if err != nil {
+				grpclog.Infof("unable to get default token for local identity %v: %v", localIdentity, err)
+				continue
+			}
+			authMechanisms = append(authMechanisms, &s2av2pb.AuthenticationMechanism {
+				Identity: localIdentity,
+				MechanismOneof: &s2av2pb.AuthenticationMechanism_Token {
+					Token: token,
+				},
+			})
+		} else {
+			token, err := tokenManager.Token(localIdentity)
+			if err != nil {
+				grpclog.Infof("unable to get token for local identity %v: %v", localIdentity, err)
+				continue
+			}
+			authMechanisms = append(authMechanisms, &s2av2pb.AuthenticationMechanism {
+				Identity: localIdentity,
+				MechanismOneof: &s2av2pb.AuthenticationMechanism_Token {
+					Token: token,
+				},
+			})
+		}
+	}
+	return authMechanisms
 }
 
 // TODO(rmehta19): refactor switch statements into a helper function.
