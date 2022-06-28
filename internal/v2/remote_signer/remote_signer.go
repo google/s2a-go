@@ -6,6 +6,7 @@ import (
 	"crypto"
 	"crypto/rsa"
 	"crypto/x509"
+
 	s2av2pb "github.com/google/s2a-go/internal/proto/v2/s2a_go_proto"
 	commonpbv1 "github.com/google/s2a-go/internal/proto/common_go_proto"
 )
@@ -32,12 +33,6 @@ func (s *remoteSigner) Sign(rand io.Reader, digest []byte, opts crypto.SignerOpt
 	// Send request to S2Av2 to perform private key operation.
 	if err := s.cstream.Send(&s2av2pb.SessionReq {
 		LocalIdentity: s.localIdentity,
-		AuthenticationMechanisms: []*s2av2pb.AuthenticationMechanism {
-			{
-				// TODO(rmehta19): Populate Authentication Mechanism using tokenmanager.
-				MechanismOneof: &s2av2pb.AuthenticationMechanism_Token{"token"},
-			},
-		},
 		ReqOneof: &s2av2pb.SessionReq_OffloadPrivateKeyOperationReq {
 			&s2av2pb.OffloadPrivateKeyOperationReq {
 				Operation: s2av2pb.OffloadPrivateKeyOperationReq_SIGN,

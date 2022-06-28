@@ -14,9 +14,14 @@ import (
 	_ "embed"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/protobuf/testing/protocmp"
+	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/google/s2a-go/internal/v2/fakes2av2"
+	"github.com/google/s2a-go/internal/tokenmanager"
 	s2av2pb "github.com/google/s2a-go/internal/proto/v2/s2a_go_proto"
 	commonpb "github.com/google/s2a-go/internal/proto/v2/common_go_proto"
+	commonpbv1 "github.com/google/s2a-go/internal/proto/common_go_proto"
 )
 
 const (
@@ -33,6 +38,35 @@ var (
 	//go:embed example_cert_key/server_key.pem
 	serverKeypem []byte
 )
+
+// fakeAccessTokenManager implements the AccessTokenManager interface.
+type fakeAccessTokenManager struct {
+	acceptedIdentity   *commonpbv1.Identity
+	accessToken        string
+	allowEmptyIdentity bool
+}
+
+// DefaultToken returns the token managed by the fakeAccessTokenManager.
+func (m *fakeAccessTokenManager) DefaultToken() (string, error) {
+	if !m.allowEmptyIdentity {
+		return "", fmt.Errorf("not allowed to get token for empty identity")
+	}
+	return m.accessToken, nil
+}
+
+// Token returns the token managed by the fakeAccessTokenManager.
+func (m *fakeAccessTokenManager) Token(identity *commonpbv1.Identity) (string, error) {
+	if identity == nil || cmp.Equal(identity, &commonpbv1.Identity{}, protocmp.Transform()) {
+		if !m.allowEmptyIdentity {
+			return "", fmt.Errorf("not allowed to get token for empty identity")
+		}
+		return m.accessToken, nil
+	}
+	if cmp.Equal(identity, m.acceptedIdentity, protocmp.Transform()) {
+		return m.accessToken, nil
+	}
+	return "", fmt.Errorf("unable to get token")
+}
 
 func startFakeS2Av2Server(wg *sync.WaitGroup) (stop func(), address string, err error) {
 	listener, err := net.Listen("tcp", ":0")
@@ -59,7 +93,7 @@ func TestTLSConfigStoreClient(t *testing.T) {
 	// Setup for static client test.
 	cert, err := tls.X509KeyPair(clientCertpem, clientKeypem)
 	if err != nil {
-		t.Errorf("tls.X509KeyPair failed: %v", err)
+		t.Fatalf("tls.X509KeyPair failed: %v", err)
 	}
 
 	// Start up fake S2Av2 server.
@@ -68,7 +102,7 @@ func TestTLSConfigStoreClient(t *testing.T) {
 	stop, address, err := startFakeS2Av2Server(&wg)
 	wg.Wait()
 	if err != nil {
-		log.Fatalf("error starting fake S2Av2 Server: %v", err)
+		t.Fatalf("error starting fake S2Av2 Server: %v", err)
 	}
 
 	// Create stream to S2Av2.
@@ -79,7 +113,7 @@ func TestTLSConfigStoreClient(t *testing.T) {
 	}
 	conn, err := grpc.Dial(address, opts...)
 	if err != nil {
-		log.Fatalf("Client: failed to connect: %v", err)
+		t.Fatalf("Client: failed to connect: %v", err)
 	}
 	defer conn.Close()
 	c := s2av2pb.NewS2AServiceClient(conn)
@@ -91,10 +125,14 @@ func TestTLSConfigStoreClient(t *testing.T) {
 	callOpts := []grpc.CallOption{}
 	cstream, err := c.SetUpSession(ctx, callOpts...)
 	if err != nil  {
-		log.Fatalf("Client: failed to setup bidirectional streaming RPC session: %v", err)
+		t.Fatalf("Client: failed to setup bidirectional streaming RPC session: %v", err)
 	}
 	log.Printf("Client: set up bidirectional streaming RPC session.")
 
+	accessTokenManager := &fakeAccessTokenManager{
+				accessToken: "TestTLSConfigStoreClient_s2a_access_token",
+				allowEmptyIdentity: true,
+			}
 	for _, tc := range []struct {
 		description		    string
 		Certificates                []tls.Certificate
@@ -115,7 +153,7 @@ func TestTLSConfigStoreClient(t *testing.T) {
 		},
 	} {
 		t.Run(tc.description, func(t *testing.T) {
-			config, err := GetTlsConfigurationForClient(tc.ServerName, cstream)
+			config, err := GetTlsConfigurationForClient(tc.ServerName, cstream, accessTokenManager, nil)
 			if err != nil {
 				t.Errorf("GetTlsConfigurationForClient failed: %v", err)
 			}
@@ -144,7 +182,7 @@ func TestTLSConfigStoreServer(t *testing.T) {
 	// Setup for static server test.
 	cert, err := tls.X509KeyPair(serverCertpem, serverKeypem)
 	if err != nil {
-		t.Errorf("tls.X509KeyPair failed: %v", err)
+		t.Fatalf("tls.X509KeyPair failed: %v", err)
 	}
 
 	// Start up fake S2Av2 server.
@@ -153,7 +191,7 @@ func TestTLSConfigStoreServer(t *testing.T) {
 	stop, address, err := startFakeS2Av2Server(&wg)
 	wg.Wait()
 	if err != nil {
-		log.Fatalf("error starting fake S2Av2 Server: %v", err)
+		t.Fatalf("error starting fake S2Av2 Server: %v", err)
 	}
 
 	// Create stream to S2Av2.
@@ -164,7 +202,7 @@ func TestTLSConfigStoreServer(t *testing.T) {
 	}
 	conn, err := grpc.Dial(address, opts...)
 	if err != nil {
-		log.Fatalf("Client: failed to connect: %v", err)
+		t.Fatalf("Client: failed to connect: %v", err)
 	}
 	defer conn.Close()
 	c := s2av2pb.NewS2AServiceClient(conn)
@@ -176,10 +214,16 @@ func TestTLSConfigStoreServer(t *testing.T) {
 	callOpts := []grpc.CallOption{}
 	cstream, err := c.SetUpSession(ctx, callOpts...)
 	if err != nil  {
-		log.Fatalf("Client: failed to setup bidirectional streaming RPC session: %v", err)
+		t.Fatalf("Client: failed to setup bidirectional streaming RPC session: %v", err)
 	}
 	log.Printf("Client: set up bidirectional streaming RPC session.")
 
+	accessTokenManager := &fakeAccessTokenManager{
+				accessToken: "TestTLSConfigStoreServer_s2a_access_token",
+				allowEmptyIdentity: true,
+			}
+	var identities [] *commonpbv1.Identity
+	identities = append(identities, nil)
 	for _, tc := range []struct {
 		description		    string
 		Certificates                []tls.Certificate
@@ -196,7 +240,7 @@ func TestTLSConfigStoreServer(t *testing.T) {
 		},
 	} {
 		t.Run(tc.description, func(t *testing.T) {
-			config, err := GetTlsConfigurationForServer(cstream)
+			config, err := GetTlsConfigurationForServer(cstream, accessTokenManager, identities)
 			if err != nil {
 				t.Errorf("GetTlsConfigurationForClient failed: %v", err)
 			}
@@ -330,6 +374,58 @@ func TestGetTLSMinMaxVersionsServer(t *testing.T) {
 	}
 }
 
+func TestGetAuthMechanisms(t *testing.T) {
+	// Setup data for test.
+	sortProtos := cmpopts.SortSlices(func(m1, m2 *s2av2pb.AuthenticationMechanism) bool { return m1.String() < m2.String() })
+
+	// TODO(rmehta19): Add additional tests.
+	for _, tc := range []struct {
+		description string
+		tokenManager tokenmanager.AccessTokenManager
+		localIdentities []*commonpbv1.Identity
+		expectedAuthMechanisms []*s2av2pb.AuthenticationMechanism
+	}{
+		{
+			description: "token manager is nil",
+			tokenManager: nil,
+			expectedAuthMechanisms: nil,
+		},
+		{
+			description: "token manager expects empty identity",
+			tokenManager: &fakeAccessTokenManager{
+				accessToken:        "TestGetAuthMechanisms_s2a_access_token",
+				allowEmptyIdentity: true,
+			},
+			expectedAuthMechanisms: []*s2av2pb.AuthenticationMechanism{
+				&s2av2pb.AuthenticationMechanism{
+					MechanismOneof: &s2av2pb.AuthenticationMechanism_Token{
+						Token: "TestGetAuthMechanisms_s2a_access_token",
+					},
+				},
+			},
+		},
+		{
+			description: "token manager does not expect empty identity",
+			tokenManager: &fakeAccessTokenManager{
+				allowEmptyIdentity: false,
+			},
+			expectedAuthMechanisms: nil,
+		},
+
+	} {
+		t.Run(tc.description, func(t *testing.T) {
+			authMechanisms := getAuthMechanisms(tc.tokenManager, tc.localIdentities)
+			if got, want := (authMechanisms == nil), (tc.expectedAuthMechanisms == nil); got != want {
+				t.Errorf("authMechanisms == nil: %t, tc.expectedAuthMechanisms == nil: %t", got, want)
+			}
+			if authMechanisms != nil && tc.expectedAuthMechanisms != nil {
+				if diff := cmp.Diff(authMechanisms, tc.expectedAuthMechanisms, protocmp.Transform(), sortProtos); diff != "" {
+					t.Errorf("getAuthMechanisms(%v, %v) returned incorrect slice, (-want +got):\n%s", tc.tokenManager, tc.localIdentities, diff)
+				}
+			}
+		})
+	}
+}
 func makeMapOfTLSVersions() map[commonpb.TLSVersion]uint16 {
 	m := make(map[commonpb.TLSVersion]uint16)
 	m[commonpb.TLSVersion_TLS_VERSION_1_0] = tls.VersionTLS10

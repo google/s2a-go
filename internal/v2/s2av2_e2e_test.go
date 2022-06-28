@@ -1,6 +1,7 @@
 package v2
 
 import (
+	"os"
 	"time"
 	"context"
 	"fmt"
@@ -17,8 +18,10 @@ import (
 )
 
 const (
+	accessTokenEnvVariable = "S2A_ACCESS_TOKEN"
+	testAccessToken        = "test_access_token"
 	defaultE2ETimeout      = time.Second*5
-	clientMessage       = "echo"
+	clientMessage          = "echo"
 )
 
 // server implements the helloworld.GreeterServer.
@@ -126,7 +129,7 @@ func runClient(ctx context.Context, t *testing.T, clientS2AAddress, serverAddr s
 }
 
 func TestEndToEndUsingFakeS2AOverTCP(t *testing.T) {
-	// TODO(rmehta19): Set S2A_ACCESS_TOKEN env variable once #46 merges.
+	os.Setenv(accessTokenEnvVariable, testAccessToken)
 	// Start the fake S2As for the client and server.
 	serverS2AAddr := startFakeS2A(t)
 	grpclog.Infof("fake handshaker for server running at address: %v", serverS2AAddr)
@@ -144,7 +147,7 @@ func TestEndToEndUsingFakeS2AOverTCP(t *testing.T) {
 }
 
 func TestEndToEndUsingFakeS2AOnUDS(t *testing.T) {
-	// TODO(rmehta19): Set S2A_ACCESS_TOKEN env variable once #46 merges.
+	os.Setenv(accessTokenEnvVariable, testAccessToken)
 	// Start fake S2As for use by the client and server.
 	serverS2AAddr := startFakeS2AOnUDS(t)
 	grpclog.Infof("fake S2A for server listening on UDS at address: %v", serverS2AAddr)

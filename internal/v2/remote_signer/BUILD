@@ -24,8 +24,8 @@ go_test(
     "example_cert_key/key.pem",
   ],
   deps = [
+    "//internal/v2/fakes2av2",
     "@org_golang_google_grpc//credentials/insecure:go_default_library",
     "@org_golang_google_grpc//:go_default_library",
-    "//internal/v2/fakes2av2",
   ],
 )

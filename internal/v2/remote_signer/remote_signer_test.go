@@ -60,7 +60,7 @@ func TestSign(t *testing.T) {
 	stop, address, err := startFakeS2Av2Server(&wg)
 	wg.Wait()
 	if err != nil {
-		log.Fatalf("error starting fake S2Av2 Server: %v", err)
+		t.Fatalf("error starting fake S2Av2 Server: %v", err)
 	}
 
 	// Create stream to S2Av2.
@@ -71,7 +71,7 @@ func TestSign(t *testing.T) {
 	}
 	conn, err := grpc.Dial(address, opts...)
 	if err != nil {
-		log.Fatalf("Client: failed to connect: %v", err)
+		t.Fatalf("Client: failed to connect: %v", err)
 	}
 	defer conn.Close()
 	c := s2av2pb.NewS2AServiceClient(conn)
@@ -83,7 +83,7 @@ func TestSign(t *testing.T) {
 	callOpts := []grpc.CallOption{}
 	cstream, err := c.SetUpSession(ctx, callOpts...)
 	if err != nil  {
-		log.Fatalf("Client: failed to setup bidirectional streaming RPC session: %v", err)
+		t.Fatalf("Client: failed to setup bidirectional streaming RPC session: %v", err)
 	}
 	log.Printf("Client: set up bidirectional streaming RPC session.")
 
@@ -91,11 +91,11 @@ func TestSign(t *testing.T) {
 	// Setup data for testing Sign
 	clientTlsCert, err := tls.X509KeyPair(clientCertPEM, clientKeyPEM)
 	if err != nil {
-		log.Fatalf("tls.X509KeyPair failed: %v", err)
+		t.Fatalf("tls.X509KeyPair failed: %v", err)
 	}
 	clientx509Cert, err := x509.ParseCertificate(clientCertDER)
 	if err != nil {
-		log.Fatalf("failed to parse cert: %v", err)
+		t.Fatalf("failed to parse cert: %v", err)
 	}
 	testInBytes := []byte("Test data.")
 

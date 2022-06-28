@@ -15,12 +15,6 @@ func VerifyClientCertificateChain(cstream s2av2pb.S2AService_SetUpSessionClient)
 	return func(rawCerts [][]byte, verifiedChains [][]*x509.Certificate) error {
 		// Offload verification to S2Av2.
 		if err := cstream.Send(&s2av2pb.SessionReq {
-			AuthenticationMechanisms: []*s2av2pb.AuthenticationMechanism {
-				{
-					// TODO(rmehta19): Populate Authentication Mechanism using tokenmanager.
-					MechanismOneof: &s2av2pb.AuthenticationMechanism_Token{"token"},
-				},
-			},
 			ReqOneof: &s2av2pb.SessionReq_ValidatePeerCertificateChainReq {
 				&s2av2pb.ValidatePeerCertificateChainReq {
 					Mode: s2av2pb.ValidatePeerCertificateChainReq_CONNECT_TO_GOOGLE,
@@ -56,12 +50,6 @@ func VerifyServerCertificateChain(hostname string, cstream s2av2pb.S2AService_Se
 	return func(rawCerts [][]byte, verifiedChains [][]*x509.Certificate) error {
 		// Offload verification to S2Av2.
 		if err := cstream.Send(&s2av2pb.SessionReq {
-			AuthenticationMechanisms: []*s2av2pb.AuthenticationMechanism {
-				{
-					// TODO(rmehta19): Populate Authentication Mechanism using tokenmanager.
-					MechanismOneof: &s2av2pb.AuthenticationMechanism_Token{"token"},
-				},
-			},
 			ReqOneof: &s2av2pb.SessionReq_ValidatePeerCertificateChainReq {
 				&s2av2pb.ValidatePeerCertificateChainReq {
 					Mode: s2av2pb.ValidatePeerCertificateChainReq_CONNECT_TO_GOOGLE,
