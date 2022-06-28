@@ -360,7 +360,7 @@ func TestSetUpSession(t *testing.T) {
 			},
 		},
 		{
-			description: "client side private key operation -- error",
+			description: "client side private key operation -- invalid signature algorithm",
 			request: &s2av2pb.SessionReq {
 				LocalIdentity: &commonpbv1.Identity {
 					IdentityOneof: &commonpbv1.Identity_Hostname {
@@ -385,6 +385,35 @@ func TestSetUpSession(t *testing.T) {
 				Status: &s2av2pb.Status {
 					Code: 3,
 					Details: fmt.Sprintf("invalid signature algorithm: %v", s2av2pb.SignatureAlgorithm_S2A_SSL_SIGN_UNSPECIFIED),
+				},
+			},
+		},
+		{
+			description: "client side private key operation -- invalid hostname",
+			request: &s2av2pb.SessionReq {
+				LocalIdentity: &commonpbv1.Identity {
+					IdentityOneof: &commonpbv1.Identity_Hostname {
+						Hostname: "invalid_hostname",
+					},
+				},
+				AuthenticationMechanisms: []*s2av2pb.AuthenticationMechanism {
+					{
+						// TODO(rmehta19): Populate Authentication Mechanism using tokenmanager.
+						MechanismOneof: &s2av2pb.AuthenticationMechanism_Token{"token"},
+					},
+				},
+				ReqOneof: &s2av2pb.SessionReq_OffloadPrivateKeyOperationReq {
+					&s2av2pb.OffloadPrivateKeyOperationReq {
+						Operation: s2av2pb.OffloadPrivateKeyOperationReq_SIGN,
+						SignatureAlgorithm: s2av2pb.SignatureAlgorithm_S2A_SSL_SIGN_UNSPECIFIED,
+						InBytes: []byte(hsha256[:]),
+					},
+				},
+			},
+			expectedResponse: &s2av2pb.SessionResp {
+				Status: &s2av2pb.Status {
+					Code: 3,
+					Details: fmt.Sprintf("Invalid hostname tied to SessionReq: invalid_hostname"),
 				},
 			},
 		},
