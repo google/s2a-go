@@ -234,8 +234,8 @@ func buildValidatePeerCertificateChainSessionResp(StatusCode uint32, StatusDetai
 func verifyClientPeer(req *s2av2pb.ValidatePeerCertificateChainReq) (*s2av2pb.SessionResp, error) {
 	derCertChain := req.GetClientPeer().CertificateChain
 	if len(derCertChain) == 0 {
-		err := errors.New("Client Peer Verification failed: client cert chain is empty.")
-		return buildValidatePeerCertificateChainSessionResp(3, err.Error(), s2av2pb.ValidatePeerCertificateChainResp_FAILURE, err.Error(), &s2av2ctx.S2AContext{}), err
+		s := "Client Peer Verification failed: client cert chain is empty."
+		return buildValidatePeerCertificateChainSessionResp(3, s, s2av2pb.ValidatePeerCertificateChainResp_FAILURE, s, &s2av2ctx.S2AContext{}), nil
 	}
 
 	// Obtain the set of root certificates.
@@ -268,7 +268,7 @@ func verifyClientPeer(req *s2av2pb.ValidatePeerCertificateChainReq) (*s2av2pb.Se
 	}
 	if _, err := x509LeafCert.Verify(opts); err != nil {
 		s := fmt.Sprintf("Client Peer Verification failed: %v", err)
-		return buildValidatePeerCertificateChainSessionResp(3, s, s2av2pb.ValidatePeerCertificateChainResp_FAILURE, s, &s2av2ctx.S2AContext{}), err
+		return buildValidatePeerCertificateChainSessionResp(3, s, s2av2pb.ValidatePeerCertificateChainResp_FAILURE, s, &s2av2ctx.S2AContext{}), nil
 	}
 	return buildValidatePeerCertificateChainSessionResp(0, "", s2av2pb.ValidatePeerCertificateChainResp_SUCCESS, "Client Peer Verification succeeded", &s2av2ctx.S2AContext{}), nil
 }
@@ -276,8 +276,8 @@ func verifyClientPeer(req *s2av2pb.ValidatePeerCertificateChainReq) (*s2av2pb.Se
 func verifyServerPeer(req *s2av2pb.ValidatePeerCertificateChainReq) (*s2av2pb.SessionResp, error) {
 	derCertChain := req.GetServerPeer().CertificateChain
 	if len(derCertChain) == 0 {
-		err := errors.New("Server Peer Verification failed: server cert chain is empty.")
-		return buildValidatePeerCertificateChainSessionResp(3, err.Error(), s2av2pb.ValidatePeerCertificateChainResp_FAILURE, err.Error(), &s2av2ctx.S2AContext{}), err
+		s := "Server Peer Verification failed: server cert chain is empty."
+		return buildValidatePeerCertificateChainSessionResp(3, s, s2av2pb.ValidatePeerCertificateChainResp_FAILURE, s, &s2av2ctx.S2AContext{}), nil
 	}
 
 	// Obtain the set of root certificates.
@@ -311,7 +311,7 @@ func verifyServerPeer(req *s2av2pb.ValidatePeerCertificateChainReq) (*s2av2pb.Se
 	}
 	if _, err := x509LeafCert.Verify(opts); err != nil {
 		s := fmt.Sprintf("Server Peer Verification failed: %v", err)
-		return buildValidatePeerCertificateChainSessionResp(3, s, s2av2pb.ValidatePeerCertificateChainResp_FAILURE, s, &s2av2ctx.S2AContext{}), err
+		return buildValidatePeerCertificateChainSessionResp(3, s, s2av2pb.ValidatePeerCertificateChainResp_FAILURE, s, &s2av2ctx.S2AContext{}), nil
 	}
 
 	return buildValidatePeerCertificateChainSessionResp(0, "", s2av2pb.ValidatePeerCertificateChainResp_SUCCESS, "Server Peer Verification succeeded",&s2av2ctx.S2AContext{}), nil

@@ -12,8 +12,8 @@ import (
 	"crypto/tls"
 	"context"
 	"testing"
-	"google.golang.org/grpc"
 	"github.com/google/go-cmp/cmp"
+	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/protobuf/testing/protocmp"
@@ -220,6 +220,40 @@ func TestSetUpSession(t *testing.T) {
 					&s2av2pb.ValidatePeerCertificateChainResp {
 						ValidationResult: s2av2pb.ValidatePeerCertificateChainResp_SUCCESS,
 						ValidationDetails: "Client Peer Verification succeeded",
+						Context: &s2av2ctx.S2AContext{},
+					},
+				},
+			},
+		},
+		{
+			description: "Client Peer Verification -- failure",
+			request: &s2av2pb.SessionReq {
+				AuthenticationMechanisms: []*s2av2pb.AuthenticationMechanism {
+					{
+						// TODO(rmehta19): Populate Authentication Mechanism using tokenmanager.
+						MechanismOneof: &s2av2pb.AuthenticationMechanism_Token{"token"},
+					},
+				},
+				ReqOneof: &s2av2pb.SessionReq_ValidatePeerCertificateChainReq {
+					&s2av2pb.ValidatePeerCertificateChainReq {
+						Mode: s2av2pb.ValidatePeerCertificateChainReq_SPIFFE,
+						PeerOneof: &s2av2pb.ValidatePeerCertificateChainReq_ClientPeer_ {
+							&s2av2pb.ValidatePeerCertificateChainReq_ClientPeer {
+								CertificateChain: [][]byte{},
+							},
+						},
+					},
+				},
+			},
+			expectedResponse: &s2av2pb.SessionResp {
+				Status: &s2av2pb.Status {
+					Code: uint32(codes.InvalidArgument),
+					Details: "Client Peer Verification failed: client cert chain is empty.",
+				},
+				RespOneof: &s2av2pb.SessionResp_ValidatePeerCertificateChainResp {
+					&s2av2pb.ValidatePeerCertificateChainResp {
+						ValidationResult: s2av2pb.ValidatePeerCertificateChainResp_FAILURE,
+						ValidationDetails: "Client Peer Verification failed: client cert chain is empty.",
 						Context: &s2av2ctx.S2AContext{},
 					},
 				},

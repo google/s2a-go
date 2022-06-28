@@ -2,7 +2,9 @@
 package certverifier
 
 import (
+	"fmt"
 	"crypto/x509"
+	"google.golang.org/grpc/codes"
 
 	s2av2pb "github.com/google/s2a-go/internal/proto/v2/s2a_go_proto"
 )
@@ -34,12 +36,16 @@ func VerifyClientCertificateChain(cstream s2av2pb.S2AService_SetUpSessionClient)
 		}
 
 		// Get the response from S2Av2.
-		_, err := cstream.Recv()
+		resp, err := cstream.Recv()
 		if err != nil {
 			return err
 		}
 
-		// TODO(rmehta19): Parse response.
+		// Parse the response
+		if resp.GetStatus().Code != uint32(codes.OK) {
+			return fmt.Errorf("Failed to offload client cert verification to S2A: %d, %v", resp.GetStatus().Code, resp.GetStatus().Details)
+
+		}
 		return nil
 	}
 }
@@ -72,12 +78,15 @@ func VerifyServerCertificateChain(hostname string, cstream s2av2pb.S2AService_Se
 		}
 
 		// Get the response from S2Av2.
-		_, err := cstream.Recv()
+		resp, err := cstream.Recv()
 		if err != nil {
 			return err
 		}
 
-		// TODO(rmehta19): Parse response.
+		// Parse the response
+		if resp.GetStatus().Code != uint32(codes.OK) {
+			return fmt.Errorf("Failed to offload client cert verification to S2A: %d, %v", resp.GetStatus().Code, resp.GetStatus().Details)
+		}
 		return nil
 	}
 }
