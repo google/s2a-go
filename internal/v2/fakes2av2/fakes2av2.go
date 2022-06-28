@@ -98,7 +98,12 @@ func offloadPrivateKeyOperation(req *s2av2pb.OffloadPrivateKeyOperationReq, host
 			}
 		default:
 			s := fmt.Sprintf("Invalid hostname tied to SessionReq: %s", hostname)
-			return nil, errors.New(s)
+			return &s2av2pb.SessionResp {
+				Status: &s2av2pb.Status {
+					Code: 3,
+					Details: s,
+				},
+			},nil
 		}
 		var signedBytes []byte
 		if req.GetSignatureAlgorithm() == s2av2pb.SignatureAlgorithm_S2A_SSL_SIGN_RSA_PKCS1_SHA256 {

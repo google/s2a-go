@@ -6,6 +6,7 @@ import (
 	"sync"
 	"time"
 	"bytes"
+	"errors"
 	"context"
 	"testing"
 	"crypto"
@@ -135,6 +136,67 @@ func TestSign(t *testing.T) {
 	gotSignedBytes, err = s.Sign(rand.Reader, hsha256[:], pssSignerOpts)
 	if err = rsa.VerifyPSS(clientx509Cert.PublicKey.(*rsa.PublicKey), crypto.SHA256, hsha256[:], gotSignedBytes, pssSignerOpts); err != nil {
 		t.Errorf("failed to verify RSA PSS signature: %v", err)
+	}
+	stop()
+}
+
+// TestSignFail runs unit test for Sign.
+func TestSignFail(t *testing.T) {
+	// Start up fake S2Av2 server.
+	var wg sync.WaitGroup
+	wg.Add(1)
+	stop, address, err := startFakeS2Av2Server(&wg)
+	wg.Wait()
+	if err != nil {
+		log.Fatalf("error starting fake S2Av2 Server: %v", err)
+	}
+
+	// Create stream to S2Av2.
+	opts := []grpc.DialOption {
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+		grpc.WithReturnConnectionError(),
+		grpc.WithBlock(),
+	}
+	conn, err := grpc.Dial(address, opts...)
+	if err != nil {
+		log.Fatalf("Client: failed to connect: %v", err)
+	}
+	defer conn.Close()
+	c := s2av2pb.NewS2AServiceClient(conn)
+	log.Printf("Client: connected to: %s", address)
+	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
+	defer cancel()
+
+	// Setup bidrectional streaming session.
+	callOpts := []grpc.CallOption{}
+	cstream, err := c.SetUpSession(ctx, callOpts...)
+	if err != nil  {
+		log.Fatalf("Client: failed to setup bidirectional streaming RPC session: %v", err)
+	}
+	log.Printf("Client: set up bidirectional streaming RPC session.")
+
+	// Setup data for test.
+	clientx509Cert, err := x509.ParseCertificate(clientCertDER)
+	if err != nil {
+		log.Fatalf("failed to parse cert: %v", err)
+	}
+	s := New(clientx509Cert, cstream, &commonpbv1.Identity {
+		IdentityOneof: &commonpbv1.Identity_Hostname {
+			Hostname: "invalid_hostname",
+		},
+	})
+	testInBytes := []byte("Test data.")
+
+	// TODO(rmehta19): Investigate whether go crypto libraries compute hash.
+	// If so, remove this line, and just pass testInBytes as digest.
+	hsha256 := sha256.Sum256([]byte(testInBytes))
+	signerOpts := crypto.SHA256
+
+	// Test Sign.
+	_, err = s.Sign(rand.Reader, hsha256[:], signerOpts)
+	expectedErr := errors.New("Failed to offload signing with private key to S2A: 3, Invalid hostname tied to SessionReq: invalid_hostname")
+	if err.Error() != expectedErr.Error() {
+		t.Errorf("err = %v, expectedErr = %v", err, expectedErr)
 	}
 	stop()
 }

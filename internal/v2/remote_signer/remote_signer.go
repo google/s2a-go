@@ -3,9 +3,11 @@ package remotesigner
 
 import (
 	"io"
+	"fmt"
 	"crypto"
 	"crypto/rsa"
 	"crypto/x509"
+	"google.golang.org/grpc/codes"
 
 	s2av2pb "github.com/google/s2a-go/internal/proto/v2/s2a_go_proto"
 	commonpbv1 "github.com/google/s2a-go/internal/proto/common_go_proto"
@@ -54,6 +56,10 @@ func (s *remoteSigner) Sign(rand io.Reader, digest []byte, opts crypto.SignerOpt
 	resp, err := s.cstream.Recv()
 	if err != nil {
 		return nil, err
+	}
+
+	if resp.GetStatus().Code != uint32(codes.OK) {
+		return nil, fmt.Errorf("Failed to offload signing with private key to S2A: %d, %v", resp.GetStatus().Code, resp.GetStatus().Details)
 	}
 
 	return resp.GetOffloadPrivateKeyOperationResp().GetOutBytes(), nil

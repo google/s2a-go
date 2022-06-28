@@ -9,6 +9,7 @@ go_library(
   srcs = ["remote_signer.go"],
   importpath = "github.com/google/s2a-go/internal/v2/remote_signer",
   deps = [
+    "@org_golang_google_grpc//codes:go_default_library",
     "//internal/proto/v2/s2a_go_proto:s2a_go_proto",
     "//internal/proto/common_go_proto:common_go_proto",
   ],
