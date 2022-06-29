@@ -1,7 +1,7 @@
 load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
 
 package(
-  default_visibility = ["//internal/v2:__subpackages__"],
+  default_visibility = ["//:__subpackages__"],
 )
 
 go_library(
