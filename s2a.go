@@ -33,6 +33,7 @@ import (
 	"github.com/golang/protobuf/proto"
 	"github.com/google/s2a-go/internal/handshaker"
 	"github.com/google/s2a-go/internal/handshaker/service"
+	"github.com/google/s2a-go/internal/v2"
 	commonpb "github.com/google/s2a-go/internal/proto/common_go_proto"
 )
 
@@ -81,23 +82,27 @@ func NewClientCreds(opts *ClientOptions) (credentials.TransportCredentials, erro
 	if err != nil {
 		return nil, err
 	}
-	return &s2aTransportCreds{
-		info: &credentials.ProtocolInfo{
-			SecurityProtocol: s2aSecurityProtocol,
-		},
-		minTLSVersion: commonpb.TLSVersion_TLS1_3,
-		maxTLSVersion: commonpb.TLSVersion_TLS1_3,
-		tlsCiphersuites: []commonpb.Ciphersuite{
-			commonpb.Ciphersuite_AES_128_GCM_SHA256,
-			commonpb.Ciphersuite_AES_256_GCM_SHA384,
-			commonpb.Ciphersuite_CHACHA20_POLY1305_SHA256,
-		},
-		localIdentity:               localIdentity,
-		targetIdentities:            targetIdentities,
-		isClient:                    true,
-		s2aAddr:                     opts.S2AAddress,
-		ensureProcessSessionTickets: opts.EnsureProcessSessionTickets,
-	}, nil
+	if opts.EnableV2 {
+		return v2.NewClientCreds(opts.S2AAddress)
+	} else {
+		return &s2aTransportCreds{
+			info: &credentials.ProtocolInfo{
+				SecurityProtocol: s2aSecurityProtocol,
+			},
+			minTLSVersion: commonpb.TLSVersion_TLS1_3,
+			maxTLSVersion: commonpb.TLSVersion_TLS1_3,
+			tlsCiphersuites: []commonpb.Ciphersuite{
+				commonpb.Ciphersuite_AES_128_GCM_SHA256,
+				commonpb.Ciphersuite_AES_256_GCM_SHA384,
+				commonpb.Ciphersuite_CHACHA20_POLY1305_SHA256,
+			},
+			localIdentity:               localIdentity,
+			targetIdentities:            targetIdentities,
+			isClient:                    true,
+			s2aAddr:                     opts.S2AAddress,
+			ensureProcessSessionTickets: opts.EnsureProcessSessionTickets,
+		}, nil
+	}
 }
 
 // NewServerCreds returns a server-side transport credentials object that uses
@@ -114,21 +119,25 @@ func NewServerCreds(opts *ServerOptions) (credentials.TransportCredentials, erro
 		}
 		localIdentities = append(localIdentities, protoLocalIdentity)
 	}
-	return &s2aTransportCreds{
-		info: &credentials.ProtocolInfo{
-			SecurityProtocol: s2aSecurityProtocol,
-		},
-		minTLSVersion: commonpb.TLSVersion_TLS1_3,
-		maxTLSVersion: commonpb.TLSVersion_TLS1_3,
-		tlsCiphersuites: []commonpb.Ciphersuite{
-			commonpb.Ciphersuite_AES_128_GCM_SHA256,
-			commonpb.Ciphersuite_AES_256_GCM_SHA384,
-			commonpb.Ciphersuite_CHACHA20_POLY1305_SHA256,
-		},
-		localIdentities: localIdentities,
-		isClient:        false,
-		s2aAddr:         opts.S2AAddress,
-	}, nil
+	if opts.EnableV2 {
+		return v2.NewServerCreds(opts.S2AAddress)
+	} else {
+		return &s2aTransportCreds{
+			info: &credentials.ProtocolInfo{
+				SecurityProtocol: s2aSecurityProtocol,
+			},
+			minTLSVersion: commonpb.TLSVersion_TLS1_3,
+			maxTLSVersion: commonpb.TLSVersion_TLS1_3,
+			tlsCiphersuites: []commonpb.Ciphersuite{
+				commonpb.Ciphersuite_AES_128_GCM_SHA256,
+				commonpb.Ciphersuite_AES_256_GCM_SHA384,
+				commonpb.Ciphersuite_CHACHA20_POLY1305_SHA256,
+			},
+			localIdentities: localIdentities,
+			isClient:        false,
+			s2aAddr:         opts.S2AAddress,
+		}, nil
+	}
 }
 
 // ClientHandshake initiates a client-side TLS handshake using the S2A.

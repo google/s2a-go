@@ -103,6 +103,8 @@ type ClientOptions struct {
 	//     ensureProcessSessionTickets.Wait()
 	//   }
 	EnsureProcessSessionTickets *sync.WaitGroup
+	// If true, enables the use of S2Av2.
+	EnableV2 bool
 }
 
 // DefaultClientOptions returns the default client options.
@@ -119,6 +121,8 @@ type ServerOptions struct {
 	LocalIdentities []Identity
 	// S2AAddress is the address of the S2A.
 	S2AAddress string
+	// If true, enables the use of S2Av2.
+	EnableV2 bool
 }
 
 // DefaultServerOptions returns the default server options.
