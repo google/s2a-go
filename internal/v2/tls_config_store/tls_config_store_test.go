@@ -208,7 +208,7 @@ func TestTLSConfigStoreServer(t *testing.T) {
 		{
 			description: "static",
 			Certificates: []tls.Certificate{cert},
-			ClientAuth: tls.RequireAndVerifyClientCert,
+			ClientAuth: tls.RequireAnyClientCert,
 			MinVersion: tls.VersionTLS13,
 			MaxVersion: tls.VersionTLS13,
 		},
@@ -465,7 +465,7 @@ func TestGetServerConfigFromS2Av2(t *testing.T) {
 									commonpb.RecordCiphersuite_RECORD_CIPHERSUITE_CHACHA20_POLY1305_SHA256,
 								},
 								TlsResumptionEnabled: false,
-								RequestClientCertificate: s2av2pb.GetTlsConfigurationResp_ServerTlsConfiguration_REQUEST_AND_VERIFY,
+								RequestClientCertificate: s2av2pb.GetTlsConfigurationResp_ServerTlsConfiguration_REQUEST_AND_REQUIRE_CLIENT_CERTIFICATE_AND_VERIFY,
 								MaxOverheadOfTicketAead: 0,
 							},
 			expErr: nil,
@@ -538,7 +538,7 @@ func TestGetClientConfig(t *testing.T) {
 		{
 			description: "static",
 			Certificates: []tls.Certificate{cert},
-			ClientAuth: tls.RequireAndVerifyClientCert,
+			ClientAuth: tls.RequireAnyClientCert,
 			MinVersion: tls.VersionTLS13,
 			MaxVersion: tls.VersionTLS13,
 		},
@@ -591,6 +591,62 @@ func TestGetClientConfig(t *testing.T) {
 	stop()
 }
 
+func TestGetTLSClientAuthType(t *testing.T) {
+	for _, tc := range []struct {
+		description string
+		tlsConfig *s2av2pb.GetTlsConfigurationResp_ServerTlsConfiguration
+		expClientAuthType tls.ClientAuthType
+	} {
+		{
+			description: "Don't request client cert",
+			tlsConfig: &s2av2pb.GetTlsConfigurationResp_ServerTlsConfiguration{
+				RequestClientCertificate: s2av2pb.GetTlsConfigurationResp_ServerTlsConfiguration_DONT_REQUEST_CLIENT_CERTIFICATE,
+			},
+			expClientAuthType: tls.NoClientCert,
+		},
+		{
+			description: "Request client cert, but don't verify",
+			tlsConfig: &s2av2pb.GetTlsConfigurationResp_ServerTlsConfiguration{
+				RequestClientCertificate: s2av2pb.GetTlsConfigurationResp_ServerTlsConfiguration_REQUEST_CLIENT_CERTIFICATE_BUT_DONT_VERIFY,
+			},
+			expClientAuthType: tls.RequestClientCert,
+		},
+		{
+			description: "Request client cert and verify",
+			tlsConfig: &s2av2pb.GetTlsConfigurationResp_ServerTlsConfiguration{
+				RequestClientCertificate: s2av2pb.GetTlsConfigurationResp_ServerTlsConfiguration_REQUEST_CLIENT_CERTIFICATE_AND_VERIFY,
+			},
+			expClientAuthType: tls.RequireAnyClientCert,
+		},
+		{
+			description: "Request and Require client cert, but don't verify",
+			tlsConfig: &s2av2pb.GetTlsConfigurationResp_ServerTlsConfiguration{
+				RequestClientCertificate: s2av2pb.GetTlsConfigurationResp_ServerTlsConfiguration_REQUEST_AND_REQUIRE_CLIENT_CERTIFICATE_BUT_DONT_VERIFY,
+			},
+			expClientAuthType: tls.RequireAnyClientCert,
+		},
+		{
+			description: "Request and Require client cert and verify",
+			tlsConfig: &s2av2pb.GetTlsConfigurationResp_ServerTlsConfiguration{
+				RequestClientCertificate: s2av2pb.GetTlsConfigurationResp_ServerTlsConfiguration_REQUEST_AND_REQUIRE_CLIENT_CERTIFICATE_AND_VERIFY,
+			},
+			expClientAuthType: tls.RequireAnyClientCert,
+		},
+		{
+			description: "default case",
+			tlsConfig: &s2av2pb.GetTlsConfigurationResp_ServerTlsConfiguration{
+				RequestClientCertificate: s2av2pb.GetTlsConfigurationResp_ServerTlsConfiguration_UNSPECIFIED,
+			},
+			expClientAuthType: tls.RequireAnyClientCert,
+		},
+	} {
+		t.Run(tc.description, func(t *testing.T) {
+			if got, want := getTLSClientAuthType(tc.tlsConfig), tc.expClientAuthType; got != want {
+				t.Errorf("getClientAuthType(%v) returned %v, want = %v", tc.tlsConfig, got, want)
+			}
+		})
+	}
+}
 
 func makeMapOfTLSVersions() map[commonpb.TLSVersion]uint16 {
 	m := make(map[commonpb.TLSVersion]uint16)
