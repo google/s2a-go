@@ -32,6 +32,7 @@ func (s *remoteSigner) Public() crypto.PublicKey {
 }
 
 func (s *remoteSigner) Sign(rand io.Reader, digest []byte, opts crypto.SignerOpts) (signature []byte, err error) {
+	// TODO(rmehta19): remove LocalIdentity from SessionReq.
 	// Send request to S2Av2 to perform private key operation.
 	if err := s.cstream.Send(&s2av2pb.SessionReq {
 		LocalIdentity: s.localIdentity,

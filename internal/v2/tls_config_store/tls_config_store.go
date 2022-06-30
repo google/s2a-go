@@ -107,8 +107,89 @@ func GetTlsConfigurationForClient(serverHostname string, cstream s2av2pb.S2AServ
 
 // GetTlsConfigurationForServer returns a tls.Config instance for use by a server application.
 func GetTlsConfigurationForServer(cstream s2av2pb.S2AService_SetUpSessionClient, tokenManager tokenmanager.AccessTokenManager, localIdentities []*commonpbv1.Identity) (*tls.Config, error) {
-	// TODO(rmehta19): Add an extra auth mechanism for the SNI.
-	// TODO(rmehta19): move call to S2Av2 to a helper function.
+	return &tls.Config {
+		GetConfigForClient: ClientConfig(tokenManager, localIdentities, cstream),
+	}, nil
+}
+
+// ClientConfig builds a TLS config for a server to establish a secure
+// connection with a client, based on SNI communicated during ClientHello.
+// Ensures that server presents the correct certificate to establish a TLS
+// connection.
+func ClientConfig(tokenManager tokenmanager.AccessTokenManager, localIdentities []*commonpbv1.Identity, cstream s2av2pb.S2AService_SetUpSessionClient) func(chi *tls.ClientHelloInfo) (*tls.Config, error) {
+	return func(chi *tls.ClientHelloInfo) (*tls.Config, error) {
+		localIdentities = append(localIdentities,
+		&commonpbv1.Identity{
+			IdentityOneof: &commonpbv1.Identity_Hostname{
+				Hostname: chi.ServerName,
+			},
+		})
+		tlsConfig, err := getServerConfigFromS2Av2(tokenManager, localIdentities, cstream)
+		if err != nil {
+			return nil, err
+		}
+
+		var cert tls.Certificate
+		for i, v := range tlsConfig.CertificateChain {
+			// Populate Certificates field
+			block, _ := pem.Decode([]byte(v))
+			if block == nil {
+				return nil, errors.New("certificate in CertificateChain obtained from S2Av2 is empty.")
+			}
+			x509Cert, err := x509.ParseCertificate(block.Bytes)
+			if err != nil {
+				return nil, err
+			}
+			cert.Certificate = append(cert.Certificate, x509Cert.Raw)
+			if i == 0 {
+				cert.Leaf = x509Cert
+			}
+		}
+
+		cert.PrivateKey = remotesigner.New(cert.Leaf, cstream, &commonpbv1.Identity {
+			IdentityOneof: &commonpbv1.Identity_Hostname {
+				Hostname: "server_hostname",
+			},
+		})
+		if cert.PrivateKey == nil {
+			return nil, errors.New("failed to retrieve Private Key from Remote Signer Library")
+		}
+
+
+		minVersion, maxVersion, err := getTLSMinMaxVersionsServer(tlsConfig)
+		if err != nil {
+			return nil, err
+		}
+
+		// TODO(rmehta19): Choose (1) or (2)
+		// (1) Remove ClientCAs field if S2Av2 will always give
+		// tls.ClientAuthType = tls.NoClientCert, tls.RequestClientCert or
+		// tls.RequireAnyClientCert. For these 3 ClientAuthType's, go crypto/tls
+		// skips normal verification, and directly calls VerifyPeerCertificate func.
+		// (2) Get ClientCAs field from S2Av2, if S2Av2 gives tls.ClientAuthType =
+		// tls.VerifyClientCertIfGiven or tls.RequireAndVerifyClientCert.
+		// For these 2 ClientAuthType's, go crypto/tls performs normal verification,
+		// which requires ClientCAs, before custom VerifyPeerCertificate func.
+		clientCApool := x509.NewCertPool()
+		clientCApool.AppendCertsFromPEM(clientCert)
+
+		// Create mTLS credentials for server.
+		return &tls.Config {
+			// TODO(rmehta19): Make use of tlsConfig.HandshakeCiphersuites /
+			// RecordCiphersuites / TlsResumptionEnabled / MaxOverheadOfTicketAead.
+			Certificates: []tls.Certificate{cert},
+			VerifyPeerCertificate: certverifier.VerifyClientCertificateChain(cstream),
+			ClientCAs: clientCApool,
+			// TODO(rmehta19): Remove "+ 2" when proto file enum change is merged,
+			// and proper mapping created between tls ClientAuth and S2A ClientAuth.
+			ClientAuth: tls.ClientAuthType(tlsConfig.RequestClientCertificate) + 2,
+			MinVersion: minVersion,
+			MaxVersion: maxVersion,
+		}, nil
+	}
+}
+
+func getServerConfigFromS2Av2(tokenManager tokenmanager.AccessTokenManager, localIdentities []*commonpbv1.Identity, cstream s2av2pb.S2AService_SetUpSessionClient) (*s2av2pb.GetTlsConfigurationResp_ServerTlsConfiguration, error) {
 	authMechanisms := getAuthMechanisms(tokenManager, localIdentities)
 	// Send request to S2Av2 for config.
 	if err := cstream.Send(&s2av2pb.SessionReq {
@@ -134,64 +215,7 @@ func GetTlsConfigurationForServer(cstream s2av2pb.S2AService_SetUpSessionClient,
 	}
 
 	// Extract TLS configiguration from SessionResp.
-	tlsConfig := resp.GetGetTlsConfigurationResp().GetServerTlsConfiguration()
-
-	var cert tls.Certificate
-	for i, v := range tlsConfig.CertificateChain {
-		// Populate Certificates field
-		block, _ := pem.Decode([]byte(v))
-		if block == nil {
-			return nil, errors.New("certificate in CertificateChain obtained from S2Av2 is empty.")
-		}
-		x509Cert, err := x509.ParseCertificate(block.Bytes)
-		if err != nil {
-			return nil, err
-		}
-		cert.Certificate = append(cert.Certificate, x509Cert.Raw)
-		if i == 0 {
-			cert.Leaf = x509Cert
-		}
-	}
-
-	cert.PrivateKey = remotesigner.New(cert.Leaf, cstream, &commonpbv1.Identity {
-		IdentityOneof: &commonpbv1.Identity_Hostname {
-			Hostname: "server_hostname",
-		},
-	})
-	if cert.PrivateKey == nil {
-		return nil, errors.New("failed to retrieve Private Key from Remote Signer Library")
-	}
-
-
-	minVersion, maxVersion, err := getTLSMinMaxVersionsServer(tlsConfig)
-	if err != nil {
-		return nil, err
-	}
-
-	// TODO(rmehta19): Choose (1) or (2)
-	// (1) Remove ClientCAs field if S2Av2 will always give
-	// tls.ClientAuthType = tls.NoClientCert, tls.RequestClientCert or
-	// tls.RequireAnyClientCert. For these 3 ClientAuthType's, go crypto/tls
-	// skips normal verification, and directly calls VerifyPeerCertificate func.
-	// (2) Get ClientCAs field from S2Av2, if S2Av2 gives tls.ClientAuthType =
-	// tls.VerifyClientCertIfGiven or tls.RequireAndVerifyClientCert.
-	// For these 2 ClientAuthType's, go crypto/tls performs normal verification,
-	// which requires ClientCAs, before custom VerifyPeerCertificate func.
-	clientCApool := x509.NewCertPool()
-	clientCApool.AppendCertsFromPEM(clientCert)
-
-	// Create mTLS credentials for server.
-	return &tls.Config {
-		// TODO(rmehta19): Make use of tlsConfig.HandshakeCiphersuites /
-		// RecordCiphersuites / TlsResumptionEnabled / MaxOverheadOfTicketAead.
-		Certificates: []tls.Certificate{cert},
-		VerifyPeerCertificate: certverifier.VerifyClientCertificateChain(cstream),
-		ClientCAs: clientCApool,
-		// TODO(rmehta19): Remove "+ 2" when proto file enum change is merged.
-		ClientAuth: tls.ClientAuthType(tlsConfig.RequestClientCertificate) + 2,
-		MinVersion: minVersion,
-		MaxVersion: maxVersion,
-	}, nil
+	return resp.GetGetTlsConfigurationResp().GetServerTlsConfiguration(), nil
 }
 
 func getAuthMechanisms(tokenManager tokenmanager.AccessTokenManager, localIdentities []*commonpbv1.Identity) []*s2av2pb.AuthenticationMechanism {
