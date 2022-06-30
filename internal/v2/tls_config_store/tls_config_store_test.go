@@ -105,34 +105,10 @@ func TestTLSConfigStoreClient(t *testing.T) {
 		t.Fatalf("error starting fake S2Av2 Server: %v", err)
 	}
 
-	// Create stream to S2Av2.
-	opts := []grpc.DialOption {
-		grpc.WithTransportCredentials(insecure.NewCredentials()),
-		grpc.WithReturnConnectionError(),
-		grpc.WithBlock(),
-	}
-	conn, err := grpc.Dial(address, opts...)
-	if err != nil {
-		t.Fatalf("Client: failed to connect: %v", err)
-	}
-	defer conn.Close()
-	c := s2av2pb.NewS2AServiceClient(conn)
-	log.Printf("Client: connected to: %s", address)
-	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
-	defer cancel()
-
-	// Setup bidrectional streaming session.
-	callOpts := []grpc.CallOption{}
-	cstream, err := c.SetUpSession(ctx, callOpts...)
-	if err != nil  {
-		t.Fatalf("Client: failed to setup bidirectional streaming RPC session: %v", err)
-	}
-	log.Printf("Client: set up bidirectional streaming RPC session.")
-
 	accessTokenManager := &fakeAccessTokenManager{
-				accessToken: "TestTLSConfigStoreClient_s2a_access_token",
-				allowEmptyIdentity: true,
-			}
+		accessToken: "TestTLSConfigStoreClient_s2a_access_token",
+		allowEmptyIdentity: true,
+	}
 	for _, tc := range []struct {
 		description		    string
 		Certificates                []tls.Certificate
@@ -153,6 +129,29 @@ func TestTLSConfigStoreClient(t *testing.T) {
 		},
 	} {
 		t.Run(tc.description, func(t *testing.T) {
+			// Create stream to S2Av2.
+			opts := []grpc.DialOption {
+				grpc.WithTransportCredentials(insecure.NewCredentials()),
+				grpc.WithReturnConnectionError(),
+				grpc.WithBlock(),
+			}
+			conn, err := grpc.Dial(address, opts...)
+			if err != nil {
+				t.Fatalf("Client: failed to connect: %v", err)
+			}
+			defer conn.Close()
+			c := s2av2pb.NewS2AServiceClient(conn)
+			log.Printf("Client: connected to: %s", address)
+			ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
+			defer cancel()
+
+			// Setup bidrectional streaming session.
+			callOpts := []grpc.CallOption{}
+			cstream, err := c.SetUpSession(ctx, callOpts...)
+			if err != nil  {
+				t.Fatalf("Client: failed to setup bidirectional streaming RPC session: %v", err)
+			}
+			log.Printf("Client: set up bidirectional streaming RPC session.")
 			config, err := GetTlsConfigurationForClient(tc.ServerName, cstream, accessTokenManager, nil)
 			if err != nil {
 				t.Errorf("GetTlsConfigurationForClient failed: %v", err)
@@ -184,7 +183,6 @@ func TestTLSConfigStoreServer(t *testing.T) {
 	if err != nil {
 		t.Fatalf("tls.X509KeyPair failed: %v", err)
 	}
-
 	// Start up fake S2Av2 server.
 	var wg sync.WaitGroup
 	wg.Add(1)
@@ -194,34 +192,10 @@ func TestTLSConfigStoreServer(t *testing.T) {
 		t.Fatalf("error starting fake S2Av2 Server: %v", err)
 	}
 
-	// Create stream to S2Av2.
-	opts := []grpc.DialOption {
-		grpc.WithTransportCredentials(insecure.NewCredentials()),
-		grpc.WithReturnConnectionError(),
-		grpc.WithBlock(),
-	}
-	conn, err := grpc.Dial(address, opts...)
-	if err != nil {
-		t.Fatalf("Client: failed to connect: %v", err)
-	}
-	defer conn.Close()
-	c := s2av2pb.NewS2AServiceClient(conn)
-	log.Printf("Client: connected to: %s", address)
-	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
-	defer cancel()
-
-	// Setup bidrectional streaming session.
-	callOpts := []grpc.CallOption{}
-	cstream, err := c.SetUpSession(ctx, callOpts...)
-	if err != nil  {
-		t.Fatalf("Client: failed to setup bidirectional streaming RPC session: %v", err)
-	}
-	log.Printf("Client: set up bidirectional streaming RPC session.")
-
 	accessTokenManager := &fakeAccessTokenManager{
-				accessToken: "TestTLSConfigStoreServer_s2a_access_token",
-				allowEmptyIdentity: true,
-			}
+		accessToken: "TestTLSConfigStoreServer_s2a_access_token",
+		allowEmptyIdentity: true,
+	}
 	var identities [] *commonpbv1.Identity
 	identities = append(identities, nil)
 	for _, tc := range []struct {
@@ -240,9 +214,39 @@ func TestTLSConfigStoreServer(t *testing.T) {
 		},
 	} {
 		t.Run(tc.description, func(t *testing.T) {
+			// Create stream to S2Av2.
+			opts := []grpc.DialOption {
+				grpc.WithTransportCredentials(insecure.NewCredentials()),
+				grpc.WithReturnConnectionError(),
+				grpc.WithBlock(),
+			}
+			conn, err := grpc.Dial(address, opts...)
+			if err != nil {
+				t.Fatalf("Client: failed to connect: %v", err)
+			}
+			defer conn.Close()
+			c := s2av2pb.NewS2AServiceClient(conn)
+			log.Printf("Client: connected to: %s", address)
+			ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
+			defer cancel()
+
+			// Setup bidrectional streaming session.
+			callOpts := []grpc.CallOption{}
+			cstream, err := c.SetUpSession(ctx, callOpts...)
+			if err != nil  {
+				t.Fatalf("Client: failed to setup bidirectional streaming RPC session: %v", err)
+			}
+			log.Printf("Client: set up bidirectional streaming RPC session.")
 			config, err := GetTlsConfigurationForServer(cstream, accessTokenManager, identities)
 			if err != nil {
 				t.Errorf("GetTlsConfigurationForClient failed: %v", err)
+			}
+			clientConfigFunc := config.GetConfigForClient
+			config, err = clientConfigFunc(&tls.ClientHelloInfo{
+				ServerName: "host_1",
+			})
+			if err != nil {
+				t.Errorf("ClientConfig failed: %v", err)
 			}
 			if got, want := config.Certificates[0].Certificate[0], tc.Certificates[0].Certificate[0]; !bytes.Equal(got,want) {
 				t.Errorf("config.Certificates[0].Certificate[0] = %v, want %v", got, want)
@@ -426,6 +430,168 @@ func TestGetAuthMechanisms(t *testing.T) {
 		})
 	}
 }
+func TestGetServerConfigFromS2Av2(t *testing.T) {
+	// Start up fake S2Av2 server.
+	var wg sync.WaitGroup
+	wg.Add(1)
+	stop, address, err := startFakeS2Av2Server(&wg)
+	wg.Wait()
+	if err != nil {
+		t.Fatalf("error starting fake S2Av2 Server: %v", err)
+	}
+	for _, tc := range []struct {
+		description string
+		tokenManager tokenmanager.AccessTokenManager
+		localIdentities []*commonpbv1.Identity
+		expTlsConfig *s2av2pb.GetTlsConfigurationResp_ServerTlsConfiguration
+		expErr error
+	} {
+		{
+			description: "empty localIdentities",
+			tokenManager: &fakeAccessTokenManager{
+				allowEmptyIdentity: true,
+			},
+			localIdentities: nil,
+			expTlsConfig: &s2av2pb.GetTlsConfigurationResp_ServerTlsConfiguration{
+								CertificateChain: []string{
+									string(serverCertpem),
+								},
+								MinTlsVersion: commonpb.TLSVersion_TLS_VERSION_1_3,
+								MaxTlsVersion: commonpb.TLSVersion_TLS_VERSION_1_3,
+								HandshakeCiphersuites: []commonpb.HandshakeCiphersuite{},
+								RecordCiphersuites: []commonpb.RecordCiphersuite {
+									commonpb.RecordCiphersuite_RECORD_CIPHERSUITE_AES_128_GCM_SHA256,
+									commonpb.RecordCiphersuite_RECORD_CIPHERSUITE_AES_256_GCM_SHA384,
+									commonpb.RecordCiphersuite_RECORD_CIPHERSUITE_CHACHA20_POLY1305_SHA256,
+								},
+								TlsResumptionEnabled: false,
+								RequestClientCertificate: s2av2pb.GetTlsConfigurationResp_ServerTlsConfiguration_REQUEST_AND_VERIFY,
+								MaxOverheadOfTicketAead: 0,
+							},
+			expErr: nil,
+		},
+	} {
+		t.Run(tc.description, func(t *testing.T) {
+			// Create stream to S2Av2.
+			opts := []grpc.DialOption {
+				grpc.WithTransportCredentials(insecure.NewCredentials()),
+				grpc.WithReturnConnectionError(),
+				grpc.WithBlock(),
+			}
+			conn, err := grpc.Dial(address, opts...)
+			if err != nil {
+				t.Fatalf("Client: failed to connect: %v", err)
+			}
+			defer conn.Close()
+			c := s2av2pb.NewS2AServiceClient(conn)
+			log.Printf("Client: connected to: %s", address)
+			ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
+			defer cancel()
+
+			// Setup bidrectional streaming session.
+			callOpts := []grpc.CallOption{}
+			cstream, err := c.SetUpSession(ctx, callOpts...)
+			if err != nil  {
+				t.Fatalf("Client: failed to setup bidirectional streaming RPC session: %v", err)
+			}
+			log.Printf("Client: set up bidirectional streaming RPC session.")
+			gotTlsConfig, gotErr := getServerConfigFromS2Av2(tc.tokenManager, tc.localIdentities, cstream)
+			if gotErr != tc.expErr {
+				t.Errorf("gotErr = %v,  tc.expErr = %v", gotErr, tc.expErr)
+			}
+			if diff := cmp.Diff(gotTlsConfig, tc.expTlsConfig, protocmp.Transform()); diff != "" {
+				t.Errorf("getServerConfigFromS2Av2 returned incorrect GetTlsConfigurationResp_ServerTlsConfiguration, (-want +got):\n%s", diff)
+			}
+		})
+	}
+	stop()
+}
+
+func TestGetClientConfig(t *testing.T) {
+	// Setup test.
+	cert, err := tls.X509KeyPair(serverCertpem, serverKeypem)
+	if err != nil {
+		t.Fatalf("tls.X509KeyPair failed: %v", err)
+	}
+	// Start up fake S2Av2 server.
+	var wg sync.WaitGroup
+	wg.Add(1)
+	stop, address, err := startFakeS2Av2Server(&wg)
+	wg.Wait()
+	if err != nil {
+		t.Fatalf("error starting fake S2Av2 Server: %v", err)
+	}
+
+	accessTokenManager := &fakeAccessTokenManager{
+		accessToken: "TestTLSConfigStoreServer_s2a_access_token",
+		allowEmptyIdentity: true,
+	}
+	var identities [] *commonpbv1.Identity
+	identities = append(identities, nil)
+	for _, tc := range []struct {
+		description		    string
+		Certificates                []tls.Certificate
+		ClientAuth		    tls.ClientAuthType
+		MinVersion	            uint16
+		MaxVersion		    uint16
+	}{
+		{
+			description: "static",
+			Certificates: []tls.Certificate{cert},
+			ClientAuth: tls.RequireAndVerifyClientCert,
+			MinVersion: tls.VersionTLS13,
+			MaxVersion: tls.VersionTLS13,
+		},
+	} {
+		t.Run(tc.description, func(t *testing.T) {
+			// Create stream to S2Av2.
+			opts := []grpc.DialOption {
+				grpc.WithTransportCredentials(insecure.NewCredentials()),
+				grpc.WithReturnConnectionError(),
+				grpc.WithBlock(),
+			}
+			conn, err := grpc.Dial(address, opts...)
+			if err != nil {
+				t.Fatalf("Client: failed to connect: %v", err)
+			}
+			defer conn.Close()
+			c := s2av2pb.NewS2AServiceClient(conn)
+			log.Printf("Client: connected to: %s", address)
+			ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
+			defer cancel()
+
+			// Setup bidrectional streaming session.
+			callOpts := []grpc.CallOption{}
+			cstream, err := c.SetUpSession(ctx, callOpts...)
+			if err != nil  {
+				t.Fatalf("Client: failed to setup bidirectional streaming RPC session: %v", err)
+			}
+			log.Printf("Client: set up bidirectional streaming RPC session.")
+			clientConfigFunc := ClientConfig(accessTokenManager, identities, cstream)
+			config, err := clientConfigFunc(&tls.ClientHelloInfo{
+				ServerName: "host_1",
+			})
+			if err != nil {
+				t.Errorf("ClientConfig failed: %v", err)
+			}
+			if got, want := config.Certificates[0].Certificate[0], tc.Certificates[0].Certificate[0]; !bytes.Equal(got,want) {
+				t.Errorf("config.Certificates[0].Certificate[0] = %v, want %v", got, want)
+			}
+			if got, want := config.ClientAuth, tc.ClientAuth; got != want {
+				t.Errorf("config.ClientAuth = %v, want %v", got, want)
+			}
+			if got, want := config.MinVersion, tc.MinVersion; got != want {
+				t.Errorf("config.MinVersion = %v, want %v", got, want)
+			}
+			if got, want := config.MaxVersion, tc.MaxVersion; got != want {
+				t.Errorf("config.MaxVersion = %v, want %v", got, want)
+			}
+		})
+	}
+	stop()
+}
+
+
 func makeMapOfTLSVersions() map[commonpb.TLSVersion]uint16 {
 	m := make(map[commonpb.TLSVersion]uint16)
 	m[commonpb.TLSVersion_TLS_VERSION_1_0] = tls.VersionTLS10
