@@ -161,17 +161,7 @@ func ClientConfig(tokenManager tokenmanager.AccessTokenManager, localIdentities 
 			return nil, err
 		}
 
-		// TODO(rmehta19): Choose (1) or (2)
-		// (1) Remove ClientCAs field if S2Av2 will always give
-		// tls.ClientAuthType = tls.NoClientCert, tls.RequestClientCert or
-		// tls.RequireAnyClientCert. For these 3 ClientAuthType's, go crypto/tls
-		// skips normal verification, and directly calls VerifyPeerCertificate func.
-		// (2) Get ClientCAs field from S2Av2, if S2Av2 gives tls.ClientAuthType =
-		// tls.VerifyClientCertIfGiven or tls.RequireAndVerifyClientCert.
-		// For these 2 ClientAuthType's, go crypto/tls performs normal verification,
-		// which requires ClientCAs, before custom VerifyPeerCertificate func.
-		clientCApool := x509.NewCertPool()
-		clientCApool.AppendCertsFromPEM(clientCert)
+		clientAuth := getTLSClientAuthType(tlsConfig)
 
 		// Create mTLS credentials for server.
 		return &tls.Config {
@@ -179,10 +169,7 @@ func ClientConfig(tokenManager tokenmanager.AccessTokenManager, localIdentities 
 			// RecordCiphersuites / TlsResumptionEnabled / MaxOverheadOfTicketAead.
 			Certificates: []tls.Certificate{cert},
 			VerifyPeerCertificate: certverifier.VerifyClientCertificateChain(cstream),
-			ClientCAs: clientCApool,
-			// TODO(rmehta19): Remove "+ 2" when proto file enum change is merged,
-			// and proper mapping created between tls ClientAuth and S2A ClientAuth.
-			ClientAuth: tls.ClientAuthType(tlsConfig.RequestClientCertificate) + 2,
+			ClientAuth: clientAuth,
 			MinVersion: minVersion,
 			MaxVersion: maxVersion,
 		}, nil
@@ -216,6 +203,37 @@ func getServerConfigFromS2Av2(tokenManager tokenmanager.AccessTokenManager, loca
 
 	// Extract TLS configiguration from SessionResp.
 	return resp.GetGetTlsConfigurationResp().GetServerTlsConfiguration(), nil
+}
+
+func getTLSClientAuthType(tlsConfig *s2av2pb.GetTlsConfigurationResp_ServerTlsConfiguration) tls.ClientAuthType {
+	var clientAuth tls.ClientAuthType
+	switch x := tlsConfig.RequestClientCertificate; x {
+	case s2av2pb.GetTlsConfigurationResp_ServerTlsConfiguration_DONT_REQUEST_CLIENT_CERTIFICATE:
+		clientAuth = tls.NoClientCert
+	case s2av2pb.GetTlsConfigurationResp_ServerTlsConfiguration_REQUEST_CLIENT_CERTIFICATE_BUT_DONT_VERIFY:
+		clientAuth = tls.RequestClientCert
+	case s2av2pb.GetTlsConfigurationResp_ServerTlsConfiguration_REQUEST_CLIENT_CERTIFICATE_AND_VERIFY:
+		// This case actually maps to tls.VerifyClientCertIfGiven. However this
+		// mapping triggers normal verification, followed by custom verification,
+		// specified in VerifyPeerCertificate. To bypass normal verification, and
+		// only do custom verification we set clientAuth to RequireAnyClientCert or
+		// RequestClientCert. See https://github.com/google/s2a-go/pull/43 for full
+		// discussion.
+		clientAuth = tls.RequireAnyClientCert
+	case s2av2pb.GetTlsConfigurationResp_ServerTlsConfiguration_REQUEST_AND_REQUIRE_CLIENT_CERTIFICATE_BUT_DONT_VERIFY:
+		clientAuth = tls.RequireAnyClientCert
+	case s2av2pb.GetTlsConfigurationResp_ServerTlsConfiguration_REQUEST_AND_REQUIRE_CLIENT_CERTIFICATE_AND_VERIFY:
+		// This case actually maps to tls.RequireAndVerifyClientCert. However this
+		// mapping triggers normal verification, followed by custom verification,
+		// specified in VerifyPeerCertificate. To bypass normal verification, and
+		// only do custom verification we set clientAuth to RequireAnyClientCert or
+		// RequestClientCert. See https://github.com/google/s2a-go/pull/43 for full
+		// discussion.
+		clientAuth = tls.RequireAnyClientCert
+	default:
+		clientAuth = tls.RequireAnyClientCert
+	}
+	return clientAuth
 }
 
 func getAuthMechanisms(tokenManager tokenmanager.AccessTokenManager, localIdentities []*commonpbv1.Identity) []*s2av2pb.AuthenticationMechanism {
