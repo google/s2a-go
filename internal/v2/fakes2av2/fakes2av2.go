@@ -34,6 +34,12 @@ var (
 // Server is a fake S2A Server for testing.
 type Server struct {
 	s2av2pb.UnimplementedS2AServiceServer
+	// ExpectedToken is the token S2Av2 expects to be attached to the SessionReq.
+	ExpectedToken string
+	isAssistingClientSide bool
+	// TODO(rmehta19): Decide whether to also store validationResult (bool).
+	// Set this after validating token attached to first SessionReq. Check
+	// this field before completing subsequent SessionReq.
 }
 
 // SetUpSession receives SessionReq, performs request, and returns a
@@ -50,13 +56,26 @@ func (s *Server) SetUpSession(stream s2av2pb.S2AService_SetUpSessionServer) erro
 		var resp *s2av2pb.SessionResp
 		switch x := req.ReqOneof.(type) {
 		case *s2av2pb.SessionReq_GetTlsConfigurationReq:
+			if err := s.hasValidToken(req.GetAuthenticationMechanisms()); err != nil {
+				log.Printf("Fake S2A Service: authentication error: %v", err)
+				return err
+			}
+			if err := s.findConnectionSide(req); err != nil {
+				resp = &s2av2pb.SessionResp {
+					Status: &s2av2pb.Status {
+						Code: uint32(codes.InvalidArgument),
+						Details: err.Error(),
+					},
+				}
+				break
+			}
 			resp, err = getTlsConfiguration(req.GetGetTlsConfigurationReq())
 			if err != nil {
 				log.Printf("Fake S2A Service: failed to build SessionResp with GetTlsConfigurationResp: %v", err)
 				return err
 			}
 		case *s2av2pb.SessionReq_OffloadPrivateKeyOperationReq:
-			resp, err = offloadPrivateKeyOperation(req.GetOffloadPrivateKeyOperationReq(), req.GetLocalIdentity().GetHostname())
+			resp, err = offloadPrivateKeyOperation(req.GetOffloadPrivateKeyOperationReq(), s.isAssistingClientSide)
 			if err != nil {
 				log.Printf("Fake S2A Service: failed to build SessionResp with OffloadPrivateKeyOperationResp: %v", err)
 				return err
@@ -79,31 +98,44 @@ func (s *Server) SetUpSession(stream s2av2pb.S2AService_SetUpSessionServer) erro
 	}
 }
 
-func offloadPrivateKeyOperation(req *s2av2pb.OffloadPrivateKeyOperationReq, hostname string) (*s2av2pb.SessionResp, error) {
+func (s *Server) findConnectionSide(req *s2av2pb.SessionReq) error {
+	switch connSide := req.GetGetTlsConfigurationReq().GetConnectionSide(); connSide {
+	case commonpb.ConnectionSide_CONNECTION_SIDE_CLIENT:
+		s.isAssistingClientSide = true
+	case commonpb.ConnectionSide_CONNECTION_SIDE_SERVER:
+		s.isAssistingClientSide = false
+	default:
+		return fmt.Errorf("unknown ConnectionSide, req.GetGetTlsConfigurationReq().GetConnectionSide() returned %v", connSide)
+	}
+	return nil
+}
+
+func (s *Server) hasValidToken(authMechanisms []*s2av2pb.AuthenticationMechanism) error {
+	for _, v := range authMechanisms {
+		token := v.GetToken()
+		if (token == s.ExpectedToken) {
+			return nil
+		}
+	}
+	return errors.New("SessionReq has no AuthenticationMechanism with a valid token")
+}
+
+func offloadPrivateKeyOperation(req *s2av2pb.OffloadPrivateKeyOperationReq, isAssistingClientSide bool) (*s2av2pb.SessionResp, error) {
 	switch x := req.GetOperation(); x{
 	case s2av2pb.OffloadPrivateKeyOperationReq_SIGN:
 		var root tls.Certificate
 		var err error
 		// Retrieve S2Av2 implementation of crypto.Signer.
-		switch hostname {
-		case "client_hostname":
+		if isAssistingClientSide {
 			root, err = tls.X509KeyPair(clientCert, clientKey)
 			if err != nil {
 				return nil, err
 			}
-		case "server_hostname":
+		} else {
 			root, err = tls.X509KeyPair(serverCert, serverKey)
 			if err != nil {
 				return nil, err
 			}
-		default:
-			s := fmt.Sprintf("Invalid hostname tied to SessionReq: %s", hostname)
-			return &s2av2pb.SessionResp {
-				Status: &s2av2pb.Status {
-					Code: uint32(codes.InvalidArgument),
-					Details: s,
-				},
-			},nil
 		}
 		var signedBytes []byte
 		if req.GetSignatureAlgorithm() == s2av2pb.SignatureAlgorithm_S2A_SSL_SIGN_RSA_PKCS1_SHA256 {
@@ -181,7 +213,7 @@ func getTlsConfiguration(req *s2av2pb.GetTlsConfigurationReq) (*s2av2pb.SessionR
 				},
 			},
 		}, nil
-	} else if req.GetConnectionSide() == commonpb.ConnectionSide_CONNECTION_SIDE_SERVER {
+	} else {
 		return &s2av2pb.SessionResp {
 			Status: &s2av2pb.Status {
 				Code: uint32(codes.OK),
@@ -207,14 +239,6 @@ func getTlsConfiguration(req *s2av2pb.GetTlsConfigurationReq) (*s2av2pb.SessionR
 						},
 					},
 				},
-			},
-		}, nil
-	} else {
-		s := fmt.Sprintf("unknown ConnectionSide, req.GetConnectionSide() returned %v", req.GetConnectionSide())
-		return &s2av2pb.SessionResp {
-			Status: &s2av2pb.Status {
-				Code: uint32(codes.InvalidArgument),
-				Details: s,
 			},
 		}, nil
 	}

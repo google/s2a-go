@@ -76,11 +76,7 @@ func GetTlsConfigurationForClient(serverHostname string, cstream s2av2pb.S2AServ
 		}
 	}
 
-	cert.PrivateKey = remotesigner.New(cert.Leaf, cstream, &commonpbv1.Identity {
-		IdentityOneof: &commonpbv1.Identity_Hostname {
-			Hostname: "client_hostname",
-		},
-	})
+	cert.PrivateKey = remotesigner.New(cert.Leaf, cstream)
 	if cert.PrivateKey == nil {
 		return nil, errors.New("failed to retrieve Private Key from Remote Signer Library")
 	}
@@ -146,15 +142,10 @@ func ClientConfig(tokenManager tokenmanager.AccessTokenManager, localIdentities 
 			}
 		}
 
-		cert.PrivateKey = remotesigner.New(cert.Leaf, cstream, &commonpbv1.Identity {
-			IdentityOneof: &commonpbv1.Identity_Hostname {
-				Hostname: "server_hostname",
-			},
-		})
+		cert.PrivateKey = remotesigner.New(cert.Leaf, cstream)
 		if cert.PrivateKey == nil {
 			return nil, errors.New("failed to retrieve Private Key from Remote Signer Library")
 		}
-
 
 		minVersion, maxVersion, err := getTLSMinMaxVersionsServer(tlsConfig)
 		if err != nil {

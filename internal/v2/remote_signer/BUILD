@@ -10,8 +10,8 @@ go_library(
   importpath = "github.com/google/s2a-go/internal/v2/remote_signer",
   deps = [
     "@org_golang_google_grpc//codes:go_default_library",
+    "//internal/proto/v2/common_go_proto:common_go_proto",
     "//internal/proto/v2/s2a_go_proto:s2a_go_proto",
-    "//internal/proto/common_go_proto:common_go_proto",
   ],
 )
 
@@ -20,9 +20,12 @@ go_test(
   srcs = ["remote_signer_test.go"],
   embed = [":remote_signer"],
   embedsrcs = [
-    "example_cert_key/cert.pem",
-    "example_cert_key/cert.der",
-    "example_cert_key/key.pem",
+    "example_cert_key/client_cert.pem",
+    "example_cert_key/client_cert.der",
+    "example_cert_key/client_key.pem",
+    "example_cert_key/server_cert.pem",
+    "example_cert_key/server_cert.der",
+    "example_cert_key/server_key.pem",
   ],
   deps = [
     "//internal/v2/fakes2av2",

@@ -6,6 +6,7 @@ import (
 	"log"
 	"sync"
 	"time"
+	"errors"
 	"context"
 	"testing"
 	"crypto/tls"
@@ -68,7 +69,7 @@ func (m *fakeAccessTokenManager) Token(identity *commonpbv1.Identity) (string, e
 	return "", fmt.Errorf("unable to get token")
 }
 
-func startFakeS2Av2Server(wg *sync.WaitGroup) (stop func(), address string, err error) {
+func startFakeS2Av2Server(wg *sync.WaitGroup, expToken string) (stop func(), address string, err error) {
 	listener, err := net.Listen("tcp", ":0")
 	if err != nil {
 		log.Fatalf("failed to listen on address %s: %v", address, err)
@@ -76,7 +77,7 @@ func startFakeS2Av2Server(wg *sync.WaitGroup) (stop func(), address string, err 
 	address = listener.Addr().String()
 	s := grpc.NewServer()
 	log.Printf("Server: started gRPC fake S2Av2 Server on address: %s", address)
-	s2av2pb.RegisterS2AServiceServer(s, &fakes2av2.Server{})
+	s2av2pb.RegisterS2AServiceServer(s, &fakes2av2.Server{ExpectedToken: expToken})
 	go func() {
 		wg.Done()
 		if err := s.Serve(listener); err != nil {
@@ -99,15 +100,15 @@ func TestTLSConfigStoreClient(t *testing.T) {
 	// Start up fake S2Av2 server.
 	var wg sync.WaitGroup
 	wg.Add(1)
-	stop, address, err := startFakeS2Av2Server(&wg)
+	stop, address, err := startFakeS2Av2Server(&wg, "TestTlsConfigStoreClient_token")
 	wg.Wait()
 	if err != nil {
 		t.Fatalf("error starting fake S2Av2 Server: %v", err)
 	}
 
 	accessTokenManager := &fakeAccessTokenManager{
-		accessToken: "TestTLSConfigStoreClient_s2a_access_token",
 		allowEmptyIdentity: true,
+		accessToken: "TestTlsConfigStoreClient_token",
 	}
 	for _, tc := range []struct {
 		description		    string
@@ -186,15 +187,15 @@ func TestTLSConfigStoreServer(t *testing.T) {
 	// Start up fake S2Av2 server.
 	var wg sync.WaitGroup
 	wg.Add(1)
-	stop, address, err := startFakeS2Av2Server(&wg)
+	stop, address, err := startFakeS2Av2Server(&wg, "TestTlsConfigStoreServer_token")
 	wg.Wait()
 	if err != nil {
 		t.Fatalf("error starting fake S2Av2 Server: %v", err)
 	}
 
 	accessTokenManager := &fakeAccessTokenManager{
-		accessToken: "TestTLSConfigStoreServer_s2a_access_token",
 		allowEmptyIdentity: true,
+		accessToken: "TestTlsConfigStoreServer_token",
 	}
 	var identities [] *commonpbv1.Identity
 	identities = append(identities, nil)
@@ -390,12 +391,12 @@ func TestGetAuthMechanisms(t *testing.T) {
 		expectedAuthMechanisms []*s2av2pb.AuthenticationMechanism
 	}{
 		{
-			description: "token manager is nil",
+			description: "fake token manager is nil",
 			tokenManager: nil,
 			expectedAuthMechanisms: nil,
 		},
 		{
-			description: "token manager expects empty identity",
+			description: "fake token manager allows empty identity",
 			tokenManager: &fakeAccessTokenManager{
 				accessToken:        "TestGetAuthMechanisms_s2a_access_token",
 				allowEmptyIdentity: true,
@@ -409,7 +410,7 @@ func TestGetAuthMechanisms(t *testing.T) {
 			},
 		},
 		{
-			description: "token manager does not expect empty identity",
+			description: "fake token manager does not allow empty identity",
 			tokenManager: &fakeAccessTokenManager{
 				allowEmptyIdentity: false,
 			},
@@ -434,7 +435,7 @@ func TestGetServerConfigFromS2Av2(t *testing.T) {
 	// Start up fake S2Av2 server.
 	var wg sync.WaitGroup
 	wg.Add(1)
-	stop, address, err := startFakeS2Av2Server(&wg)
+	stop, address, err := startFakeS2Av2Server(&wg, "TestGetServerConfigFromS2Av2_token")
 	wg.Wait()
 	if err != nil {
 		t.Fatalf("error starting fake S2Av2 Server: %v", err)
@@ -447,27 +448,68 @@ func TestGetServerConfigFromS2Av2(t *testing.T) {
 		expErr error
 	} {
 		{
-			description: "empty localIdentities",
+			description: "empty accessToken and empty localIdentities",
 			tokenManager: &fakeAccessTokenManager{
 				allowEmptyIdentity: true,
+				accessToken: "",
 			},
 			localIdentities: nil,
+			expErr: errors.New("rpc error: code = Unknown desc = SessionReq has no AuthenticationMechanism with a valid token"),
+		},
+		{
+			description: "invalid accessToken",
+			tokenManager: &fakeAccessTokenManager{
+				acceptedIdentity: &commonpbv1.Identity{
+					IdentityOneof: &commonpbv1.Identity_Hostname{
+						Hostname: "server_hostname",
+					},
+				},
+				allowEmptyIdentity: true,
+				accessToken: "invalid_access_token",
+			},
+			localIdentities: []*commonpbv1.Identity {
+				{
+					IdentityOneof: &commonpbv1.Identity_Hostname {
+						Hostname: "server_hostname",
+					},
+				},
+			},
+			expErr: errors.New("rpc error: code = Unknown desc = SessionReq has no AuthenticationMechanism with a valid token"),
+		},
+		{
+			description: "correct accessToken and non - empty localIdentities",
+			tokenManager: &fakeAccessTokenManager{
+				acceptedIdentity: &commonpbv1.Identity{
+					IdentityOneof: &commonpbv1.Identity_Hostname{
+						Hostname: "server_hostname",
+					},
+				},
+				allowEmptyIdentity: true,
+				accessToken: "TestGetServerConfigFromS2Av2_token",
+			},
+			localIdentities: []*commonpbv1.Identity {
+				{
+					IdentityOneof: &commonpbv1.Identity_Hostname {
+						Hostname: "server_hostname",
+					},
+				},
+			},
 			expTlsConfig: &s2av2pb.GetTlsConfigurationResp_ServerTlsConfiguration{
-								CertificateChain: []string{
-									string(serverCertpem),
-								},
-								MinTlsVersion: commonpb.TLSVersion_TLS_VERSION_1_3,
-								MaxTlsVersion: commonpb.TLSVersion_TLS_VERSION_1_3,
-								HandshakeCiphersuites: []commonpb.HandshakeCiphersuite{},
-								RecordCiphersuites: []commonpb.RecordCiphersuite {
-									commonpb.RecordCiphersuite_RECORD_CIPHERSUITE_AES_128_GCM_SHA256,
-									commonpb.RecordCiphersuite_RECORD_CIPHERSUITE_AES_256_GCM_SHA384,
-									commonpb.RecordCiphersuite_RECORD_CIPHERSUITE_CHACHA20_POLY1305_SHA256,
-								},
-								TlsResumptionEnabled: false,
-								RequestClientCertificate: s2av2pb.GetTlsConfigurationResp_ServerTlsConfiguration_REQUEST_AND_REQUIRE_CLIENT_CERTIFICATE_AND_VERIFY,
-								MaxOverheadOfTicketAead: 0,
-							},
+				CertificateChain: []string{
+					string(serverCertpem),
+				},
+				MinTlsVersion: commonpb.TLSVersion_TLS_VERSION_1_3,
+				MaxTlsVersion: commonpb.TLSVersion_TLS_VERSION_1_3,
+				HandshakeCiphersuites: []commonpb.HandshakeCiphersuite{},
+				RecordCiphersuites: []commonpb.RecordCiphersuite {
+					commonpb.RecordCiphersuite_RECORD_CIPHERSUITE_AES_128_GCM_SHA256,
+					commonpb.RecordCiphersuite_RECORD_CIPHERSUITE_AES_256_GCM_SHA384,
+					commonpb.RecordCiphersuite_RECORD_CIPHERSUITE_CHACHA20_POLY1305_SHA256,
+				},
+				TlsResumptionEnabled: false,
+				RequestClientCertificate: s2av2pb.GetTlsConfigurationResp_ServerTlsConfiguration_REQUEST_AND_REQUIRE_CLIENT_CERTIFICATE_AND_VERIFY,
+				MaxOverheadOfTicketAead: 0,
+			},
 			expErr: nil,
 		},
 	} {
@@ -497,10 +539,16 @@ func TestGetServerConfigFromS2Av2(t *testing.T) {
 			log.Printf("Client: set up bidirectional streaming RPC session.")
 			gotTlsConfig, gotErr := getServerConfigFromS2Av2(tc.tokenManager, tc.localIdentities, cstream)
 			if gotErr != tc.expErr {
-				t.Errorf("gotErr = %v,  tc.expErr = %v", gotErr, tc.expErr)
+				if (gotErr == nil) || (tc.expErr == nil) {
+					t.Errorf("gotErr = %v,  tc.expErr = %v", gotErr, tc.expErr)
+				} else if gotErr.Error() != tc.expErr.Error() {
+					t.Errorf("gotErr = %v, tc.expErr = %v", gotErr, tc.expErr)
+				}
 			}
-			if diff := cmp.Diff(gotTlsConfig, tc.expTlsConfig, protocmp.Transform()); diff != "" {
-				t.Errorf("getServerConfigFromS2Av2 returned incorrect GetTlsConfigurationResp_ServerTlsConfiguration, (-want +got):\n%s", diff)
+			if (gotErr == nil) && (tc.expErr == nil) {
+				if diff := cmp.Diff(gotTlsConfig, tc.expTlsConfig, protocmp.Transform()); diff != "" {
+					t.Errorf("getServerConfigFromS2Av2 returned incorrect GetTlsConfigurationResp_ServerTlsConfiguration, (-want +got):\n%s", diff)
+				}
 			}
 		})
 	}
@@ -516,14 +564,14 @@ func TestGetClientConfig(t *testing.T) {
 	// Start up fake S2Av2 server.
 	var wg sync.WaitGroup
 	wg.Add(1)
-	stop, address, err := startFakeS2Av2Server(&wg)
+	stop, address, err := startFakeS2Av2Server(&wg, "TestGetClientConfig_token")
 	wg.Wait()
 	if err != nil {
 		t.Fatalf("error starting fake S2Av2 Server: %v", err)
 	}
 
 	accessTokenManager := &fakeAccessTokenManager{
-		accessToken: "TestTLSConfigStoreServer_s2a_access_token",
+		accessToken: "TestGetClientConfig_token",
 		allowEmptyIdentity: true,
 	}
 	var identities [] *commonpbv1.Identity

@@ -19,7 +19,6 @@ import (
 
 const (
 	accessTokenEnvVariable = "S2A_ACCESS_TOKEN"
-	testAccessToken        = "test_access_token"
 	defaultE2ETimeout      = time.Second*5
 	clientMessage          = "echo"
 )
@@ -36,13 +35,13 @@ func (s *server) SayHello(_ context.Context, in *helloworldpb.HelloRequest) (*he
 
 // startFakeS2A starts up a fake S2A and returns the address that it is
 // listening on.
-func startFakeS2A(t *testing.T) string {
+func startFakeS2A(t *testing.T, expToken string) string {
 	lis, err := net.Listen("tcp", ":")
 	if err != nil {
 		t.Errorf("net.Listen(tcp, :0) failed: %v", err)
 	}
 	s := grpc.NewServer()
-	s2av2pb.RegisterS2AServiceServer(s, &fakes2av2.Server{})
+	s2av2pb.RegisterS2AServiceServer(s, &fakes2av2.Server{ExpectedToken: expToken})
 	go func() {
 		if err := s.Serve(lis); err != nil {
 			t.Errorf("s.Serve(%v) failed: %v", lis, err)
@@ -53,7 +52,7 @@ func startFakeS2A(t *testing.T) string {
 
 // startFakeS2A starts up a fake S2A on UDS and returns the address that it is
 // listening on.
-func startFakeS2AOnUDS(t *testing.T) string {
+func startFakeS2AOnUDS(t *testing.T, expToken string) string {
 	dir, err := ioutil.TempDir("/tmp", "socket_dir")
 	if err != nil {
 		t.Errorf("unable to create temporary directory: %v", err)
@@ -64,7 +63,7 @@ func startFakeS2AOnUDS(t *testing.T) string {
 		t.Errorf("net.Listen(unix, %s) failed: %v", udsAddress, err)
 	}
 	s := grpc.NewServer()
-	s2av2pb.RegisterS2AServiceServer(s, &fakes2av2.Server{})
+	s2av2pb.RegisterS2AServiceServer(s, &fakes2av2.Server{ExpectedToken: expToken})
 	go func() {
 		if err := s.Serve(lis); err != nil {
 			t.Errorf("s.Serve(%v) failed: %v", lis, err)
@@ -129,11 +128,11 @@ func runClient(ctx context.Context, t *testing.T, clientS2AAddress, serverAddr s
 }
 
 func TestEndToEndUsingFakeS2AOverTCP(t *testing.T) {
-	os.Setenv(accessTokenEnvVariable, testAccessToken)
+	os.Setenv(accessTokenEnvVariable, "TestE2ETCP_token")
 	// Start the fake S2As for the client and server.
-	serverS2AAddr := startFakeS2A(t)
+	serverS2AAddr := startFakeS2A(t, "TestE2ETCP_token")
 	grpclog.Infof("fake handshaker for server running at address: %v", serverS2AAddr)
-	clientS2AAddr := startFakeS2A(t)
+	clientS2AAddr := startFakeS2A(t, "TestE2ETCP_token")
 	grpclog.Infof("fake handshaker for client running at address: %v", clientS2AAddr)
 
 	// Start the server.
@@ -147,11 +146,11 @@ func TestEndToEndUsingFakeS2AOverTCP(t *testing.T) {
 }
 
 func TestEndToEndUsingFakeS2AOnUDS(t *testing.T) {
-	os.Setenv(accessTokenEnvVariable, testAccessToken)
+	os.Setenv(accessTokenEnvVariable, "TestE2EUDS_token")
 	// Start fake S2As for use by the client and server.
-	serverS2AAddr := startFakeS2AOnUDS(t)
+	serverS2AAddr := startFakeS2AOnUDS(t, "TestE2EUDS_token")
 	grpclog.Infof("fake S2A for server listening on UDS at address: %v", serverS2AAddr)
-	clientS2AAddr := startFakeS2AOnUDS(t)
+	clientS2AAddr := startFakeS2AOnUDS(t, "TestE2EUDS_token")
 	grpclog.Infof("fake S2A for client listening on UDS at address: %v", clientS2AAddr)
 
 	// Start the server.
