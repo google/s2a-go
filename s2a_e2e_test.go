@@ -43,6 +43,7 @@ import (
 const (
 	accessTokenEnvVariable = "S2A_ACCESS_TOKEN"
 	testAccessToken        = "test_access_token"
+	testV2AccessToken      = "valid_token"
 
 	applicationProtocol = "grpc"
 	authType            = "s2a"
@@ -64,14 +65,14 @@ func (s *server) SayHello(_ context.Context, in *helloworldpb.HelloRequest) (*he
 
 // startFakeS2A starts up a fake S2A and returns the address that it is
 // listening on.
-func startFakeS2A(t *testing.T, enableV2 bool) string {
+func startFakeS2A(t *testing.T, enableV2 bool, expToken string) string {
 	lis, err := net.Listen("tcp", ":")
 	if err != nil {
 		t.Errorf("net.Listen(tcp, :0) failed: %v", err)
 	}
 	s := grpc.NewServer()
 	if enableV2 {
-		s2av2pb.RegisterS2AServiceServer(s, &fakes2av2.Server{})
+		s2av2pb.RegisterS2AServiceServer(s, &fakes2av2.Server{ExpectedToken: expToken})
 	} else {
 		s2apb.RegisterS2AServiceServer(s, &service.FakeHandshakerService{})
 	}
@@ -85,7 +86,7 @@ func startFakeS2A(t *testing.T, enableV2 bool) string {
 
 // startFakeS2AOnUDS starts up a fake S2A on UDS and returns the address that
 // it is listening on.
-func startFakeS2AOnUDS(t *testing.T, enableV2 bool) string {
+func startFakeS2AOnUDS(t *testing.T, enableV2 bool, expToken string) string {
 	dir, err := ioutil.TempDir("/tmp", "socket_dir")
 	if err != nil {
 		t.Errorf("unable to create temporary directory: %v", err)
@@ -97,7 +98,7 @@ func startFakeS2AOnUDS(t *testing.T, enableV2 bool) string {
 	}
 	s := grpc.NewServer()
 	if enableV2 {
-		s2av2pb.RegisterS2AServiceServer(s, &fakes2av2.Server{})
+		s2av2pb.RegisterS2AServiceServer(s, &fakes2av2.Server{ExpectedToken: expToken})
 	} else {
 		s2apb.RegisterS2AServiceServer(s, &service.FakeHandshakerService{})
 	}
@@ -208,9 +209,9 @@ func TestV1EndToEndUsingFakeS2AOverTCP(t *testing.T) {
 	os.Setenv(accessTokenEnvVariable, "")
 
 	// Start the fake S2As for the client and server.
-	serverHandshakerAddr := startFakeS2A(t, false)
+	serverHandshakerAddr := startFakeS2A(t, false, "")
 	grpclog.Infof("fake handshaker for server running at address: %v", serverHandshakerAddr)
-	clientHandshakerAddr := startFakeS2A(t, false)
+	clientHandshakerAddr := startFakeS2A(t, false, "")
 	grpclog.Infof("fake handshaker for client running at address: %v", clientHandshakerAddr)
 
 	// Start the server.
@@ -224,12 +225,12 @@ func TestV1EndToEndUsingFakeS2AOverTCP(t *testing.T) {
 }
 
 func TestV2EndToEndUsingFakeS2AOverTCP(t *testing.T) {
-	os.Setenv(accessTokenEnvVariable, "")
+	os.Setenv(accessTokenEnvVariable, testV2AccessToken)
 
 	// Start the fake S2As for the client and server.
-	serverHandshakerAddr := startFakeS2A(t, true)
+	serverHandshakerAddr := startFakeS2A(t, true, testV2AccessToken)
 	grpclog.Infof("fake handshaker for server running at address: %v", serverHandshakerAddr)
-	clientHandshakerAddr := startFakeS2A(t, true)
+	clientHandshakerAddr := startFakeS2A(t, true, testV2AccessToken)
 	grpclog.Infof("fake handshaker for client running at address: %v", clientHandshakerAddr)
 
 	// Start the server.
@@ -245,9 +246,9 @@ func TestV1EndToEndUsingTokens(t *testing.T) {
 	os.Setenv(accessTokenEnvVariable, testAccessToken)
 
 	// Start the handshaker servers for the client and server.
-	serverS2AAddress := startFakeS2A(t, false)
+	serverS2AAddress := startFakeS2A(t, false, "")
 	grpclog.Infof("fake S2A for server running at address: %v", serverS2AAddress)
-	clientS2AAddress := startFakeS2A(t, false)
+	clientS2AAddress := startFakeS2A(t, false, "")
 	grpclog.Infof("fake S2A for client running at address: %v", clientS2AAddress)
 
 	// Start the server.
@@ -261,12 +262,12 @@ func TestV1EndToEndUsingTokens(t *testing.T) {
 }
 
 func TestV2EndToEndUsingTokens(t *testing.T) {
-	os.Setenv(accessTokenEnvVariable, testAccessToken)
+	os.Setenv(accessTokenEnvVariable, testV2AccessToken)
 
 	// Start the handshaker servers for the client and server.
-	serverS2AAddress := startFakeS2A(t, true)
+	serverS2AAddress := startFakeS2A(t, true, testV2AccessToken)
 	grpclog.Infof("fake S2A for server running at address: %v", serverS2AAddress)
-	clientS2AAddress := startFakeS2A(t, true)
+	clientS2AAddress := startFakeS2A(t, true, testV2AccessToken)
 	grpclog.Infof("fake S2A for client running at address: %v", clientS2AAddress)
 
 	// Start the server.
@@ -283,9 +284,9 @@ func TestV1EndToEndUsingFakeS2AOnUDS(t *testing.T) {
 	os.Setenv(accessTokenEnvVariable, "")
 
 	// Start fake S2As for use by the client and server.
-	serverS2AAddress := startFakeS2AOnUDS(t, false)
+	serverS2AAddress := startFakeS2AOnUDS(t, false, "")
 	grpclog.Infof("fake S2A for server listening on UDS at address: %v", serverS2AAddress)
-	clientS2AAddress := startFakeS2AOnUDS(t, false)
+	clientS2AAddress := startFakeS2AOnUDS(t, false, "")
 	grpclog.Infof("fake S2A for client listening on UDS at address: %v", clientS2AAddress)
 
 	// Start the server.
@@ -299,12 +300,12 @@ func TestV1EndToEndUsingFakeS2AOnUDS(t *testing.T) {
 }
 
 func TestV2EndToEndUsingFakeS2AOnUDS(t *testing.T) {
-	os.Setenv(accessTokenEnvVariable, "")
+	os.Setenv(accessTokenEnvVariable, testV2AccessToken)
 
 	// Start fake S2As for use by the client and server.
-	serverS2AAddress := startFakeS2AOnUDS(t, true)
+	serverS2AAddress := startFakeS2AOnUDS(t, true, testV2AccessToken)
 	grpclog.Infof("fake S2A for server listening on UDS at address: %v", serverS2AAddress)
-	clientS2AAddress := startFakeS2AOnUDS(t, true)
+	clientS2AAddress := startFakeS2AOnUDS(t, true, testV2AccessToken)
 	grpclog.Infof("fake S2A for client listening on UDS at address: %v", clientS2AAddress)
 
 	// Start the server.

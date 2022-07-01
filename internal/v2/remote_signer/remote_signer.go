@@ -10,21 +10,19 @@ import (
 	"google.golang.org/grpc/codes"
 
 	s2av2pb "github.com/google/s2a-go/internal/proto/v2/s2a_go_proto"
-	commonpbv1 "github.com/google/s2a-go/internal/proto/common_go_proto"
 )
 
 // remoteSigner implementes the crypto.Signer interface.
 type remoteSigner struct {
 	leafCert *x509.Certificate
 	cstream s2av2pb.S2AService_SetUpSessionClient
-	localIdentity *commonpbv1.Identity
 }
 
 
 // New returns an instance of RemoteSigner, an implementation of the
 // crypto.Signer interface.
-func New(leafCert *x509.Certificate, cstream s2av2pb.S2AService_SetUpSessionClient, localIdentity *commonpbv1.Identity) crypto.Signer {
-	return &remoteSigner{leafCert, cstream, localIdentity}
+func New(leafCert *x509.Certificate, cstream s2av2pb.S2AService_SetUpSessionClient) crypto.Signer {
+	return &remoteSigner{leafCert, cstream}
 }
 
 func (s *remoteSigner) Public() crypto.PublicKey {
@@ -32,10 +30,8 @@ func (s *remoteSigner) Public() crypto.PublicKey {
 }
 
 func (s *remoteSigner) Sign(rand io.Reader, digest []byte, opts crypto.SignerOpts) (signature []byte, err error) {
-	// TODO(rmehta19): remove LocalIdentity from SessionReq.
 	// Send request to S2Av2 to perform private key operation.
 	if err := s.cstream.Send(&s2av2pb.SessionReq {
-		LocalIdentity: s.localIdentity,
 		ReqOneof: &s2av2pb.SessionReq_OffloadPrivateKeyOperationReq {
 			&s2av2pb.OffloadPrivateKeyOperationReq {
 				Operation: s2av2pb.OffloadPrivateKeyOperationReq_SIGN,
@@ -74,11 +70,6 @@ func (s *remoteSigner) getCert() *x509.Certificate {
 // getStream returns the cstream field in s.
 func (s *remoteSigner) getStream() s2av2pb.S2AService_SetUpSessionClient {
 	return s.cstream
-}
-
-// getLocalIdentity returns the localIdentity field in s.
-func (s *remoteSigner) getLocalIdentity() *commonpbv1.Identity {
-	return s.localIdentity
 }
 
 // getSignatureAlgorithm analyzes opts and determines signature algorithm to be
