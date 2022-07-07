@@ -36,7 +36,7 @@ func VerifyClientCertificateChain(cstream s2av2pb.S2AService_SetUpSessionClient)
 		}
 
 		// Parse the response
-		if resp.GetStatus().Code != uint32(codes.OK) {
+		if (resp.GetStatus() != nil) && (resp.GetStatus().Code != uint32(codes.OK)) {
 			return fmt.Errorf("Failed to offload client cert verification to S2A: %d, %v", resp.GetStatus().Code, resp.GetStatus().Details)
 
 		}
@@ -72,7 +72,7 @@ func VerifyServerCertificateChain(hostname string, cstream s2av2pb.S2AService_Se
 		}
 
 		// Parse the response
-		if resp.GetStatus().Code != uint32(codes.OK) {
+		if (resp.GetStatus() != nil) && (resp.GetStatus().Code != uint32(codes.OK)) {
 			return fmt.Errorf("Failed to offload client cert verification to S2A: %d, %v", resp.GetStatus().Code, resp.GetStatus().Details)
 		}
 		return nil
