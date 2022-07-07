@@ -55,7 +55,7 @@ func (s *remoteSigner) Sign(rand io.Reader, digest []byte, opts crypto.SignerOpt
 		return nil, err
 	}
 
-	if resp.GetStatus().Code != uint32(codes.OK) {
+	if (resp.GetStatus() != nil) && (resp.GetStatus().Code != uint32(codes.OK)) {
 		return nil, fmt.Errorf("Failed to offload signing with private key to S2A: %d, %v", resp.GetStatus().Code, resp.GetStatus().Details)
 	}
 

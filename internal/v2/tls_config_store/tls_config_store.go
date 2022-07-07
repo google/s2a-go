@@ -52,7 +52,7 @@ func GetTlsConfigurationForClient(serverHostname string, cstream s2av2pb.S2AServ
 	}
 
 	// TODO(rmehta19): Add unit test for this if statement.
-	if resp.GetStatus().Code != uint32(codes.OK) {
+	if (resp.GetStatus() != nil) && (resp.GetStatus().Code != uint32(codes.OK)) {
 		return nil, fmt.Errorf("Failed to get TLS configuration from S2A: %d, %v", resp.GetStatus().Code, resp.GetStatus().Details)
 	}
 
@@ -188,7 +188,7 @@ func getServerConfigFromS2Av2(tokenManager tokenmanager.AccessTokenManager, loca
 	}
 
 	// TODO(rmehta19): Add unit test for this if statement.
-	if resp.GetStatus().Code != uint32(codes.OK) {
+	if (resp.GetStatus() != nil) && (resp.GetStatus().Code != uint32(codes.OK)) {
 		return nil, fmt.Errorf("Failed to get TLS configuration from S2A: %d, %v", resp.GetStatus().Code, resp.GetStatus().Details)
 	}
 
