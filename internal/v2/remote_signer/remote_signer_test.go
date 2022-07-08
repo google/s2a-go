@@ -8,6 +8,7 @@ import (
 	"context"
 	"testing"
 	"crypto"
+	"encoding/pem"
 	"crypto/tls"
 	"crypto/rsa"
 	"crypto/rand"
@@ -69,7 +70,46 @@ var (
 	s2aServerKeyPEM []byte
 	//go:embed example_cert_key/s2a_server_cert.der
 	s2aServerCertDER []byte
+	//go:embed example_cert_key/openssl_rsa_pkcs1v15.sig
+	opensslRSAPKCS1v15Sig []byte
+	//go:embed example_cert_key/vector1_pub_key.pem
+	vector1PubKeyPEM	      []byte
 )
+
+func TestVerifyVector(t *testing.T) {
+	block, _ := pem.Decode(vector1PubKeyPEM)
+	if block == nil {
+		log.Fatal("failed to decode PEM block containing public key")
+	}
+
+	pub, err := x509.ParsePKIXPublicKey(block.Bytes)
+	if err != nil {
+		log.Fatal(err)
+	}
+	vector1 := "840f5dac53106dd1f9c57219224cf51289290c42f20466875ba8e830ac5690e541536fcc8ab03b731f82bf66d83f194e7e180b3963ec7a2f3f7904a7ce49aed47da4d4b79421eaf937d301b3e696169297b797c32c076a12be4de0b58e003c5123051a84a10c62f8dac2f42a8640008eb3c7cccd6760ff5b51b689763922582845f048fb8150e5a7a6ca2eccc7bdc85349ad5b26c52137a79fa3fe5c29ab5cd7615013219c1941b6708e9c3c23feff5febaf0c8ebca5750b54e3e6e99a3e876b396f27860b7f3ec4e9191703c6332d944f6f69751167680c79c4f6b57f1cc8755d24b6ec158ccdbacdb23107a33cb6b332516c13274d1f9dccc21dced869e486"
+	testData := ""
+	hsha256 := sha256.Sum256([]byte(testData))
+
+	// Test that we can verify vector1 using VerifyPKCS1v15
+	if err := rsa.VerifyPKCS1v15(pub.(*rsa.PublicKey), crypto.SHA256, hsha256[:], []byte(vector1)); err != nil {
+		t.Errorf("failed to verify Sign PKCS1v15 RSA PKCS #1 v1.5 signature: %v", err)
+	}
+
+	// Test that we can generate vector1 using SignPKCS1v15
+}
+
+func TestVerifyOpenSSL(t *testing.T) {
+	x509Cert, err := x509.ParseCertificate(s2aClientCertDER)
+	if err != nil {
+		log.Printf("%v", err)
+	}
+	testInBytes := []byte("a\n")
+	hsha256 := sha256.Sum256([]byte(testInBytes))
+	if err = rsa.VerifyPKCS1v15(x509Cert.PublicKey.(*rsa.PublicKey), crypto.SHA256, hsha256[:], opensslRSAPKCS1v15Sig); err != nil {
+		t.Errorf("failed to verify Sign PKCS1v15 RSA PKCS #1 v1.5 signature: %v", err)
+	}
+
+}
 
 func TestSign(t *testing.T) {
 	// Start up fake S2Av2 server.
@@ -185,8 +225,8 @@ func TestSign(t *testing.T) {
 				ReqOneof: &s2av2pb.SessionReq_OffloadPrivateKeyOperationReq {
 					&s2av2pb.OffloadPrivateKeyOperationReq {
 						Operation: s2av2pb.OffloadPrivateKeyOperationReq_SIGN,
-					SignatureAlgorithm: s2av2pb.SignatureAlgorithm_S2A_SSL_SIGN_RSA_PSS_RSAE_SHA256,
-					InBytes: hsha256[:],
+						SignatureAlgorithm: s2av2pb.SignatureAlgorithm_S2A_SSL_SIGN_RSA_PSS_RSAE_SHA256,
+						InBytes: hsha256[:],
 					},
 				},
 			})
@@ -215,8 +255,8 @@ func TestSign(t *testing.T) {
 				ReqOneof: &s2av2pb.SessionReq_OffloadPrivateKeyOperationReq {
 					&s2av2pb.OffloadPrivateKeyOperationReq {
 						Operation: s2av2pb.OffloadPrivateKeyOperationReq_SIGN,
-					SignatureAlgorithm: s2av2pb.SignatureAlgorithm_S2A_SSL_SIGN_RSA_PKCS1_SHA256,
-					InBytes: hsha256[:],
+						SignatureAlgorithm: s2av2pb.SignatureAlgorithm_S2A_SSL_SIGN_RSA_PKCS1_SHA256,
+						InBytes: hsha256[:],
 					},
 				},
 			})
@@ -239,7 +279,7 @@ func TestSign(t *testing.T) {
 
 		})
 	}
-//	stop()
+	//	stop()
 }
 
 
