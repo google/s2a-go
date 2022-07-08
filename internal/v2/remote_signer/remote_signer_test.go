@@ -2,9 +2,12 @@ package remotesigner
 
 import (
 	"net"
+	"fmt"
 	"log"
 	"sync"
 	"time"
+	"bytes"
+	"strconv"
 	"context"
 	"testing"
 	"crypto"
@@ -74,28 +77,56 @@ var (
 	opensslRSAPKCS1v15Sig []byte
 	//go:embed example_cert_key/vector1_pub_key.pem
 	vector1PubKeyPEM	      []byte
+	//go:embed example_cert_key/vector1_priv_key.pem
+	vector1PrivKeyPEM	      []byte
 )
+
+func toByteArray(str string) []byte{
+	var arr []byte
+	for i := 0; i < len(str); i++ {
+		s := fmt.Sprintf("%c%c", str[i], str[i+1])
+		val, _ := strconv.ParseInt(s, /*base*/16, /*bitsize*/16) // returns a 64 bit integer
+		arr = append(arr, byte(uint8(val)))
+
+		i = i + 1
+	}
+	return arr
+}
 
 func TestVerifyVector(t *testing.T) {
 	block, _ := pem.Decode(vector1PubKeyPEM)
 	if block == nil {
-		log.Fatal("failed to decode PEM block containing public key")
+		t.Fatal("failed to decode PEM block containing public key")
 	}
 
 	pub, err := x509.ParsePKIXPublicKey(block.Bytes)
 	if err != nil {
-		log.Fatal(err)
+		t.Fatal(err)
 	}
 	vector1 := "840f5dac53106dd1f9c57219224cf51289290c42f20466875ba8e830ac5690e541536fcc8ab03b731f82bf66d83f194e7e180b3963ec7a2f3f7904a7ce49aed47da4d4b79421eaf937d301b3e696169297b797c32c076a12be4de0b58e003c5123051a84a10c62f8dac2f42a8640008eb3c7cccd6760ff5b51b689763922582845f048fb8150e5a7a6ca2eccc7bdc85349ad5b26c52137a79fa3fe5c29ab5cd7615013219c1941b6708e9c3c23feff5febaf0c8ebca5750b54e3e6e99a3e876b396f27860b7f3ec4e9191703c6332d944f6f69751167680c79c4f6b57f1cc8755d24b6ec158ccdbacdb23107a33cb6b332516c13274d1f9dccc21dced869e486"
+	vector1ByteArray := toByteArray(vector1)
 	testData := ""
 	hsha256 := sha256.Sum256([]byte(testData))
 
 	// Test that we can verify vector1 using VerifyPKCS1v15
-	if err := rsa.VerifyPKCS1v15(pub.(*rsa.PublicKey), crypto.SHA256, hsha256[:], []byte(vector1)); err != nil {
+	if err := rsa.VerifyPKCS1v15(pub.(*rsa.PublicKey), crypto.SHA256, hsha256[:], vector1ByteArray); err != nil {
 		t.Errorf("failed to verify Sign PKCS1v15 RSA PKCS #1 v1.5 signature: %v", err)
 	}
 
 	// Test that we can generate vector1 using SignPKCS1v15
+	block, _ = pem.Decode(vector1PrivKeyPEM)
+	if block == nil {
+		t.Fatal("failed to decode PEM block containing private key")
+	}
+
+	priv, err := x509.ParsePKCS1PrivateKey(block.Bytes)
+	if err != nil {
+		t.Fatal(err)
+	}
+	expSig, _ := priv.Sign(rand.Reader, hsha256[:], crypto.SHA256)
+	if (!bytes.Equal(expSig, vector1ByteArray)) {
+		t.Errorf("vector1ByteArray and expSig do not match: expSig = %v, vector1ByteArray = %v", expSig, vector1ByteArray)
+	}
 }
 
 func TestVerifyOpenSSL(t *testing.T) {

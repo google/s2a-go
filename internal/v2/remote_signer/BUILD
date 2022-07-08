@@ -34,6 +34,7 @@ go_test(
     "example_cert_key/s2a_server_cert.der",
     "example_cert_key/openssl_rsa_pkcs1v15.sig",
     "example_cert_key/vector1_pub_key.pem",
+    "example_cert_key/vector1_priv_key.pem",
   ],
   deps = [
     "//internal/v2/fakes2av2",
