@@ -5,15 +5,14 @@ import (
 	"log"
 	"sync"
 	"time"
-	"bytes"
 	"context"
 	"testing"
 	"crypto"
+	"crypto/tls"
 	"crypto/rsa"
 	"crypto/rand"
 	"crypto/x509"
 	"crypto/sha256"
-	"crypto/tls"
 	_ "embed"
 
 	"google.golang.org/grpc"
@@ -21,6 +20,7 @@ import (
 	"github.com/google/s2a-go/internal/v2/fakes2av2"
 	s2av2pb "github.com/google/s2a-go/internal/proto/v2/s2a_go_proto"
 	commonpb "github.com/google/s2a-go/internal/proto/v2/common_go_proto"
+	commonpbv1 "github.com/google/s2a-go/internal/proto/common_go_proto"
 )
 
 const (
@@ -57,17 +57,29 @@ var (
 	serverCertDER []byte
 	//go:embed example_cert_key/server_key.pem
 	serverKeyPEM []byte
+	//go:embed example_cert_key/s2a_client_cert.pem
+	s2aClientCertPEM []byte
+	//go:embed example_cert_key/s2a_client_key.pem
+	s2aClientKeyPEM []byte
+	//go:embed example_cert_key/s2a_client_cert.der
+	s2aClientCertDER []byte
+	//go:embed example_cert_key/s2a_server_cert.pem
+	s2aServerCertPEM []byte
+	//go:embed example_cert_key/s2a_server_key.pem
+	s2aServerKeyPEM []byte
+	//go:embed example_cert_key/s2a_server_cert.der
+	s2aServerCertDER []byte
 )
 
 func TestSign(t *testing.T) {
 	// Start up fake S2Av2 server.
-	var wg sync.WaitGroup
+	/*var wg sync.WaitGroup
 	wg.Add(1)
 	stop, address, err := startFakeS2Av2Server(&wg, "TestSign_token")
 	wg.Wait()
 	if err != nil {
 		t.Fatalf("error starting fake S2Av2 Server: %v", err)
-	}
+	} */
 
 	for _, tc := range []struct {
 		description	string
@@ -75,6 +87,10 @@ func TestSign(t *testing.T) {
 		DERCert		[]byte
 		PEMKey		[]byte
 		connSide	commonpb.ConnectionSide
+		localIdentity   *commonpbv1.Identity
+		s2aPEMCert	[]byte
+		s2aPEMKey	[]byte
+		s2aDERCert	[]byte
 	}{
 		{
 			description: "Sign with client key",
@@ -82,6 +98,14 @@ func TestSign(t *testing.T) {
 			DERCert: clientCertDER,
 			PEMKey: clientKeyPEM,
 			connSide: commonpb.ConnectionSide_CONNECTION_SIDE_CLIENT,
+			localIdentity: &commonpbv1.Identity{
+				IdentityOneof: &commonpbv1.Identity_Hostname{
+					Hostname: "test_rsa_client_identity",
+				},
+			},
+			s2aPEMCert: s2aClientCertPEM,
+			s2aPEMKey: s2aClientKeyPEM,
+			s2aDERCert: s2aClientCertDER,
 		},
 		{
 			description: "Sign with server key",
@@ -89,6 +113,14 @@ func TestSign(t *testing.T) {
 			DERCert: serverCertDER,
 			PEMKey: serverKeyPEM,
 			connSide: commonpb.ConnectionSide_CONNECTION_SIDE_SERVER,
+			localIdentity: &commonpbv1.Identity{
+				IdentityOneof: &commonpbv1.Identity_Hostname{
+					Hostname: "test_rsa_server_identity",
+				},
+			},
+			s2aPEMCert: s2aServerCertPEM,
+			s2aPEMKey: s2aServerKeyPEM,
+			s2aDERCert: s2aServerCertDER,
 		},
 
 	}{
@@ -99,13 +131,13 @@ func TestSign(t *testing.T) {
 				grpc.WithReturnConnectionError(),
 				grpc.WithBlock(),
 			}
-			conn, err := grpc.Dial(address, opts...)
+			conn, err := grpc.Dial("0.0.0.0:61365", opts...)
 			if err != nil {
 				t.Fatalf("Client: failed to connect: %v", err)
 			}
 			defer conn.Close()
 			c := s2av2pb.NewS2AServiceClient(conn)
-			log.Printf("Client: connected to: %s", address)
+			log.Printf("Client: connected to: 0.0.0.0:61365")
 			ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
 			defer cancel()
 
@@ -119,10 +151,11 @@ func TestSign(t *testing.T) {
 			// Send first SessionReq for TLS Config. Sets isClientSide to ensure correct
 			// private key used to sign transcript.
 			if err := cstream.Send(&s2av2pb.SessionReq {
+				LocalIdentity: tc.localIdentity,
 				AuthenticationMechanisms: []*s2av2pb.AuthenticationMechanism {
 					{
 						MechanismOneof: &s2av2pb.AuthenticationMechanism_Token {
-							Token: "TestSign_token",
+							Token: "fake_valid_access_token",
 						},
 					},
 				},
@@ -139,49 +172,76 @@ func TestSign(t *testing.T) {
 				t.Fatalf("setup failed: failed to receive initial SessionResp for TLS config: %v", err)
 			}
 			// Setup data for testing Sign.
-			TlsCert, err := tls.X509KeyPair(tc.PEMCert, tc.PEMKey)
-			if err != nil {
-				t.Fatalf("tls.X509KeyPair failed: %v", err)
-			}
-			x509Cert, err := x509.ParseCertificate(tc.DERCert)
-			if err != nil {
-				t.Fatalf("failed to parse cert: %v", err)
-			}
-			testInBytes := []byte("Test data.")
+			testInBytes := []byte("a\n")
+			x509Cert, _ := x509.ParseCertificate(tc.s2aDERCert)
+			pssSignerOpts := &rsa.PSSOptions {SaltLength: rsa.PSSSaltLengthEqualsHash, Hash: crypto.SHA256 }
 
 			// Hash testInBytes because caller of Sign is expected to do so.
 			hsha256 := sha256.Sum256([]byte(testInBytes))
 
-			// Test RSA PKCS1v15 signature algorithm.
-			s := New(x509Cert, cstream)
+			// Test RSA PSS
+			// Ask S2A for RSA PSS signature.
+			cstream.Send(&s2av2pb.SessionReq {
+				ReqOneof: &s2av2pb.SessionReq_OffloadPrivateKeyOperationReq {
+					&s2av2pb.OffloadPrivateKeyOperationReq {
+						Operation: s2av2pb.OffloadPrivateKeyOperationReq_SIGN,
+					SignatureAlgorithm: s2av2pb.SignatureAlgorithm_S2A_SSL_SIGN_RSA_PSS_RSAE_SHA256,
+					InBytes: hsha256[:],
+					},
+				},
+			})
 
-			gotSignedBytes, err := s.Sign(rand.Reader, hsha256[:], crypto.SHA256)
-			if err != nil {
-				t.Errorf("call to remote signer Sign API failed: %v", err)
-			}
-			wantSignedBytes, err := TlsCert.PrivateKey.(crypto.Signer).Sign(rand.Reader, hsha256[:], crypto.SHA256)
-			if err != nil {
-				t.Errorf("call to Sign API failed: %v", err)
-			}
-			if !bytes.Equal(gotSignedBytes, wantSignedBytes) {
-				t.Errorf("gotSignedBytes = %v, wantSignedBytes = %v", gotSignedBytes, wantSignedBytes)
-			}
-			if err = rsa.VerifyPKCS1v15(x509Cert.PublicKey.(*rsa.PublicKey), crypto.SHA256, hsha256[:], gotSignedBytes); err != nil {
-				t.Errorf("failed to verify RSA PKCS #1 v1.5 signature: %v", err)
+
+			// Get the response from S2Av2.
+			resp, _ := cstream.Recv()
+			log.Printf("S2A: RSA PSS SHA256 outbytes: %x", resp.GetOffloadPrivateKeyOperationResp().GetOutBytes())
+
+			if err = rsa.VerifyPSS(x509Cert.PublicKey.(*rsa.PublicKey), crypto.SHA256, hsha256[:], resp.GetOffloadPrivateKeyOperationResp().GetOutBytes(), pssSignerOpts); err != nil {
+				t.Errorf("failed to verify S2A RSA PSS signature: %v", err)
 			}
 
-			// Test RSA PSS signature algorithm.
-			s = New(x509Cert, cstream)
-			pssSignerOpts := &rsa.PSSOptions {SaltLength: rsa.PSSSaltLengthEqualsHash, Hash: crypto.SHA256 }
+			// Generate RSA PSS Signature using crypto/rsa SignPSS
+			TlsCert, _ := tls.X509KeyPair(tc.s2aPEMCert, tc.s2aPEMKey)
+			expSig, _ := TlsCert.PrivateKey.(crypto.Signer).Sign(rand.Reader, hsha256[:], pssSignerOpts)
+			log.Printf("expSig: RSA PSS SHA256 outbytes: %x", expSig)
 
-			gotSignedBytes, err = s.Sign(rand.Reader, hsha256[:], pssSignerOpts)
-			if err = rsa.VerifyPSS(x509Cert.PublicKey.(*rsa.PublicKey), crypto.SHA256, hsha256[:], gotSignedBytes, pssSignerOpts); err != nil {
-				t.Errorf("failed to verify RSA PSS signature: %v", err)
+			if err = rsa.VerifyPSS(x509Cert.PublicKey.(*rsa.PublicKey), crypto.SHA256, hsha256[:], expSig, pssSignerOpts); err != nil {
+				t.Errorf("failed to verify Sign PSS RSA PSS signature: %v", err)
 			}
+
+			// Test RSA PKCS1v15
+			// Ask S2A for RSA PKCS1v15 signature
+			cstream.Send(&s2av2pb.SessionReq {
+				ReqOneof: &s2av2pb.SessionReq_OffloadPrivateKeyOperationReq {
+					&s2av2pb.OffloadPrivateKeyOperationReq {
+						Operation: s2av2pb.OffloadPrivateKeyOperationReq_SIGN,
+					SignatureAlgorithm: s2av2pb.SignatureAlgorithm_S2A_SSL_SIGN_RSA_PKCS1_SHA256,
+					InBytes: hsha256[:],
+					},
+				},
+			})
+
+			resp, _ = cstream.Recv()
+			log.Printf("RSA PKCS1v15 SHA256 outbytes: %v", resp.GetOffloadPrivateKeyOperationResp().GetOutBytes())
+
+			if err = rsa.VerifyPKCS1v15(x509Cert.PublicKey.(*rsa.PublicKey), crypto.SHA256, hsha256[:], resp.GetOffloadPrivateKeyOperationResp().GetOutBytes()); err != nil {
+				t.Errorf("failed to verify S2A RSA PKCS #1 v1.5 signature: %v", err)
+			}
+
+			// Generate RSA PKCS1v15 signature using crypto/rsa SignPKCS1v15
+			TlsCert, _ = tls.X509KeyPair(tc.s2aPEMCert, tc.s2aPEMKey)
+			expSig, _ = TlsCert.PrivateKey.(crypto.Signer).Sign(rand.Reader, hsha256[:], crypto.SHA256)
+			log.Printf("expSig: RSA PKCS1v15 SHA256 outbytes: %x", expSig)
+
+			if err = rsa.VerifyPKCS1v15(x509Cert.PublicKey.(*rsa.PublicKey), crypto.SHA256, hsha256[:], expSig); err != nil {
+				t.Errorf("failed to verify Sign PKCS1v15 RSA PKCS #1 v1.5 signature: %v", err)
+			}
+
 		})
 	}
-	stop()
+//	stop()
 }
+
 
 // TestNew runs unit test for New.
 func TestNew(t *testing.T) {

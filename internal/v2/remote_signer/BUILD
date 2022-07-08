@@ -26,6 +26,12 @@ go_test(
     "example_cert_key/server_cert.pem",
     "example_cert_key/server_cert.der",
     "example_cert_key/server_key.pem",
+    "example_cert_key/s2a_client_cert.pem",
+    "example_cert_key/s2a_client_key.pem",
+    "example_cert_key/s2a_client_cert.der",
+    "example_cert_key/s2a_server_cert.pem",
+    "example_cert_key/s2a_server_key.pem",
+    "example_cert_key/s2a_server_cert.der",
   ],
   deps = [
     "//internal/v2/fakes2av2",
