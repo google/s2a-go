@@ -28,14 +28,14 @@ import (
 	"strings"
 	"testing"
 
-	commonpb "github.com/google/s2a-go/internal/proto/common_go_proto"
-	s2apb "github.com/google/s2a-go/internal/proto/s2a_go_proto"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
-	"google.golang.org/protobuf/testing/protocmp"
+	commonpb "github.com/google/s2a-go/internal/proto/common_go_proto"
+	s2apb "github.com/google/s2a-go/internal/proto/s2a_go_proto"
+	"github.com/google/s2a-go/internal/tokenmanager"
 	"golang.org/x/sync/errgroup"
 	grpc "google.golang.org/grpc"
-	"github.com/google/s2a-go/internal/tokenmanager"
+	"google.golang.org/protobuf/testing/protocmp"
 )
 
 var (
@@ -937,7 +937,7 @@ func TestGetAuthMechanismsForClient(t *testing.T) {
 				allowEmptyIdentity: true,
 			},
 			expectedAuthMechanisms: []*s2apb.AuthenticationMechanism{
-				&s2apb.AuthenticationMechanism{
+				{
 					MechanismOneof: &s2apb.AuthenticationMechanism_Token{
 						Token: testAccessToken,
 					},
@@ -969,7 +969,7 @@ func TestGetAuthMechanismsForClient(t *testing.T) {
 				},
 			},
 			expectedAuthMechanisms: []*s2apb.AuthenticationMechanism{
-				&s2apb.AuthenticationMechanism{
+				{
 					Identity: &commonpb.Identity{
 						IdentityOneof: &commonpb.Identity_SpiffeId{
 							SpiffeId: "allowed_spiffe_id",
@@ -1029,7 +1029,7 @@ func TestGetAuthMechanismsForServer(t *testing.T) {
 				allowEmptyIdentity: true,
 			},
 			expectedAuthMechanisms: []*s2apb.AuthenticationMechanism{
-				&s2apb.AuthenticationMechanism{
+				{
 					MechanismOneof: &s2apb.AuthenticationMechanism_Token{
 						Token: testAccessToken,
 					},
@@ -1047,12 +1047,12 @@ func TestGetAuthMechanismsForServer(t *testing.T) {
 			description: "token manager expects 2 SPIFFE IDs",
 			options: &ServerHandshakerOptions{
 				LocalIdentities: []*commonpb.Identity{
-					&commonpb.Identity{
+					{
 						IdentityOneof: &commonpb.Identity_SpiffeId{
 							SpiffeId: "allowed_spiffe_id",
 						},
 					},
-					&commonpb.Identity{
+					{
 						IdentityOneof: &commonpb.Identity_SpiffeId{
 							SpiffeId: "allowed_spiffe_id",
 						},
@@ -1068,7 +1068,7 @@ func TestGetAuthMechanismsForServer(t *testing.T) {
 				},
 			},
 			expectedAuthMechanisms: []*s2apb.AuthenticationMechanism{
-				&s2apb.AuthenticationMechanism{
+				{
 					Identity: &commonpb.Identity{
 						IdentityOneof: &commonpb.Identity_SpiffeId{
 							SpiffeId: "allowed_spiffe_id",
@@ -1078,7 +1078,7 @@ func TestGetAuthMechanismsForServer(t *testing.T) {
 						Token: testAccessToken,
 					},
 				},
-				&s2apb.AuthenticationMechanism{
+				{
 					Identity: &commonpb.Identity{
 						IdentityOneof: &commonpb.Identity_SpiffeId{
 							SpiffeId: "allowed_spiffe_id",
@@ -1094,12 +1094,12 @@ func TestGetAuthMechanismsForServer(t *testing.T) {
 			description: "token manager expects a SPIFFE ID but does not expect hostname",
 			options: &ServerHandshakerOptions{
 				LocalIdentities: []*commonpb.Identity{
-					&commonpb.Identity{
+					{
 						IdentityOneof: &commonpb.Identity_SpiffeId{
 							SpiffeId: "allowed_spiffe_id",
 						},
 					},
-					&commonpb.Identity{
+					{
 						IdentityOneof: &commonpb.Identity_Hostname{
 							Hostname: "disallowed_hostname",
 						},
@@ -1115,7 +1115,7 @@ func TestGetAuthMechanismsForServer(t *testing.T) {
 				},
 			},
 			expectedAuthMechanisms: []*s2apb.AuthenticationMechanism{
-				&s2apb.AuthenticationMechanism{
+				{
 					Identity: &commonpb.Identity{
 						IdentityOneof: &commonpb.Identity_SpiffeId{
 							SpiffeId: "allowed_spiffe_id",

@@ -25,8 +25,8 @@ import (
 	"reflect"
 	"testing"
 
-	"google.golang.org/protobuf/testing/protocmp"
 	"github.com/google/go-cmp/cmp"
+	"google.golang.org/protobuf/testing/protocmp"
 
 	commonpb "github.com/google/s2a-go/internal/proto/common_go_proto"
 	"github.com/google/s2a-go/internal/record/internal/aeadcrypter/testutil"

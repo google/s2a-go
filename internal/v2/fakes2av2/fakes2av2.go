@@ -1,21 +1,22 @@
 package fakes2av2
 
 import (
-	"log"
-	"fmt"
-	"time"
-	"errors"
 	"crypto"
-	"crypto/tls"
-	"crypto/rsa"
 	"crypto/rand"
+	"crypto/rsa"
+	"crypto/tls"
 	"crypto/x509"
-	"google.golang.org/grpc/codes"
 	_ "embed"
+	"errors"
+	"fmt"
+	commonpb "github.com/google/s2a-go/internal/proto/v2/common_go_proto"
 	s2av2ctx "github.com/google/s2a-go/internal/proto/v2/s2a_context_go_proto"
 	s2av2pb "github.com/google/s2a-go/internal/proto/v2/s2a_go_proto"
-	commonpb "github.com/google/s2a-go/internal/proto/v2/common_go_proto"
+	"google.golang.org/grpc/codes"
+	"log"
+	"time"
 )
+
 var (
 	//go:embed example_cert_key/client_root_cert.pem
 	clientCert []byte
@@ -35,7 +36,7 @@ var (
 type Server struct {
 	s2av2pb.UnimplementedS2AServiceServer
 	// ExpectedToken is the token S2Av2 expects to be attached to the SessionReq.
-	ExpectedToken string
+	ExpectedToken         string
 	isAssistingClientSide bool
 	// TODO(rmehta19): Decide whether to also store validationResult (bool).
 	// Set this after validating token attached to first SessionReq. Check
@@ -61,9 +62,9 @@ func (s *Server) SetUpSession(stream s2av2pb.S2AService_SetUpSessionServer) erro
 				return err
 			}
 			if err := s.findConnectionSide(req); err != nil {
-				resp = &s2av2pb.SessionResp {
-					Status: &s2av2pb.Status {
-						Code: uint32(codes.InvalidArgument),
+				resp = &s2av2pb.SessionResp{
+					Status: &s2av2pb.Status{
+						Code:    uint32(codes.InvalidArgument),
 						Details: err.Error(),
 					},
 				}
@@ -113,7 +114,7 @@ func (s *Server) findConnectionSide(req *s2av2pb.SessionReq) error {
 func (s *Server) hasValidToken(authMechanisms []*s2av2pb.AuthenticationMechanism) error {
 	for _, v := range authMechanisms {
 		token := v.GetToken()
-		if (token == s.ExpectedToken) {
+		if token == s.ExpectedToken {
 			return nil
 		}
 	}
@@ -121,7 +122,7 @@ func (s *Server) hasValidToken(authMechanisms []*s2av2pb.AuthenticationMechanism
 }
 
 func offloadPrivateKeyOperation(req *s2av2pb.OffloadPrivateKeyOperationReq, isAssistingClientSide bool) (*s2av2pb.SessionResp, error) {
-	switch x := req.GetOperation(); x{
+	switch x := req.GetOperation(); x {
 	case s2av2pb.OffloadPrivateKeyOperationReq_SIGN:
 		var root tls.Certificate
 		var err error
@@ -144,25 +145,25 @@ func offloadPrivateKeyOperation(req *s2av2pb.OffloadPrivateKeyOperationReq, isAs
 				return nil, err
 			}
 		} else if req.GetSignatureAlgorithm() == s2av2pb.SignatureAlgorithm_S2A_SSL_SIGN_RSA_PSS_RSAE_SHA256 {
-			opts := &rsa.PSSOptions {SaltLength: rsa.PSSSaltLengthEqualsHash, Hash: crypto.SHA256}
+			opts := &rsa.PSSOptions{SaltLength: rsa.PSSSaltLengthEqualsHash, Hash: crypto.SHA256}
 			signedBytes, err = root.PrivateKey.(crypto.Signer).Sign(rand.Reader, req.GetInBytes(), opts)
 			if err != nil {
 				return nil, err
 			}
 		} else {
-			return &s2av2pb.SessionResp {
-				Status: &s2av2pb.Status {
-					Code: uint32(codes.InvalidArgument),
+			return &s2av2pb.SessionResp{
+				Status: &s2av2pb.Status{
+					Code:    uint32(codes.InvalidArgument),
 					Details: fmt.Sprintf("invalid signature algorithm: %v", req.GetSignatureAlgorithm()),
 				},
 			}, nil
 		}
-		return &s2av2pb.SessionResp {
-			Status: &s2av2pb.Status {
+		return &s2av2pb.SessionResp{
+			Status: &s2av2pb.Status{
 				Code: uint32(codes.OK),
 			},
-			RespOneof: &s2av2pb.SessionResp_OffloadPrivateKeyOperationResp {
-				&s2av2pb.OffloadPrivateKeyOperationResp {
+			RespOneof: &s2av2pb.SessionResp_OffloadPrivateKeyOperationResp{
+				&s2av2pb.OffloadPrivateKeyOperationResp{
 					OutBytes: signedBytes,
 				},
 			},
@@ -183,27 +184,27 @@ func validatePeerCertificateChain(req *s2av2pb.ValidatePeerCertificateChainReq) 
 		return verifyServerPeer(req)
 	default:
 		err := errors.New(fmt.Sprintf("Peer Verification failed: invalid Peer type %T", x))
-		return buildValidatePeerCertificateChainSessionResp(uint32(codes.InvalidArgument), err.Error(), s2av2pb.ValidatePeerCertificateChainResp_FAILURE, err.Error(),  &s2av2ctx.S2AContext{}), err
+		return buildValidatePeerCertificateChainSessionResp(uint32(codes.InvalidArgument), err.Error(), s2av2pb.ValidatePeerCertificateChainResp_FAILURE, err.Error(), &s2av2ctx.S2AContext{}), err
 	}
 }
 
 func getTlsConfiguration(req *s2av2pb.GetTlsConfigurationReq) (*s2av2pb.SessionResp, error) {
 	if req.GetConnectionSide() == commonpb.ConnectionSide_CONNECTION_SIDE_CLIENT {
-		return &s2av2pb.SessionResp {
-			Status: &s2av2pb.Status {
+		return &s2av2pb.SessionResp{
+			Status: &s2av2pb.Status{
 				Code: uint32(codes.OK),
 			},
-			RespOneof: &s2av2pb.SessionResp_GetTlsConfigurationResp {
-				GetTlsConfigurationResp: &s2av2pb.GetTlsConfigurationResp {
-					TlsConfiguration: &s2av2pb.GetTlsConfigurationResp_ClientTlsConfiguration_ {
-						&s2av2pb.GetTlsConfigurationResp_ClientTlsConfiguration {
+			RespOneof: &s2av2pb.SessionResp_GetTlsConfigurationResp{
+				GetTlsConfigurationResp: &s2av2pb.GetTlsConfigurationResp{
+					TlsConfiguration: &s2av2pb.GetTlsConfigurationResp_ClientTlsConfiguration_{
+						&s2av2pb.GetTlsConfigurationResp_ClientTlsConfiguration{
 							CertificateChain: []string{
 								string(clientCert),
 							},
-							MinTlsVersion: commonpb.TLSVersion_TLS_VERSION_1_3,
-							MaxTlsVersion: commonpb.TLSVersion_TLS_VERSION_1_3,
+							MinTlsVersion:         commonpb.TLSVersion_TLS_VERSION_1_3,
+							MaxTlsVersion:         commonpb.TLSVersion_TLS_VERSION_1_3,
 							HandshakeCiphersuites: []commonpb.HandshakeCiphersuite{},
-							RecordCiphersuites: []commonpb.RecordCiphersuite {
+							RecordCiphersuites: []commonpb.RecordCiphersuite{
 								commonpb.RecordCiphersuite_RECORD_CIPHERSUITE_AES_128_GCM_SHA256,
 								commonpb.RecordCiphersuite_RECORD_CIPHERSUITE_AES_256_GCM_SHA384,
 								commonpb.RecordCiphersuite_RECORD_CIPHERSUITE_CHACHA20_POLY1305_SHA256,
@@ -214,28 +215,28 @@ func getTlsConfiguration(req *s2av2pb.GetTlsConfigurationReq) (*s2av2pb.SessionR
 			},
 		}, nil
 	} else {
-		return &s2av2pb.SessionResp {
-			Status: &s2av2pb.Status {
+		return &s2av2pb.SessionResp{
+			Status: &s2av2pb.Status{
 				Code: uint32(codes.OK),
 			},
-			RespOneof: &s2av2pb.SessionResp_GetTlsConfigurationResp {
-				GetTlsConfigurationResp: &s2av2pb.GetTlsConfigurationResp {
+			RespOneof: &s2av2pb.SessionResp_GetTlsConfigurationResp{
+				GetTlsConfigurationResp: &s2av2pb.GetTlsConfigurationResp{
 					TlsConfiguration: &s2av2pb.GetTlsConfigurationResp_ServerTlsConfiguration_{
 						&s2av2pb.GetTlsConfigurationResp_ServerTlsConfiguration{
 							CertificateChain: []string{
 								string(serverCert),
 							},
-							MinTlsVersion: commonpb.TLSVersion_TLS_VERSION_1_3,
-							MaxTlsVersion: commonpb.TLSVersion_TLS_VERSION_1_3,
+							MinTlsVersion:         commonpb.TLSVersion_TLS_VERSION_1_3,
+							MaxTlsVersion:         commonpb.TLSVersion_TLS_VERSION_1_3,
 							HandshakeCiphersuites: []commonpb.HandshakeCiphersuite{},
-							RecordCiphersuites: []commonpb.RecordCiphersuite {
+							RecordCiphersuites: []commonpb.RecordCiphersuite{
 								commonpb.RecordCiphersuite_RECORD_CIPHERSUITE_AES_128_GCM_SHA256,
 								commonpb.RecordCiphersuite_RECORD_CIPHERSUITE_AES_256_GCM_SHA384,
 								commonpb.RecordCiphersuite_RECORD_CIPHERSUITE_CHACHA20_POLY1305_SHA256,
 							},
-							TlsResumptionEnabled: false,
+							TlsResumptionEnabled:     false,
 							RequestClientCertificate: s2av2pb.GetTlsConfigurationResp_ServerTlsConfiguration_REQUEST_AND_REQUIRE_CLIENT_CERTIFICATE_AND_VERIFY,
-							MaxOverheadOfTicketAead: 0,
+							MaxOverheadOfTicketAead:  0,
 						},
 					},
 				},
@@ -244,17 +245,17 @@ func getTlsConfiguration(req *s2av2pb.GetTlsConfigurationReq) (*s2av2pb.SessionR
 	}
 }
 
-func buildValidatePeerCertificateChainSessionResp(StatusCode uint32, StatusDetails string, ValidationResult s2av2pb.ValidatePeerCertificateChainResp_ValidationResult, ValidationDetails string, Context*s2av2ctx.S2AContext) *s2av2pb.SessionResp{
-	return &s2av2pb.SessionResp {
-		Status: &s2av2pb.Status {
-			Code: StatusCode,
+func buildValidatePeerCertificateChainSessionResp(StatusCode uint32, StatusDetails string, ValidationResult s2av2pb.ValidatePeerCertificateChainResp_ValidationResult, ValidationDetails string, Context *s2av2ctx.S2AContext) *s2av2pb.SessionResp {
+	return &s2av2pb.SessionResp{
+		Status: &s2av2pb.Status{
+			Code:    StatusCode,
 			Details: StatusDetails,
 		},
-		RespOneof: &s2av2pb.SessionResp_ValidatePeerCertificateChainResp {
-			&s2av2pb.ValidatePeerCertificateChainResp {
-				ValidationResult: ValidationResult,
+		RespOneof: &s2av2pb.SessionResp_ValidatePeerCertificateChainResp{
+			&s2av2pb.ValidatePeerCertificateChainResp{
+				ValidationResult:  ValidationResult,
 				ValidationDetails: ValidationDetails,
-				Context: Context,
+				Context:           Context,
 			},
 		},
 	}
@@ -286,8 +287,8 @@ func verifyClientPeer(req *s2av2pb.ValidatePeerCertificateChainReq) (*s2av2pb.Se
 
 	// Verify the leaf certificate.
 	opts := x509.VerifyOptions{
-		CurrentTime: time.Now(),
-		Roots: rootCertPool,
+		CurrentTime:   time.Now(),
+		Roots:         rootCertPool,
 		Intermediates: intermediateCertPool,
 	}
 	x509LeafCert, err := x509.ParseCertificate(derCertChain[0])
@@ -316,7 +317,6 @@ func verifyServerPeer(req *s2av2pb.ValidatePeerCertificateChainReq) (*s2av2pb.Se
 		return buildValidatePeerCertificateChainSessionResp(uint32(codes.Internal), err.Error(), s2av2pb.ValidatePeerCertificateChainResp_FAILURE, err.Error(), &s2av2ctx.S2AContext{}), err
 	}
 
-
 	// Set the Intermediates: certs between leaf and root, excluding the leaf and root.
 	intermediateCertPool := x509.NewCertPool()
 	for i := 1; i < (len(derCertChain)); i++ {
@@ -329,8 +329,8 @@ func verifyServerPeer(req *s2av2pb.ValidatePeerCertificateChainReq) (*s2av2pb.Se
 
 	// Verify the leaf certificate.
 	opts := x509.VerifyOptions{
-		CurrentTime: time.Now(),
-		Roots: rootCertPool,
+		CurrentTime:   time.Now(),
+		Roots:         rootCertPool,
 		Intermediates: intermediateCertPool,
 	}
 	x509LeafCert, err := x509.ParseCertificate(derCertChain[0])
@@ -343,5 +343,5 @@ func verifyServerPeer(req *s2av2pb.ValidatePeerCertificateChainReq) (*s2av2pb.Se
 		return buildValidatePeerCertificateChainSessionResp(uint32(codes.InvalidArgument), s, s2av2pb.ValidatePeerCertificateChainResp_FAILURE, s, &s2av2ctx.S2AContext{}), nil
 	}
 
-	return buildValidatePeerCertificateChainSessionResp(uint32(codes.OK), "", s2av2pb.ValidatePeerCertificateChainResp_SUCCESS, "Server Peer Verification succeeded",&s2av2ctx.S2AContext{}), nil
+	return buildValidatePeerCertificateChainSessionResp(uint32(codes.OK), "", s2av2pb.ValidatePeerCertificateChainResp_SUCCESS, "Server Peer Verification succeeded", &s2av2ctx.S2AContext{}), nil
 }

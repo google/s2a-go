@@ -1,12 +1,12 @@
 package main
 
 import (
-	"net"
 	"flag"
-	"log"
-	"google.golang.org/grpc"
-	"github.com/google/s2a-go/internal/v2/fakes2av2"
 	s2av2pb "github.com/google/s2a-go/internal/proto/v2/s2a_go_proto"
+	"github.com/google/s2a-go/internal/v2/fakes2av2"
+	"google.golang.org/grpc"
+	"log"
+	"net"
 )
 
 var (

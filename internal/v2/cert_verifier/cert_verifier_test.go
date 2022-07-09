@@ -1,19 +1,19 @@
 package certverifier
 
 import (
-	"sync"
-	"log"
-	"time"
-	"errors"
 	"context"
-	"net"
-	"testing"
+	"errors"
+	"github.com/google/s2a-go/internal/v2/fakes2av2"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
-	"github.com/google/s2a-go/internal/v2/fakes2av2"
+	"log"
+	"net"
+	"sync"
+	"testing"
+	"time"
 
-	s2av2pb "github.com/google/s2a-go/internal/proto/v2/s2a_go_proto"
 	_ "embed"
+	s2av2pb "github.com/google/s2a-go/internal/proto/v2/s2a_go_proto"
 )
 
 const (
@@ -35,7 +35,6 @@ var (
 	serverLeafDERCert []byte
 )
 
-
 func startFakeS2Av2Server(wg *sync.WaitGroup) (stop func(), address string, err error) {
 	listener, err := net.Listen("tcp", ":0")
 	if err != nil {
@@ -51,7 +50,7 @@ func startFakeS2Av2Server(wg *sync.WaitGroup) (stop func(), address string, err 
 			log.Printf("failed to serve: %v", err)
 		}
 	}()
-	return func() { s.Stop()}, address, nil
+	return func() { s.Stop() }, address, nil
 }
 
 // TestVerifyClientCertChain runs unit tests for VerifyClientCertificateChain.
@@ -66,34 +65,34 @@ func TestVerifyClientCertChain(t *testing.T) {
 	}
 
 	for _, tc := range []struct {
-		description              string
-		rawCerts                 [][]byte
-		expectedErr	         error
+		description string
+		rawCerts    [][]byte
+		expectedErr error
 	}{
 		{
 			description: "empty chain",
-			rawCerts: nil,
+			rawCerts:    nil,
 			expectedErr: errors.New("Failed to offload client cert verification to S2A: 3, Client Peer Verification failed: client cert chain is empty."),
 		},
 		{
 			description: "chain of length 1",
-			rawCerts: [][]byte{clientRootDERCert,},
+			rawCerts:    [][]byte{clientRootDERCert},
 			expectedErr: nil,
 		},
 		{
 			description: "chain of length 2 correct",
-			rawCerts: [][]byte{clientLeafDERCert, clientIntermediateDERCert, },
+			rawCerts:    [][]byte{clientLeafDERCert, clientIntermediateDERCert},
 			expectedErr: nil,
 		},
 		{
 			description: "chain of length 2 error: missing intermediate",
-			rawCerts: [][]byte{clientLeafDERCert, clientRootDERCert,},
+			rawCerts:    [][]byte{clientLeafDERCert, clientRootDERCert},
 			expectedErr: errors.New("Failed to offload client cert verification to S2A: 3, Client Peer Verification failed: x509: certificate signed by unknown authority (possibly because of \"crypto/rsa: verification error\" while trying to verify candidate authority certificate \"s2a_test_cert\")"),
 		},
-	}{
+	} {
 		t.Run(tc.description, func(t *testing.T) {
 			// Create new stream to S2Av2.
-			opts := []grpc.DialOption {
+			opts := []grpc.DialOption{
 				grpc.WithTransportCredentials(insecure.NewCredentials()),
 				grpc.WithReturnConnectionError(),
 				grpc.WithBlock(),
@@ -111,7 +110,7 @@ func TestVerifyClientCertChain(t *testing.T) {
 			// Setup bidrectional streaming session.
 			callOpts := []grpc.CallOption{}
 			cstream, err := c.SetUpSession(ctx, callOpts...)
-			if err != nil  {
+			if err != nil {
 				t.Fatalf("Client: failed to setup bidirectional streaming RPC session: %v", err)
 			}
 			log.Printf("Client: set up bidirectional streaming RPC session.")
@@ -147,33 +146,33 @@ func TestVerifyServerCertChain(t *testing.T) {
 	}
 
 	for _, tc := range []struct {
-		description              string
-		hostname                 string
-		rawCerts                 [][]byte
-		expectedErr              error
+		description string
+		hostname    string
+		rawCerts    [][]byte
+		expectedErr error
 	}{
 		{
 			description: "empty chain",
-			hostname: "host",
-			rawCerts: nil,
+			hostname:    "host",
+			rawCerts:    nil,
 			expectedErr: errors.New("Failed to offload client cert verification to S2A: 3, Server Peer Verification failed: server cert chain is empty."),
 		},
 		{
 			description: "chain of length 1",
-			hostname: "host",
-			rawCerts: [][]byte{serverRootDERCert, },
+			hostname:    "host",
+			rawCerts:    [][]byte{serverRootDERCert},
 			expectedErr: nil,
 		},
 		{
 			description: "chain of length 2 correct",
-			hostname: "host",
-			rawCerts: [][]byte{serverLeafDERCert, serverIntermediateDERCert, },
+			hostname:    "host",
+			rawCerts:    [][]byte{serverLeafDERCert, serverIntermediateDERCert},
 			expectedErr: nil,
 		},
-	}{
+	} {
 		t.Run(tc.description, func(t *testing.T) {
 			// Create new stream to S2Av2.
-			opts := []grpc.DialOption {
+			opts := []grpc.DialOption{
 				grpc.WithTransportCredentials(insecure.NewCredentials()),
 				grpc.WithReturnConnectionError(),
 				grpc.WithBlock(),
@@ -191,7 +190,7 @@ func TestVerifyServerCertChain(t *testing.T) {
 			// Setup bidrectional streaming session.
 			callOpts := []grpc.CallOption{}
 			cstream, err := c.SetUpSession(ctx, callOpts...)
-			if err != nil  {
+			if err != nil {
 				t.Fatalf("Client: failed to setup bidirectional streaming RPC session: %v", err)
 			}
 			log.Printf("Client: set up bidirectional streaming RPC session.")

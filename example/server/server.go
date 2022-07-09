@@ -2,12 +2,12 @@ package main
 
 import (
 	"flag"
-	"net"
-	"log"
 	"github.com/google/s2a-go/example/echo"
+	pb "github.com/google/s2a-go/example/proto/echo_go_proto"
 	"github.com/google/s2a-go/internal/v2"
 	"google.golang.org/grpc"
-	pb "github.com/google/s2a-go/example/proto/echo_go_proto"
+	"log"
+	"net"
 )
 
 var (

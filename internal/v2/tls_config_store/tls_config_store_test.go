@@ -1,28 +1,28 @@
 package tlsconfigstore
 
 import (
-	"net"
+	"bytes"
+	"context"
+	"crypto/tls"
+	"errors"
 	"fmt"
 	"log"
+	"net"
 	"sync"
-	"time"
-	"errors"
-	"context"
 	"testing"
-	"crypto/tls"
-	"bytes"
+	"time"
 
 	_ "embed"
+	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
+	commonpbv1 "github.com/google/s2a-go/internal/proto/common_go_proto"
+	commonpb "github.com/google/s2a-go/internal/proto/v2/common_go_proto"
+	s2av2pb "github.com/google/s2a-go/internal/proto/v2/s2a_go_proto"
+	"github.com/google/s2a-go/internal/tokenmanager"
+	"github.com/google/s2a-go/internal/v2/fakes2av2"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/protobuf/testing/protocmp"
-	"github.com/google/go-cmp/cmp"
-	"github.com/google/go-cmp/cmp/cmpopts"
-	"github.com/google/s2a-go/internal/v2/fakes2av2"
-	"github.com/google/s2a-go/internal/tokenmanager"
-	s2av2pb "github.com/google/s2a-go/internal/proto/v2/s2a_go_proto"
-	commonpb "github.com/google/s2a-go/internal/proto/v2/common_go_proto"
-	commonpbv1 "github.com/google/s2a-go/internal/proto/common_go_proto"
 )
 
 const (
@@ -84,7 +84,7 @@ func startFakeS2Av2Server(wg *sync.WaitGroup, expToken string) (stop func(), add
 			log.Printf("failed to serve: %v", err)
 		}
 	}()
-	return func() { s.Stop()}, address, nil
+	return func() { s.Stop() }, address, nil
 }
 
 // TODO(rmehta19): In Client and Server test, verify contents of config.RootCAs once x509.CertPool.Equal function is officially released : https://cs.opensource.google/go/go/+/4aacb7ff0f103d95a724a91736823f44aa599634 .
@@ -108,30 +108,30 @@ func TestTLSConfigStoreClient(t *testing.T) {
 
 	accessTokenManager := &fakeAccessTokenManager{
 		allowEmptyIdentity: true,
-		accessToken: "TestTlsConfigStoreClient_token",
+		accessToken:        "TestTlsConfigStoreClient_token",
 	}
 	for _, tc := range []struct {
-		description		    string
-		Certificates                []tls.Certificate
-		ServerName	            string
-		InsecureSkipVerify          bool
-		ClientSessionCache	    tls.ClientSessionCache
-		MinVersion	            uint16
-		MaxVersion		    uint16
+		description        string
+		Certificates       []tls.Certificate
+		ServerName         string
+		InsecureSkipVerify bool
+		ClientSessionCache tls.ClientSessionCache
+		MinVersion         uint16
+		MaxVersion         uint16
 	}{
 		{
-			description: "static",
-			Certificates: []tls.Certificate{cert},
-			ServerName: "host",
+			description:        "static",
+			Certificates:       []tls.Certificate{cert},
+			ServerName:         "host",
 			InsecureSkipVerify: true,
 			ClientSessionCache: nil,
-			MinVersion: tls.VersionTLS13,
-			MaxVersion: tls.VersionTLS13,
+			MinVersion:         tls.VersionTLS13,
+			MaxVersion:         tls.VersionTLS13,
 		},
 	} {
 		t.Run(tc.description, func(t *testing.T) {
 			// Create stream to S2Av2.
-			opts := []grpc.DialOption {
+			opts := []grpc.DialOption{
 				grpc.WithTransportCredentials(insecure.NewCredentials()),
 				grpc.WithReturnConnectionError(),
 				grpc.WithBlock(),
@@ -149,7 +149,7 @@ func TestTLSConfigStoreClient(t *testing.T) {
 			// Setup bidrectional streaming session.
 			callOpts := []grpc.CallOption{}
 			cstream, err := c.SetUpSession(ctx, callOpts...)
-			if err != nil  {
+			if err != nil {
 				t.Fatalf("Client: failed to setup bidirectional streaming RPC session: %v", err)
 			}
 			log.Printf("Client: set up bidirectional streaming RPC session.")
@@ -195,28 +195,28 @@ func TestTLSConfigStoreServer(t *testing.T) {
 
 	accessTokenManager := &fakeAccessTokenManager{
 		allowEmptyIdentity: true,
-		accessToken: "TestTlsConfigStoreServer_token",
+		accessToken:        "TestTlsConfigStoreServer_token",
 	}
-	var identities [] *commonpbv1.Identity
+	var identities []*commonpbv1.Identity
 	identities = append(identities, nil)
 	for _, tc := range []struct {
-		description		    string
-		Certificates                []tls.Certificate
-		ClientAuth		    tls.ClientAuthType
-		MinVersion	            uint16
-		MaxVersion		    uint16
+		description  string
+		Certificates []tls.Certificate
+		ClientAuth   tls.ClientAuthType
+		MinVersion   uint16
+		MaxVersion   uint16
 	}{
 		{
-			description: "static",
+			description:  "static",
 			Certificates: []tls.Certificate{cert},
-			ClientAuth: tls.RequireAnyClientCert,
-			MinVersion: tls.VersionTLS13,
-			MaxVersion: tls.VersionTLS13,
+			ClientAuth:   tls.RequireAnyClientCert,
+			MinVersion:   tls.VersionTLS13,
+			MaxVersion:   tls.VersionTLS13,
 		},
 	} {
 		t.Run(tc.description, func(t *testing.T) {
 			// Create stream to S2Av2.
-			opts := []grpc.DialOption {
+			opts := []grpc.DialOption{
 				grpc.WithTransportCredentials(insecure.NewCredentials()),
 				grpc.WithReturnConnectionError(),
 				grpc.WithBlock(),
@@ -234,7 +234,7 @@ func TestTLSConfigStoreServer(t *testing.T) {
 			// Setup bidrectional streaming session.
 			callOpts := []grpc.CallOption{}
 			cstream, err := c.SetUpSession(ctx, callOpts...)
-			if err != nil  {
+			if err != nil {
 				t.Fatalf("Client: failed to setup bidirectional streaming RPC session: %v", err)
 			}
 			log.Printf("Client: set up bidirectional streaming RPC session.")
@@ -249,7 +249,7 @@ func TestTLSConfigStoreServer(t *testing.T) {
 			if err != nil {
 				t.Errorf("ClientConfig failed: %v", err)
 			}
-			if got, want := config.Certificates[0].Certificate[0], tc.Certificates[0].Certificate[0]; !bytes.Equal(got,want) {
+			if got, want := config.Certificates[0].Certificate[0], tc.Certificates[0].Certificate[0]; !bytes.Equal(got, want) {
 				t.Errorf("config.Certificates[0].Certificate[0] = %v, want %v", got, want)
 			}
 			if got, want := config.ClientAuth, tc.ClientAuth; got != want {
@@ -270,7 +270,7 @@ func TestGetTLSMinMaxVersionsClient(t *testing.T) {
 	m := makeMapOfTLSVersions()
 	for min := commonpb.TLSVersion_TLS_VERSION_1_0; min <= commonpb.TLSVersion_TLS_VERSION_1_3; min++ {
 		for max := commonpb.TLSVersion_TLS_VERSION_1_0; max <= commonpb.TLSVersion_TLS_VERSION_1_3; max++ {
-			tlsConfig := &s2av2pb.GetTlsConfigurationResp_ServerTlsConfiguration {
+			tlsConfig := &s2av2pb.GetTlsConfigurationResp_ServerTlsConfiguration{
 				MinTlsVersion: min,
 				MaxTlsVersion: max,
 			}
@@ -301,23 +301,23 @@ func TestGetTLSMinMaxVersionsClient(t *testing.T) {
 		}
 	}
 	// Test invalid input.
-	tlsConfig := &s2av2pb.GetTlsConfigurationResp_ClientTlsConfiguration {
+	tlsConfig := &s2av2pb.GetTlsConfigurationResp_ClientTlsConfiguration{
 		MinTlsVersion: commonpb.TLSVersion_TLS_VERSION_1_0 - 1,
 		MaxTlsVersion: commonpb.TLSVersion_TLS_VERSION_1_3,
 	}
 	expErr := fmt.Errorf("S2Av2 provided invalid MinTlsVersion: %v", tlsConfig.MinTlsVersion)
 	_, _, err := getTLSMinMaxVersionsClient(tlsConfig)
-	if (err == nil) || (err.Error() != expErr.Error()){
+	if (err == nil) || (err.Error() != expErr.Error()) {
 		t.Errorf("err = %v, expErr = %v", err, expErr)
 	}
 
-	tlsConfig = &s2av2pb.GetTlsConfigurationResp_ClientTlsConfiguration {
+	tlsConfig = &s2av2pb.GetTlsConfigurationResp_ClientTlsConfiguration{
 		MinTlsVersion: commonpb.TLSVersion_TLS_VERSION_1_0,
 		MaxTlsVersion: commonpb.TLSVersion_TLS_VERSION_1_3 + 1,
 	}
 	expErr = fmt.Errorf("S2Av2 provided invalid MaxTlsVersion: %v", tlsConfig.MaxTlsVersion)
 	_, _, err = getTLSMinMaxVersionsClient(tlsConfig)
-	if (err == nil) || (err.Error() != expErr.Error()){
+	if (err == nil) || (err.Error() != expErr.Error()) {
 		t.Errorf("err = %v, expErr = %v", err, expErr)
 	}
 }
@@ -326,7 +326,7 @@ func TestGetTLSMinMaxVersionsServer(t *testing.T) {
 	m := makeMapOfTLSVersions()
 	for min := commonpb.TLSVersion_TLS_VERSION_1_0; min <= commonpb.TLSVersion_TLS_VERSION_1_3; min++ {
 		for max := commonpb.TLSVersion_TLS_VERSION_1_0; max <= commonpb.TLSVersion_TLS_VERSION_1_3; max++ {
-			tlsConfig := &s2av2pb.GetTlsConfigurationResp_ServerTlsConfiguration {
+			tlsConfig := &s2av2pb.GetTlsConfigurationResp_ServerTlsConfiguration{
 				MinTlsVersion: min,
 				MaxTlsVersion: max,
 			}
@@ -358,17 +358,17 @@ func TestGetTLSMinMaxVersionsServer(t *testing.T) {
 	}
 
 	// Test invalid input.
-	tlsConfig := &s2av2pb.GetTlsConfigurationResp_ServerTlsConfiguration {
+	tlsConfig := &s2av2pb.GetTlsConfigurationResp_ServerTlsConfiguration{
 		MinTlsVersion: commonpb.TLSVersion_TLS_VERSION_1_0 - 1,
 		MaxTlsVersion: commonpb.TLSVersion_TLS_VERSION_1_3,
 	}
 	expErr := fmt.Errorf("S2Av2 provided invalid MinTlsVersion: %v", tlsConfig.MinTlsVersion)
 	_, _, err := getTLSMinMaxVersionsServer(tlsConfig)
-	if (err == nil) || (err.Error() !=  expErr.Error()){
+	if (err == nil) || (err.Error() != expErr.Error()) {
 		t.Errorf("err = %v, expErr = %v", err, expErr)
 	}
 
-	tlsConfig = &s2av2pb.GetTlsConfigurationResp_ServerTlsConfiguration {
+	tlsConfig = &s2av2pb.GetTlsConfigurationResp_ServerTlsConfiguration{
 		MinTlsVersion: commonpb.TLSVersion_TLS_VERSION_1_0,
 		MaxTlsVersion: commonpb.TLSVersion_TLS_VERSION_1_3 + 1,
 	}
@@ -385,14 +385,14 @@ func TestGetAuthMechanisms(t *testing.T) {
 
 	// TODO(rmehta19): Add additional tests.
 	for _, tc := range []struct {
-		description string
-		tokenManager tokenmanager.AccessTokenManager
-		localIdentities []*commonpbv1.Identity
+		description            string
+		tokenManager           tokenmanager.AccessTokenManager
+		localIdentities        []*commonpbv1.Identity
 		expectedAuthMechanisms []*s2av2pb.AuthenticationMechanism
 	}{
 		{
-			description: "fake token manager is nil",
-			tokenManager: nil,
+			description:            "fake token manager is nil",
+			tokenManager:           nil,
 			expectedAuthMechanisms: nil,
 		},
 		{
@@ -402,7 +402,7 @@ func TestGetAuthMechanisms(t *testing.T) {
 				allowEmptyIdentity: true,
 			},
 			expectedAuthMechanisms: []*s2av2pb.AuthenticationMechanism{
-				&s2av2pb.AuthenticationMechanism{
+				{
 					MechanismOneof: &s2av2pb.AuthenticationMechanism_Token{
 						Token: "TestGetAuthMechanisms_s2a_access_token",
 					},
@@ -416,7 +416,6 @@ func TestGetAuthMechanisms(t *testing.T) {
 			},
 			expectedAuthMechanisms: nil,
 		},
-
 	} {
 		t.Run(tc.description, func(t *testing.T) {
 			authMechanisms := getAuthMechanisms(tc.tokenManager, tc.localIdentities)
@@ -441,20 +440,20 @@ func TestGetServerConfigFromS2Av2(t *testing.T) {
 		t.Fatalf("error starting fake S2Av2 Server: %v", err)
 	}
 	for _, tc := range []struct {
-		description string
-		tokenManager tokenmanager.AccessTokenManager
+		description     string
+		tokenManager    tokenmanager.AccessTokenManager
 		localIdentities []*commonpbv1.Identity
-		expTlsConfig *s2av2pb.GetTlsConfigurationResp_ServerTlsConfiguration
-		expErr error
-	} {
+		expTlsConfig    *s2av2pb.GetTlsConfigurationResp_ServerTlsConfiguration
+		expErr          error
+	}{
 		{
 			description: "empty accessToken and empty localIdentities",
 			tokenManager: &fakeAccessTokenManager{
 				allowEmptyIdentity: true,
-				accessToken: "",
+				accessToken:        "",
 			},
 			localIdentities: nil,
-			expErr: errors.New("rpc error: code = Unknown desc = SessionReq has no AuthenticationMechanism with a valid token"),
+			expErr:          errors.New("rpc error: code = Unknown desc = SessionReq has no AuthenticationMechanism with a valid token"),
 		},
 		{
 			description: "invalid accessToken",
@@ -465,11 +464,11 @@ func TestGetServerConfigFromS2Av2(t *testing.T) {
 					},
 				},
 				allowEmptyIdentity: true,
-				accessToken: "invalid_access_token",
+				accessToken:        "invalid_access_token",
 			},
-			localIdentities: []*commonpbv1.Identity {
+			localIdentities: []*commonpbv1.Identity{
 				{
-					IdentityOneof: &commonpbv1.Identity_Hostname {
+					IdentityOneof: &commonpbv1.Identity_Hostname{
 						Hostname: "server_hostname",
 					},
 				},
@@ -485,11 +484,11 @@ func TestGetServerConfigFromS2Av2(t *testing.T) {
 					},
 				},
 				allowEmptyIdentity: true,
-				accessToken: "TestGetServerConfigFromS2Av2_token",
+				accessToken:        "TestGetServerConfigFromS2Av2_token",
 			},
-			localIdentities: []*commonpbv1.Identity {
+			localIdentities: []*commonpbv1.Identity{
 				{
-					IdentityOneof: &commonpbv1.Identity_Hostname {
+					IdentityOneof: &commonpbv1.Identity_Hostname{
 						Hostname: "server_hostname",
 					},
 				},
@@ -498,24 +497,24 @@ func TestGetServerConfigFromS2Av2(t *testing.T) {
 				CertificateChain: []string{
 					string(serverCertpem),
 				},
-				MinTlsVersion: commonpb.TLSVersion_TLS_VERSION_1_3,
-				MaxTlsVersion: commonpb.TLSVersion_TLS_VERSION_1_3,
+				MinTlsVersion:         commonpb.TLSVersion_TLS_VERSION_1_3,
+				MaxTlsVersion:         commonpb.TLSVersion_TLS_VERSION_1_3,
 				HandshakeCiphersuites: []commonpb.HandshakeCiphersuite{},
-				RecordCiphersuites: []commonpb.RecordCiphersuite {
+				RecordCiphersuites: []commonpb.RecordCiphersuite{
 					commonpb.RecordCiphersuite_RECORD_CIPHERSUITE_AES_128_GCM_SHA256,
 					commonpb.RecordCiphersuite_RECORD_CIPHERSUITE_AES_256_GCM_SHA384,
 					commonpb.RecordCiphersuite_RECORD_CIPHERSUITE_CHACHA20_POLY1305_SHA256,
 				},
-				TlsResumptionEnabled: false,
+				TlsResumptionEnabled:     false,
 				RequestClientCertificate: s2av2pb.GetTlsConfigurationResp_ServerTlsConfiguration_REQUEST_AND_REQUIRE_CLIENT_CERTIFICATE_AND_VERIFY,
-				MaxOverheadOfTicketAead: 0,
+				MaxOverheadOfTicketAead:  0,
 			},
 			expErr: nil,
 		},
 	} {
 		t.Run(tc.description, func(t *testing.T) {
 			// Create stream to S2Av2.
-			opts := []grpc.DialOption {
+			opts := []grpc.DialOption{
 				grpc.WithTransportCredentials(insecure.NewCredentials()),
 				grpc.WithReturnConnectionError(),
 				grpc.WithBlock(),
@@ -533,7 +532,7 @@ func TestGetServerConfigFromS2Av2(t *testing.T) {
 			// Setup bidrectional streaming session.
 			callOpts := []grpc.CallOption{}
 			cstream, err := c.SetUpSession(ctx, callOpts...)
-			if err != nil  {
+			if err != nil {
 				t.Fatalf("Client: failed to setup bidirectional streaming RPC session: %v", err)
 			}
 			log.Printf("Client: set up bidirectional streaming RPC session.")
@@ -571,29 +570,29 @@ func TestGetClientConfig(t *testing.T) {
 	}
 
 	accessTokenManager := &fakeAccessTokenManager{
-		accessToken: "TestGetClientConfig_token",
+		accessToken:        "TestGetClientConfig_token",
 		allowEmptyIdentity: true,
 	}
-	var identities [] *commonpbv1.Identity
+	var identities []*commonpbv1.Identity
 	identities = append(identities, nil)
 	for _, tc := range []struct {
-		description		    string
-		Certificates                []tls.Certificate
-		ClientAuth		    tls.ClientAuthType
-		MinVersion	            uint16
-		MaxVersion		    uint16
+		description  string
+		Certificates []tls.Certificate
+		ClientAuth   tls.ClientAuthType
+		MinVersion   uint16
+		MaxVersion   uint16
 	}{
 		{
-			description: "static",
+			description:  "static",
 			Certificates: []tls.Certificate{cert},
-			ClientAuth: tls.RequireAnyClientCert,
-			MinVersion: tls.VersionTLS13,
-			MaxVersion: tls.VersionTLS13,
+			ClientAuth:   tls.RequireAnyClientCert,
+			MinVersion:   tls.VersionTLS13,
+			MaxVersion:   tls.VersionTLS13,
 		},
 	} {
 		t.Run(tc.description, func(t *testing.T) {
 			// Create stream to S2Av2.
-			opts := []grpc.DialOption {
+			opts := []grpc.DialOption{
 				grpc.WithTransportCredentials(insecure.NewCredentials()),
 				grpc.WithReturnConnectionError(),
 				grpc.WithBlock(),
@@ -611,7 +610,7 @@ func TestGetClientConfig(t *testing.T) {
 			// Setup bidrectional streaming session.
 			callOpts := []grpc.CallOption{}
 			cstream, err := c.SetUpSession(ctx, callOpts...)
-			if err != nil  {
+			if err != nil {
 				t.Fatalf("Client: failed to setup bidirectional streaming RPC session: %v", err)
 			}
 			log.Printf("Client: set up bidirectional streaming RPC session.")
@@ -622,7 +621,7 @@ func TestGetClientConfig(t *testing.T) {
 			if err != nil {
 				t.Errorf("ClientConfig failed: %v", err)
 			}
-			if got, want := config.Certificates[0].Certificate[0], tc.Certificates[0].Certificate[0]; !bytes.Equal(got,want) {
+			if got, want := config.Certificates[0].Certificate[0], tc.Certificates[0].Certificate[0]; !bytes.Equal(got, want) {
 				t.Errorf("config.Certificates[0].Certificate[0] = %v, want %v", got, want)
 			}
 			if got, want := config.ClientAuth, tc.ClientAuth; got != want {
@@ -641,10 +640,10 @@ func TestGetClientConfig(t *testing.T) {
 
 func TestGetTLSClientAuthType(t *testing.T) {
 	for _, tc := range []struct {
-		description string
-		tlsConfig *s2av2pb.GetTlsConfigurationResp_ServerTlsConfiguration
+		description       string
+		tlsConfig         *s2av2pb.GetTlsConfigurationResp_ServerTlsConfiguration
 		expClientAuthType tls.ClientAuthType
-	} {
+	}{
 		{
 			description: "Don't request client cert",
 			tlsConfig: &s2av2pb.GetTlsConfigurationResp_ServerTlsConfiguration{

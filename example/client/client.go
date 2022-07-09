@@ -1,13 +1,13 @@
 package main
 
 import (
-	"log"
-	"time"
-	"flag"
 	"context"
+	"flag"
+	pb "github.com/google/s2a-go/example/proto/echo_go_proto"
 	"github.com/google/s2a-go/internal/v2"
 	"google.golang.org/grpc"
-	pb "github.com/google/s2a-go/example/proto/echo_go_proto"
+	"log"
+	"time"
 )
 
 const (

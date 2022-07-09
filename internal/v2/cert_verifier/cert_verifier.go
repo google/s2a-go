@@ -2,8 +2,8 @@
 package certverifier
 
 import (
-	"fmt"
 	"crypto/x509"
+	"fmt"
 	"google.golang.org/grpc/codes"
 
 	s2av2pb "github.com/google/s2a-go/internal/proto/v2/s2a_go_proto"
@@ -14,12 +14,12 @@ import (
 func VerifyClientCertificateChain(cstream s2av2pb.S2AService_SetUpSessionClient) func(rawCerts [][]byte, verifiedChains [][]*x509.Certificate) error {
 	return func(rawCerts [][]byte, verifiedChains [][]*x509.Certificate) error {
 		// Offload verification to S2Av2.
-		if err := cstream.Send(&s2av2pb.SessionReq {
-			ReqOneof: &s2av2pb.SessionReq_ValidatePeerCertificateChainReq {
-				&s2av2pb.ValidatePeerCertificateChainReq {
+		if err := cstream.Send(&s2av2pb.SessionReq{
+			ReqOneof: &s2av2pb.SessionReq_ValidatePeerCertificateChainReq{
+				&s2av2pb.ValidatePeerCertificateChainReq{
 					Mode: s2av2pb.ValidatePeerCertificateChainReq_CONNECT_TO_GOOGLE,
-					PeerOneof: &s2av2pb.ValidatePeerCertificateChainReq_ClientPeer_ {
-						&s2av2pb.ValidatePeerCertificateChainReq_ClientPeer {
+					PeerOneof: &s2av2pb.ValidatePeerCertificateChainReq_ClientPeer_{
+						&s2av2pb.ValidatePeerCertificateChainReq_ClientPeer{
 							CertificateChain: rawCerts,
 						},
 					},
@@ -49,14 +49,14 @@ func VerifyClientCertificateChain(cstream s2av2pb.S2AService_SetUpSessionClient)
 func VerifyServerCertificateChain(hostname string, cstream s2av2pb.S2AService_SetUpSessionClient) func(rawCerts [][]byte, verifiedChains [][]*x509.Certificate) error {
 	return func(rawCerts [][]byte, verifiedChains [][]*x509.Certificate) error {
 		// Offload verification to S2Av2.
-		if err := cstream.Send(&s2av2pb.SessionReq {
-			ReqOneof: &s2av2pb.SessionReq_ValidatePeerCertificateChainReq {
-				&s2av2pb.ValidatePeerCertificateChainReq {
+		if err := cstream.Send(&s2av2pb.SessionReq{
+			ReqOneof: &s2av2pb.SessionReq_ValidatePeerCertificateChainReq{
+				&s2av2pb.ValidatePeerCertificateChainReq{
 					Mode: s2av2pb.ValidatePeerCertificateChainReq_CONNECT_TO_GOOGLE,
-					PeerOneof: &s2av2pb.ValidatePeerCertificateChainReq_ServerPeer_ {
-						&s2av2pb.ValidatePeerCertificateChainReq_ServerPeer {
+					PeerOneof: &s2av2pb.ValidatePeerCertificateChainReq_ServerPeer_{
+						&s2av2pb.ValidatePeerCertificateChainReq_ServerPeer{
 							CertificateChain: rawCerts,
-							ServerHostname: hostname,
+							ServerHostname:   hostname,
 						},
 					},
 				},

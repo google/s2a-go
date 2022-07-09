@@ -25,7 +25,8 @@ fail_on_output() {
   tee /dev/stderr | not read
 }
 
-go vet -all ./... | fail_on_output
+# TODO(mattstev): Add go vet -all ./... | fail_on_output
+
 gofmt -s -d -l . 2>&1 | fail_on_output
 goimports -l . 2>&1 | not grep -vE "\.pb\.go"
 golint ./... 2>&1 | not grep -vE "\.pb\.go:"

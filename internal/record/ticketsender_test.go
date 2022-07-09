@@ -23,13 +23,13 @@ import (
 	"fmt"
 	"testing"
 
-	commonpb "github.com/google/s2a-go/internal/proto/common_go_proto"
-	s2apb "github.com/google/s2a-go/internal/proto/s2a_go_proto"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
+	commonpb "github.com/google/s2a-go/internal/proto/common_go_proto"
+	s2apb "github.com/google/s2a-go/internal/proto/s2a_go_proto"
+	"github.com/google/s2a-go/internal/tokenmanager"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/protobuf/testing/protocmp"
-	"github.com/google/s2a-go/internal/tokenmanager"
 )
 
 const (
@@ -148,7 +148,7 @@ func TestGetAuthMechanism(t *testing.T) {
 				allowEmptyIdentity: true,
 			},
 			expectedAuthMechanisms: []*s2apb.AuthenticationMechanism{
-				&s2apb.AuthenticationMechanism{
+				{
 					MechanismOneof: &s2apb.AuthenticationMechanism_Token{
 						Token: testAccessToken,
 					},
@@ -178,7 +178,7 @@ func TestGetAuthMechanism(t *testing.T) {
 				},
 			},
 			expectedAuthMechanisms: []*s2apb.AuthenticationMechanism{
-				&s2apb.AuthenticationMechanism{
+				{
 					Identity: &commonpb.Identity{
 						IdentityOneof: &commonpb.Identity_SpiffeId{
 							SpiffeId: "allowed_spiffe_id",
