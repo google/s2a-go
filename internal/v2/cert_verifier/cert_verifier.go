@@ -16,10 +16,10 @@ func VerifyClientCertificateChain(cstream s2av2pb.S2AService_SetUpSessionClient)
 		// Offload verification to S2Av2.
 		if err := cstream.Send(&s2av2pb.SessionReq{
 			ReqOneof: &s2av2pb.SessionReq_ValidatePeerCertificateChainReq{
-				&s2av2pb.ValidatePeerCertificateChainReq{
+				ValidatePeerCertificateChainReq: &s2av2pb.ValidatePeerCertificateChainReq{
 					Mode: s2av2pb.ValidatePeerCertificateChainReq_CONNECT_TO_GOOGLE,
 					PeerOneof: &s2av2pb.ValidatePeerCertificateChainReq_ClientPeer_{
-						&s2av2pb.ValidatePeerCertificateChainReq_ClientPeer{
+						ClientPeer: &s2av2pb.ValidatePeerCertificateChainReq_ClientPeer{
 							CertificateChain: rawCerts,
 						},
 					},
@@ -51,10 +51,10 @@ func VerifyServerCertificateChain(hostname string, cstream s2av2pb.S2AService_Se
 		// Offload verification to S2Av2.
 		if err := cstream.Send(&s2av2pb.SessionReq{
 			ReqOneof: &s2av2pb.SessionReq_ValidatePeerCertificateChainReq{
-				&s2av2pb.ValidatePeerCertificateChainReq{
+				ValidatePeerCertificateChainReq: &s2av2pb.ValidatePeerCertificateChainReq{
 					Mode: s2av2pb.ValidatePeerCertificateChainReq_CONNECT_TO_GOOGLE,
 					PeerOneof: &s2av2pb.ValidatePeerCertificateChainReq_ServerPeer_{
-						&s2av2pb.ValidatePeerCertificateChainReq_ServerPeer{
+						ServerPeer: &s2av2pb.ValidatePeerCertificateChainReq_ServerPeer{
 							CertificateChain: rawCerts,
 							ServerHostname:   hostname,
 						},

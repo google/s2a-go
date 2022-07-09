@@ -127,7 +127,7 @@ func TestSign(t *testing.T) {
 					},
 				},
 				ReqOneof: &s2av2pb.SessionReq_GetTlsConfigurationReq{
-					&s2av2pb.GetTlsConfigurationReq{
+					GetTlsConfigurationReq: &s2av2pb.GetTlsConfigurationReq{
 						ConnectionSide: tc.connSide,
 					},
 				},

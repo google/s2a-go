@@ -25,12 +25,11 @@ fail_on_output() {
   tee /dev/stderr | not read
 }
 
-# TODO(mattstev): Add go vet -all ./... | fail_on_output
 # TODO(mattstev): Install goimports and run:
 #    goimports -l . 2>&1 | not grep -vE "\.pb\.go"
 
+go vet -all ./... | fail_on_output
 gofmt -s -d -l . 2>&1 | fail_on_output
-golint ./... 2>&1 | not grep -vE "\.pb\.go:"
 go mod tidy
 
 echo SUCCESS

@@ -163,7 +163,7 @@ func offloadPrivateKeyOperation(req *s2av2pb.OffloadPrivateKeyOperationReq, isAs
 				Code: uint32(codes.OK),
 			},
 			RespOneof: &s2av2pb.SessionResp_OffloadPrivateKeyOperationResp{
-				&s2av2pb.OffloadPrivateKeyOperationResp{
+				OffloadPrivateKeyOperationResp: &s2av2pb.OffloadPrivateKeyOperationResp{
 					OutBytes: signedBytes,
 				},
 			},
@@ -197,7 +197,7 @@ func getTlsConfiguration(req *s2av2pb.GetTlsConfigurationReq) (*s2av2pb.SessionR
 			RespOneof: &s2av2pb.SessionResp_GetTlsConfigurationResp{
 				GetTlsConfigurationResp: &s2av2pb.GetTlsConfigurationResp{
 					TlsConfiguration: &s2av2pb.GetTlsConfigurationResp_ClientTlsConfiguration_{
-						&s2av2pb.GetTlsConfigurationResp_ClientTlsConfiguration{
+						ClientTlsConfiguration: &s2av2pb.GetTlsConfigurationResp_ClientTlsConfiguration{
 							CertificateChain: []string{
 								string(clientCert),
 							},
@@ -222,7 +222,7 @@ func getTlsConfiguration(req *s2av2pb.GetTlsConfigurationReq) (*s2av2pb.SessionR
 			RespOneof: &s2av2pb.SessionResp_GetTlsConfigurationResp{
 				GetTlsConfigurationResp: &s2av2pb.GetTlsConfigurationResp{
 					TlsConfiguration: &s2av2pb.GetTlsConfigurationResp_ServerTlsConfiguration_{
-						&s2av2pb.GetTlsConfigurationResp_ServerTlsConfiguration{
+						ServerTlsConfiguration: &s2av2pb.GetTlsConfigurationResp_ServerTlsConfiguration{
 							CertificateChain: []string{
 								string(serverCert),
 							},
@@ -252,7 +252,7 @@ func buildValidatePeerCertificateChainSessionResp(StatusCode uint32, StatusDetai
 			Details: StatusDetails,
 		},
 		RespOneof: &s2av2pb.SessionResp_ValidatePeerCertificateChainResp{
-			&s2av2pb.ValidatePeerCertificateChainResp{
+			ValidatePeerCertificateChainResp: &s2av2pb.ValidatePeerCertificateChainResp{
 				ValidationResult:  ValidationResult,
 				ValidationDetails: ValidationDetails,
 				Context:           Context,

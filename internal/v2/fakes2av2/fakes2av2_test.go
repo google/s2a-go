@@ -68,11 +68,11 @@ func TestSetUpSession(t *testing.T) {
 			request: &s2av2pb.SessionReq{
 				AuthenticationMechanisms: []*s2av2pb.AuthenticationMechanism{
 					{
-						MechanismOneof: &s2av2pb.AuthenticationMechanism_Token{"valid_token"},
+						MechanismOneof: &s2av2pb.AuthenticationMechanism_Token{Token: "valid_token"},
 					},
 				},
 				ReqOneof: &s2av2pb.SessionReq_GetTlsConfigurationReq{
-					&s2av2pb.GetTlsConfigurationReq{
+					GetTlsConfigurationReq: &s2av2pb.GetTlsConfigurationReq{
 						ConnectionSide: commonpb.ConnectionSide_CONNECTION_SIDE_CLIENT,
 					},
 				},
@@ -84,7 +84,7 @@ func TestSetUpSession(t *testing.T) {
 				RespOneof: &s2av2pb.SessionResp_GetTlsConfigurationResp{
 					GetTlsConfigurationResp: &s2av2pb.GetTlsConfigurationResp{
 						TlsConfiguration: &s2av2pb.GetTlsConfigurationResp_ClientTlsConfiguration_{
-							&s2av2pb.GetTlsConfigurationResp_ClientTlsConfiguration{
+							ClientTlsConfiguration: &s2av2pb.GetTlsConfigurationResp_ClientTlsConfiguration{
 								CertificateChain: []string{
 									string(clientCert),
 								},
@@ -107,11 +107,11 @@ func TestSetUpSession(t *testing.T) {
 			request: &s2av2pb.SessionReq{
 				AuthenticationMechanisms: []*s2av2pb.AuthenticationMechanism{
 					{
-						MechanismOneof: &s2av2pb.AuthenticationMechanism_Token{"valid_token"},
+						MechanismOneof: &s2av2pb.AuthenticationMechanism_Token{Token: "valid_token"},
 					},
 				},
 				ReqOneof: &s2av2pb.SessionReq_GetTlsConfigurationReq{
-					&s2av2pb.GetTlsConfigurationReq{
+					GetTlsConfigurationReq: &s2av2pb.GetTlsConfigurationReq{
 						ConnectionSide: commonpb.ConnectionSide_CONNECTION_SIDE_SERVER,
 					},
 				},
@@ -123,7 +123,7 @@ func TestSetUpSession(t *testing.T) {
 				RespOneof: &s2av2pb.SessionResp_GetTlsConfigurationResp{
 					GetTlsConfigurationResp: &s2av2pb.GetTlsConfigurationResp{
 						TlsConfiguration: &s2av2pb.GetTlsConfigurationResp_ServerTlsConfiguration_{
-							&s2av2pb.GetTlsConfigurationResp_ServerTlsConfiguration{
+							ServerTlsConfiguration: &s2av2pb.GetTlsConfigurationResp_ServerTlsConfiguration{
 								CertificateChain: []string{
 									string(serverCert),
 								},
@@ -149,11 +149,11 @@ func TestSetUpSession(t *testing.T) {
 			request: &s2av2pb.SessionReq{
 				AuthenticationMechanisms: []*s2av2pb.AuthenticationMechanism{
 					{
-						MechanismOneof: &s2av2pb.AuthenticationMechanism_Token{"valid_token"},
+						MechanismOneof: &s2av2pb.AuthenticationMechanism_Token{Token: "valid_token"},
 					},
 				},
 				ReqOneof: &s2av2pb.SessionReq_GetTlsConfigurationReq{
-					&s2av2pb.GetTlsConfigurationReq{
+					GetTlsConfigurationReq: &s2av2pb.GetTlsConfigurationReq{
 						ConnectionSide: commonpb.ConnectionSide_CONNECTION_SIDE_UNSPECIFIED,
 					},
 				},
@@ -170,11 +170,11 @@ func TestSetUpSession(t *testing.T) {
 			request: &s2av2pb.SessionReq{
 				AuthenticationMechanisms: []*s2av2pb.AuthenticationMechanism{
 					{
-						MechanismOneof: &s2av2pb.AuthenticationMechanism_Token{"invalid_token"},
+						MechanismOneof: &s2av2pb.AuthenticationMechanism_Token{Token: "invalid_token"},
 					},
 				},
 				ReqOneof: &s2av2pb.SessionReq_GetTlsConfigurationReq{
-					&s2av2pb.GetTlsConfigurationReq{
+					GetTlsConfigurationReq: &s2av2pb.GetTlsConfigurationReq{
 						ConnectionSide: commonpb.ConnectionSide_CONNECTION_SIDE_UNSPECIFIED,
 					},
 				},
@@ -185,10 +185,10 @@ func TestSetUpSession(t *testing.T) {
 			description: "Client Peer Verification",
 			request: &s2av2pb.SessionReq{
 				ReqOneof: &s2av2pb.SessionReq_ValidatePeerCertificateChainReq{
-					&s2av2pb.ValidatePeerCertificateChainReq{
+					ValidatePeerCertificateChainReq: &s2av2pb.ValidatePeerCertificateChainReq{
 						Mode: s2av2pb.ValidatePeerCertificateChainReq_SPIFFE,
 						PeerOneof: &s2av2pb.ValidatePeerCertificateChainReq_ClientPeer_{
-							&s2av2pb.ValidatePeerCertificateChainReq_ClientPeer{
+							ClientPeer: &s2av2pb.ValidatePeerCertificateChainReq_ClientPeer{
 								CertificateChain: [][]byte{clientDERCert},
 							},
 						},
@@ -201,7 +201,7 @@ func TestSetUpSession(t *testing.T) {
 					Details: "",
 				},
 				RespOneof: &s2av2pb.SessionResp_ValidatePeerCertificateChainResp{
-					&s2av2pb.ValidatePeerCertificateChainResp{
+					ValidatePeerCertificateChainResp: &s2av2pb.ValidatePeerCertificateChainResp{
 						ValidationResult:  s2av2pb.ValidatePeerCertificateChainResp_SUCCESS,
 						ValidationDetails: "Client Peer Verification succeeded",
 						Context:           &s2av2ctx.S2AContext{},
@@ -213,10 +213,10 @@ func TestSetUpSession(t *testing.T) {
 			description: "Client Peer Verification -- failure",
 			request: &s2av2pb.SessionReq{
 				ReqOneof: &s2av2pb.SessionReq_ValidatePeerCertificateChainReq{
-					&s2av2pb.ValidatePeerCertificateChainReq{
+					ValidatePeerCertificateChainReq: &s2av2pb.ValidatePeerCertificateChainReq{
 						Mode: s2av2pb.ValidatePeerCertificateChainReq_SPIFFE,
 						PeerOneof: &s2av2pb.ValidatePeerCertificateChainReq_ClientPeer_{
-							&s2av2pb.ValidatePeerCertificateChainReq_ClientPeer{
+							ClientPeer: &s2av2pb.ValidatePeerCertificateChainReq_ClientPeer{
 								CertificateChain: [][]byte{},
 							},
 						},
@@ -229,7 +229,7 @@ func TestSetUpSession(t *testing.T) {
 					Details: "Client Peer Verification failed: client cert chain is empty.",
 				},
 				RespOneof: &s2av2pb.SessionResp_ValidatePeerCertificateChainResp{
-					&s2av2pb.ValidatePeerCertificateChainResp{
+					ValidatePeerCertificateChainResp: &s2av2pb.ValidatePeerCertificateChainResp{
 						ValidationResult:  s2av2pb.ValidatePeerCertificateChainResp_FAILURE,
 						ValidationDetails: "Client Peer Verification failed: client cert chain is empty.",
 						Context:           &s2av2ctx.S2AContext{},
@@ -241,10 +241,10 @@ func TestSetUpSession(t *testing.T) {
 			description: "Server Peer Verification",
 			request: &s2av2pb.SessionReq{
 				ReqOneof: &s2av2pb.SessionReq_ValidatePeerCertificateChainReq{
-					&s2av2pb.ValidatePeerCertificateChainReq{
+					ValidatePeerCertificateChainReq: &s2av2pb.ValidatePeerCertificateChainReq{
 						Mode: s2av2pb.ValidatePeerCertificateChainReq_SPIFFE,
 						PeerOneof: &s2av2pb.ValidatePeerCertificateChainReq_ServerPeer_{
-							&s2av2pb.ValidatePeerCertificateChainReq_ServerPeer{
+							ServerPeer: &s2av2pb.ValidatePeerCertificateChainReq_ServerPeer{
 								CertificateChain: [][]byte{serverDERCert},
 							},
 						},
@@ -257,7 +257,7 @@ func TestSetUpSession(t *testing.T) {
 					Details: "",
 				},
 				RespOneof: &s2av2pb.SessionResp_ValidatePeerCertificateChainResp{
-					&s2av2pb.ValidatePeerCertificateChainResp{
+					ValidatePeerCertificateChainResp: &s2av2pb.ValidatePeerCertificateChainResp{
 						ValidationResult:  s2av2pb.ValidatePeerCertificateChainResp_SUCCESS,
 						ValidationDetails: "Server Peer Verification succeeded",
 						Context:           &s2av2ctx.S2AContext{},
@@ -367,7 +367,7 @@ func TestSetUpSessionPrivateKeyOperation(t *testing.T) {
 			connSide:    commonpb.ConnectionSide_CONNECTION_SIDE_CLIENT,
 			request: &s2av2pb.SessionReq{
 				ReqOneof: &s2av2pb.SessionReq_OffloadPrivateKeyOperationReq{
-					&s2av2pb.OffloadPrivateKeyOperationReq{
+					OffloadPrivateKeyOperationReq: &s2av2pb.OffloadPrivateKeyOperationReq{
 						Operation:          s2av2pb.OffloadPrivateKeyOperationReq_SIGN,
 						SignatureAlgorithm: s2av2pb.SignatureAlgorithm_S2A_SSL_SIGN_RSA_PKCS1_SHA256,
 						InBytes:            []byte(hsha256[:]),
@@ -379,7 +379,7 @@ func TestSetUpSessionPrivateKeyOperation(t *testing.T) {
 					Code: uint32(codes.OK),
 				},
 				RespOneof: &s2av2pb.SessionResp_OffloadPrivateKeyOperationResp{
-					&s2av2pb.OffloadPrivateKeyOperationResp{
+					OffloadPrivateKeyOperationResp: &s2av2pb.OffloadPrivateKeyOperationResp{
 						OutBytes: signedWithClientKey,
 					},
 				},
@@ -390,7 +390,7 @@ func TestSetUpSessionPrivateKeyOperation(t *testing.T) {
 			connSide:    commonpb.ConnectionSide_CONNECTION_SIDE_SERVER,
 			request: &s2av2pb.SessionReq{
 				ReqOneof: &s2av2pb.SessionReq_OffloadPrivateKeyOperationReq{
-					&s2av2pb.OffloadPrivateKeyOperationReq{
+					OffloadPrivateKeyOperationReq: &s2av2pb.OffloadPrivateKeyOperationReq{
 						Operation:          s2av2pb.OffloadPrivateKeyOperationReq_SIGN,
 						SignatureAlgorithm: s2av2pb.SignatureAlgorithm_S2A_SSL_SIGN_RSA_PKCS1_SHA256,
 						InBytes:            []byte(hsha256[:]),
@@ -402,7 +402,7 @@ func TestSetUpSessionPrivateKeyOperation(t *testing.T) {
 					Code: uint32(codes.OK),
 				},
 				RespOneof: &s2av2pb.SessionResp_OffloadPrivateKeyOperationResp{
-					&s2av2pb.OffloadPrivateKeyOperationResp{
+					OffloadPrivateKeyOperationResp: &s2av2pb.OffloadPrivateKeyOperationResp{
 						OutBytes: signedWithServerKey,
 					},
 				},
@@ -413,7 +413,7 @@ func TestSetUpSessionPrivateKeyOperation(t *testing.T) {
 			connSide:    commonpb.ConnectionSide_CONNECTION_SIDE_CLIENT,
 			request: &s2av2pb.SessionReq{
 				ReqOneof: &s2av2pb.SessionReq_OffloadPrivateKeyOperationReq{
-					&s2av2pb.OffloadPrivateKeyOperationReq{
+					OffloadPrivateKeyOperationReq: &s2av2pb.OffloadPrivateKeyOperationReq{
 						Operation:          s2av2pb.OffloadPrivateKeyOperationReq_SIGN,
 						SignatureAlgorithm: s2av2pb.SignatureAlgorithm_S2A_SSL_SIGN_UNSPECIFIED,
 						InBytes:            []byte(hsha256[:]),
@@ -464,7 +464,7 @@ func TestSetUpSessionPrivateKeyOperation(t *testing.T) {
 					},
 				},
 				ReqOneof: &s2av2pb.SessionReq_GetTlsConfigurationReq{
-					&s2av2pb.GetTlsConfigurationReq{
+					GetTlsConfigurationReq: &s2av2pb.GetTlsConfigurationReq{
 						ConnectionSide: tc.connSide,
 					},
 				},

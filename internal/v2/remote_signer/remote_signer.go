@@ -32,7 +32,7 @@ func (s *remoteSigner) Sign(rand io.Reader, digest []byte, opts crypto.SignerOpt
 	// Send request to S2Av2 to perform private key operation.
 	if err := s.cstream.Send(&s2av2pb.SessionReq{
 		ReqOneof: &s2av2pb.SessionReq_OffloadPrivateKeyOperationReq{
-			&s2av2pb.OffloadPrivateKeyOperationReq{
+			OffloadPrivateKeyOperationReq: &s2av2pb.OffloadPrivateKeyOperationReq{
 				Operation: s2av2pb.OffloadPrivateKeyOperationReq_SIGN,
 				// TODO(rmehta19): Use Signtuare Algorithm from s.leafCert. To do this,
 				// need to create a mapping from x509 Signature Algorithm:

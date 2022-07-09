@@ -37,7 +37,7 @@ func GetTlsConfigurationForClient(serverHostname string, cstream s2av2pb.S2AServ
 	if err := cstream.Send(&s2av2pb.SessionReq{
 		AuthenticationMechanisms: authMechanisms,
 		ReqOneof: &s2av2pb.SessionReq_GetTlsConfigurationReq{
-			&s2av2pb.GetTlsConfigurationReq{
+			GetTlsConfigurationReq: &s2av2pb.GetTlsConfigurationReq{
 				ConnectionSide: commonpb.ConnectionSide_CONNECTION_SIDE_CLIENT,
 			},
 		},
@@ -172,7 +172,7 @@ func getServerConfigFromS2Av2(tokenManager tokenmanager.AccessTokenManager, loca
 	if err := cstream.Send(&s2av2pb.SessionReq{
 		AuthenticationMechanisms: authMechanisms,
 		ReqOneof: &s2av2pb.SessionReq_GetTlsConfigurationReq{
-			&s2av2pb.GetTlsConfigurationReq{
+			GetTlsConfigurationReq: &s2av2pb.GetTlsConfigurationReq{
 				ConnectionSide: commonpb.ConnectionSide_CONNECTION_SIDE_SERVER,
 			},
 		},
