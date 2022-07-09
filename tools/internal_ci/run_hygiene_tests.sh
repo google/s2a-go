@@ -26,9 +26,10 @@ fail_on_output() {
 }
 
 # TODO(mattstev): Add go vet -all ./... | fail_on_output
+# TODO(mattstev): Install goimports and run:
+#    goimports -l . 2>&1 | not grep -vE "\.pb\.go"
 
 gofmt -s -d -l . 2>&1 | fail_on_output
-goimports -l . 2>&1 | not grep -vE "\.pb\.go"
 golint ./... 2>&1 | not grep -vE "\.pb\.go:"
 go mod tidy
 
