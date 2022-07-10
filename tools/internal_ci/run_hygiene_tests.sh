@@ -25,10 +25,34 @@ fail_on_output() {
   tee /dev/stderr | not read
 }
 
+which go
+sudo rm -rf /usr/local/go
+case "${PLATFORM}" in
+  'linux')
+    sudo rm -rf /usr/local/go
+    curl -O https://dl.google.com/go/go1.17.1.linux-amd64.tar.gz
+    tar -xvf go1.17.1.linux-amd64.tar.gz
+    sudo mv go /usr/local
+    export GOROOT=/usr/local/go
+    export PATH=$PATH:$GOROOT/bin
+    ;;
+  'darwin')
+    sudo rm -rf /usr/local/go
+    curl -O https://dl.google.com/go/go1.17.1.darwin-amd64.tar.gz
+    tar -xvf go1.17.1.darwin-amd64.tar.gz
+    sudo mv go /usr/local
+    export GOROOT=/usr/local/go
+    export PATH="${GOROOT}/bin:${PATH}"
+    ;;
+  *)
+    echo "Using existing Go installation."
+    ;;
+esac
+go version
+
 # TODO(mattstev): Install goimports and run:
 #    goimports -l . 2>&1 | not grep -vE "\.pb\.go"
 
-go version
 #go vet -all ./... | fail_on_output
 #gofmt -s -d -l . 2>&1 | fail_on_output
 #go mod tidy
