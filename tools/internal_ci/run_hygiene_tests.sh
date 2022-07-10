@@ -29,9 +29,9 @@ fail_on_output() {
 #    goimports -l . 2>&1 | not grep -vE "\.pb\.go"
 
 go version
-go vet -all ./... | fail_on_output
-gofmt -s -d -l . 2>&1 | fail_on_output
-go mod tidy
+#go vet -all ./... | fail_on_output
+#gofmt -s -d -l . 2>&1 | fail_on_output
+#go mod tidy
 
 echo SUCCESS
 
