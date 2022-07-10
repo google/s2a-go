@@ -17,6 +17,8 @@
 set -ex
 set -o pipefail
 
+readonly PLATFORM="$(uname | tr '[:upper:]' '[:lower:]')"
+
 not() {
   ! "$@"
 }
@@ -48,6 +50,7 @@ case "${PLATFORM}" in
     echo "Using existing Go installation."
     ;;
 esac
+
 go version
 
 # TODO(mattstev): Install goimports and run:
