@@ -80,7 +80,9 @@ func (c *s2av2TransportCreds) ClientHandshake(ctx context.Context, serverAuthori
 	if err != nil {
 		serverName = serverAuthority
 	}
-	cstream, err := c.createStream()
+	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
+	defer cancel()
+	cstream, err := c.createStream(ctx)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -109,7 +111,9 @@ func (c *s2av2TransportCreds) ServerHandshake(rawConn net.Conn) (net.Conn, crede
 	if c.isClient {
 		return nil, nil, errors.New("server handshake called using client transport credentials.")
 	}
-	cstream, err := c.createStream()
+	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
+	defer cancel()
+	cstream, err := c.createStream(ctx)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -158,14 +162,12 @@ func (c *s2av2TransportCreds) OverrideServerName(serverNameOverride string) erro
 	return nil
 }
 
-func (c *s2av2TransportCreds) createStream() (s2av2pb.S2AService_SetUpSessionClient, error) {
+func (c *s2av2TransportCreds) createStream(ctx context.Context) (s2av2pb.S2AService_SetUpSessionClient, error) {
 	// TODO(rmehta19): Consider whether to close the connection to S2Av2.
 	conn, err := service.Dial(c.s2av2Address)
 	if err != nil {
 		return nil, err
 	}
 	client := s2av2pb.NewS2AServiceClient(conn)
-	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
-	defer cancel()
 	return client.SetUpSession(ctx, []grpc.CallOption{}...)
 }
