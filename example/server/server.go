@@ -4,6 +4,7 @@ import (
 	"flag"
 	"github.com/google/s2a-go/example/echo"
 	pb "github.com/google/s2a-go/example/proto/echo_go_proto"
+	commonpbv1 "github.com/google/s2a-go/internal/proto/common_go_proto"
 	"github.com/google/s2a-go/internal/v2"
 	"google.golang.org/grpc"
 	"log"
@@ -11,11 +12,21 @@ import (
 )
 
 var (
-	port = flag.String("port", ":8080", "Echo service address port.")
+	port    = flag.String("port", ":8080", "Echo service address port.")
+	s2aAddr = flag.String("s2a_addr", "0.0.0.0:61365", "S2A service address.")
 )
 
 func runServer(listenPort *string) {
-	creds, err := v2.NewServerCreds("0.0.0.0:8008")
+	var localIdentities []*commonpbv1.Identity
+	localIdentities = append(localIdentities, &commonpbv1.Identity{
+		IdentityOneof: &commonpbv1.Identity_Hostname{
+			Hostname: "test_rsa_server_identity",
+		},
+	})
+	creds, err := v2.NewServerCreds(*s2aAddr, localIdentities)
+	if err != nil {
+		log.Fatalf("NewClientCreds() failed: %v", err)
+	}
 	listener, err := net.Listen("tcp", *port)
 	if err != nil {
 		log.Fatalf("failed to listen on addres %s: %v", *port, err)

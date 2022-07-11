@@ -5,8 +5,9 @@ go_binary(
   srcs = ["client.go"],
   testonly = True,
   deps = [
-    "//internal/v2:v2",
+    "//internal/proto/common_go_proto:common_go_proto",
     "//example/proto/echo_go_proto:echo_go_proto",
+    "//internal/v2:v2",
     "@org_golang_google_grpc//:go_default_library",
   ],
 )

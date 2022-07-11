@@ -33,8 +33,10 @@ var (
 // GetTlsConfigurationForClient returns a tls.Config instance for use by a client application.
 func GetTlsConfigurationForClient(serverHostname string, cstream s2av2pb.S2AService_SetUpSessionClient, tokenManager tokenmanager.AccessTokenManager, localIdentity *commonpbv1.Identity) (*tls.Config, error) {
 	authMechanisms := getAuthMechanisms(tokenManager, []*commonpbv1.Identity{localIdentity})
+
 	// Send request to S2Av2 for config.
 	if err := cstream.Send(&s2av2pb.SessionReq{
+		LocalIdentity:            localIdentity,
 		AuthenticationMechanisms: authMechanisms,
 		ReqOneof: &s2av2pb.SessionReq_GetTlsConfigurationReq{
 			GetTlsConfigurationReq: &s2av2pb.GetTlsConfigurationReq{
@@ -168,8 +170,14 @@ func ClientConfig(tokenManager tokenmanager.AccessTokenManager, localIdentities 
 
 func getServerConfigFromS2Av2(tokenManager tokenmanager.AccessTokenManager, localIdentities []*commonpbv1.Identity, cstream s2av2pb.S2AService_SetUpSessionClient) (*s2av2pb.GetTlsConfigurationResp_ServerTlsConfiguration, error) {
 	authMechanisms := getAuthMechanisms(tokenManager, localIdentities)
+	var locId *commonpbv1.Identity
+	if localIdentities != nil {
+		locId = localIdentities[0]
+	}
+
 	// Send request to S2Av2 for config.
 	if err := cstream.Send(&s2av2pb.SessionReq{
+		LocalIdentity:            locId,
 		AuthenticationMechanisms: authMechanisms,
 		ReqOneof: &s2av2pb.SessionReq_GetTlsConfigurationReq{
 			GetTlsConfigurationReq: &s2av2pb.GetTlsConfigurationReq{
