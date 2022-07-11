@@ -5,6 +5,7 @@ import (
 	"flag"
 	pb "github.com/google/s2a-go/example/proto/echo_go_proto"
 	commonpbv1 "github.com/google/s2a-go/internal/proto/common_go_proto"
+	s2av2pb "github.com/google/s2a-go/internal/proto/v2/s2a_go_proto"
 	"github.com/google/s2a-go/internal/v2"
 	"google.golang.org/grpc"
 	"log"
@@ -21,11 +22,12 @@ var (
 )
 
 func runClient(serverAddr *string) {
+	// TODO(rmehta19): Use S2A v1 NewClientCreds, specify EnableV2 in ClientOptions.
 	creds, err := v2.NewClientCreds(*s2aAddr, &commonpbv1.Identity{
 		IdentityOneof: &commonpbv1.Identity_Hostname{
 			Hostname: "test_rsa_client_identity",
 		},
-	})
+	}, s2av2pb.ValidatePeerCertificateChainReq_CONNECT_TO_GOOGLE)
 	if err != nil {
 		log.Fatalf("NewClientCreds() failed: %v", err)
 	}

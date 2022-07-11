@@ -64,6 +64,16 @@ func NewUID(name string) Identity {
 	return &uid{uid: name}
 }
 
+// VerificationModeType specifies the mode that S2A must use to verify the peer
+// certificate chain.
+type VerificationModeType int
+
+const (
+	UNSPECIFIED = iota
+	CONNECT_TO_GOOGLE
+	SPIFFE
+)
+
 // ClientOptions contains the client-side options used to establish a secure
 // channel using the S2A handshaker service.
 type ClientOptions struct {
@@ -105,11 +115,17 @@ type ClientOptions struct {
 	EnsureProcessSessionTickets *sync.WaitGroup
 	// If true, enables the use of S2Av2.
 	EnableV2 bool
+	// VerificationMode specifies the mode that S2A must use to verify the
+	// peer certificate chain.
+	VerificationMode VerificationModeType
 }
 
 // DefaultClientOptions returns the default client options.
 func DefaultClientOptions(s2aAddress string) *ClientOptions {
-	return &ClientOptions{S2AAddress: s2aAddress}
+	return &ClientOptions{
+		S2AAddress:       s2aAddress,
+		VerificationMode: CONNECT_TO_GOOGLE,
+	}
 }
 
 // ServerOptions contains the server-side options used to establish a secure
@@ -123,11 +139,17 @@ type ServerOptions struct {
 	S2AAddress string
 	// If true, enables the use of S2Av2.
 	EnableV2 bool
+	// VerificationMode specifies the mode that S2A must use to verify the
+	// peer certificate chain.
+	VerificationMode VerificationModeType
 }
 
 // DefaultServerOptions returns the default server options.
 func DefaultServerOptions(s2aAddress string) *ServerOptions {
-	return &ServerOptions{S2AAddress: s2aAddress}
+	return &ServerOptions{
+		S2AAddress:       s2aAddress,
+		VerificationMode: CONNECT_TO_GOOGLE,
+	}
 }
 
 func toProtoIdentity(identity Identity) (*s2apb.Identity, error) {

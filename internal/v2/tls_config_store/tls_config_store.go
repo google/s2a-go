@@ -31,7 +31,7 @@ var (
 )
 
 // GetTlsConfigurationForClient returns a tls.Config instance for use by a client application.
-func GetTlsConfigurationForClient(serverHostname string, cstream s2av2pb.S2AService_SetUpSessionClient, tokenManager tokenmanager.AccessTokenManager, localIdentity *commonpbv1.Identity) (*tls.Config, error) {
+func GetTlsConfigurationForClient(serverHostname string, cstream s2av2pb.S2AService_SetUpSessionClient, tokenManager tokenmanager.AccessTokenManager, localIdentity *commonpbv1.Identity, verificationMode s2av2pb.ValidatePeerCertificateChainReq_VerificationMode) (*tls.Config, error) {
 	authMechanisms := getAuthMechanisms(tokenManager, []*commonpbv1.Identity{localIdentity})
 
 	// Send request to S2Av2 for config.
@@ -93,7 +93,7 @@ func GetTlsConfigurationForClient(serverHostname string, cstream s2av2pb.S2AServ
 		// TODO(rmehta19): Make use of tlsConfig.HandshakeCiphersuites /
 		// RecordCiphersuites.
 		Certificates:          []tls.Certificate{cert},
-		VerifyPeerCertificate: certverifier.VerifyServerCertificateChain(serverHostname, cstream),
+		VerifyPeerCertificate: certverifier.VerifyServerCertificateChain(serverHostname, verificationMode, cstream),
 		ServerName:            serverHostname,
 		InsecureSkipVerify:    true,
 		ClientSessionCache:    nil,
@@ -103,9 +103,9 @@ func GetTlsConfigurationForClient(serverHostname string, cstream s2av2pb.S2AServ
 }
 
 // GetTlsConfigurationForServer returns a tls.Config instance for use by a server application.
-func GetTlsConfigurationForServer(cstream s2av2pb.S2AService_SetUpSessionClient, tokenManager tokenmanager.AccessTokenManager, localIdentities []*commonpbv1.Identity) (*tls.Config, error) {
+func GetTlsConfigurationForServer(cstream s2av2pb.S2AService_SetUpSessionClient, tokenManager tokenmanager.AccessTokenManager, localIdentities []*commonpbv1.Identity, verificationMode s2av2pb.ValidatePeerCertificateChainReq_VerificationMode) (*tls.Config, error) {
 	return &tls.Config{
-		GetConfigForClient: ClientConfig(tokenManager, localIdentities, cstream),
+		GetConfigForClient: ClientConfig(tokenManager, localIdentities, verificationMode, cstream),
 	}, nil
 }
 
@@ -113,7 +113,7 @@ func GetTlsConfigurationForServer(cstream s2av2pb.S2AService_SetUpSessionClient,
 // connection with a client, based on SNI communicated during ClientHello.
 // Ensures that server presents the correct certificate to establish a TLS
 // connection.
-func ClientConfig(tokenManager tokenmanager.AccessTokenManager, localIdentities []*commonpbv1.Identity, cstream s2av2pb.S2AService_SetUpSessionClient) func(chi *tls.ClientHelloInfo) (*tls.Config, error) {
+func ClientConfig(tokenManager tokenmanager.AccessTokenManager, localIdentities []*commonpbv1.Identity, verificationMode s2av2pb.ValidatePeerCertificateChainReq_VerificationMode, cstream s2av2pb.S2AService_SetUpSessionClient) func(chi *tls.ClientHelloInfo) (*tls.Config, error) {
 	return func(chi *tls.ClientHelloInfo) (*tls.Config, error) {
 		localIdentities = append(localIdentities,
 			&commonpbv1.Identity{
@@ -160,7 +160,7 @@ func ClientConfig(tokenManager tokenmanager.AccessTokenManager, localIdentities 
 			// TODO(rmehta19): Make use of tlsConfig.HandshakeCiphersuites /
 			// RecordCiphersuites / TlsResumptionEnabled / MaxOverheadOfTicketAead.
 			Certificates:          []tls.Certificate{cert},
-			VerifyPeerCertificate: certverifier.VerifyClientCertificateChain(cstream),
+			VerifyPeerCertificate: certverifier.VerifyClientCertificateChain(verificationMode, cstream),
 			ClientAuth:            clientAuth,
 			MinVersion:            minVersion,
 			MaxVersion:            maxVersion,

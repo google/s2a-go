@@ -33,12 +33,13 @@ type s2av2TransportCreds struct {
 	// localIdentity should only be used by the client.
 	localIdentity *commonpbv1.Identity
 	// localIdentities should only be used by the server.
-	localIdentities []*commonpbv1.Identity
+	localIdentities  []*commonpbv1.Identity
+	verificationMode s2av2pb.ValidatePeerCertificateChainReq_VerificationMode
 }
 
 // NewClientCreds returns a client-side transport credentials object that uses
 // the S2Av2 to establish a secure connection with a server.
-func NewClientCreds(s2av2Address string, localIdentity *commonpbv1.Identity) (credentials.TransportCredentials, error) {
+func NewClientCreds(s2av2Address string, localIdentity *commonpbv1.Identity, verificationMode s2av2pb.ValidatePeerCertificateChainReq_VerificationMode) (credentials.TransportCredentials, error) {
 	// Create an AccessTokenManager instance to use to authenticate to S2Av2.
 	accessTokenManager, err := tokenmanager.NewSingleTokenAccessTokenManager()
 	if err != nil {
@@ -48,18 +49,19 @@ func NewClientCreds(s2av2Address string, localIdentity *commonpbv1.Identity) (cr
 		info: &credentials.ProtocolInfo{
 			SecurityProtocol: s2aSecurityProtocol,
 		},
-		isClient:      true,
-		serverName:    "",
-		s2av2Address:  s2av2Address,
-		tokenManager:  &accessTokenManager,
-		localIdentity: localIdentity,
+		isClient:         true,
+		serverName:       "",
+		s2av2Address:     s2av2Address,
+		tokenManager:     &accessTokenManager,
+		localIdentity:    localIdentity,
+		verificationMode: verificationMode,
 	}
 	return creds, nil
 }
 
 // NewServerCreds returns a server-side transport credentials object that uses
 // the S2Av2 to establish a secure connection with a client.
-func NewServerCreds(s2av2Address string, localIdentities []*commonpbv1.Identity) (credentials.TransportCredentials, error) {
+func NewServerCreds(s2av2Address string, localIdentities []*commonpbv1.Identity, verificationMode s2av2pb.ValidatePeerCertificateChainReq_VerificationMode) (credentials.TransportCredentials, error) {
 	// Create an AccessTokenManager instance to use to authenticate to S2Av2.
 	accessTokenManager, err := tokenmanager.NewSingleTokenAccessTokenManager()
 	if err != nil {
@@ -69,10 +71,11 @@ func NewServerCreds(s2av2Address string, localIdentities []*commonpbv1.Identity)
 		info: &credentials.ProtocolInfo{
 			SecurityProtocol: s2aSecurityProtocol,
 		},
-		isClient:        false,
-		s2av2Address:    s2av2Address,
-		tokenManager:    &accessTokenManager,
-		localIdentities: localIdentities,
+		isClient:         false,
+		s2av2Address:     s2av2Address,
+		tokenManager:     &accessTokenManager,
+		localIdentities:  localIdentities,
+		verificationMode: verificationMode,
 	}
 	return creds, nil
 }
@@ -96,12 +99,12 @@ func (c *s2av2TransportCreds) ClientHandshake(ctx context.Context, serverAuthori
 	var config *tls.Config
 
 	if c.serverName == "" {
-		config, err = tlsconfigstore.GetTlsConfigurationForClient(serverName, cstream, *c.tokenManager, c.localIdentity)
+		config, err = tlsconfigstore.GetTlsConfigurationForClient(serverName, cstream, *c.tokenManager, c.localIdentity, c.verificationMode)
 		if err != nil {
 			return nil, nil, err
 		}
 	} else {
-		config, err = tlsconfigstore.GetTlsConfigurationForClient(c.serverName, cstream, *c.tokenManager, c.localIdentity)
+		config, err = tlsconfigstore.GetTlsConfigurationForClient(c.serverName, cstream, *c.tokenManager, c.localIdentity, c.verificationMode)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -123,7 +126,7 @@ func (c *s2av2TransportCreds) ServerHandshake(rawConn net.Conn) (net.Conn, crede
 		return nil, nil, err
 	}
 
-	config, err := tlsconfigstore.GetTlsConfigurationForServer(cstream, *c.tokenManager, c.localIdentities)
+	config, err := tlsconfigstore.GetTlsConfigurationForServer(cstream, *c.tokenManager, c.localIdentities, c.verificationMode)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -142,6 +145,7 @@ func (c *s2av2TransportCreds) Clone() credentials.TransportCredentials {
 	serverName := c.serverName
 	s2av2Address := c.s2av2Address
 	tokenManager := *c.tokenManager
+	verificationMode := c.verificationMode
 	var localIdentity *commonpbv1.Identity
 	if c.localIdentity != nil {
 		localIdentity = proto.Clone(c.localIdentity).(*commonpbv1.Identity)
@@ -154,13 +158,14 @@ func (c *s2av2TransportCreds) Clone() credentials.TransportCredentials {
 		}
 	}
 	return &s2av2TransportCreds{
-		info:            &info,
-		isClient:        c.isClient,
-		serverName:      serverName,
-		s2av2Address:    s2av2Address,
-		tokenManager:    &tokenManager,
-		localIdentity:   localIdentity,
-		localIdentities: localIdentities,
+		info:             &info,
+		isClient:         c.isClient,
+		serverName:       serverName,
+		s2av2Address:     s2av2Address,
+		tokenManager:     &tokenManager,
+		localIdentity:    localIdentity,
+		localIdentities:  localIdentities,
+		verificationMode: verificationMode,
 	}
 }
 

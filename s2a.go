@@ -32,6 +32,7 @@ import (
 	"github.com/google/s2a-go/internal/handshaker"
 	"github.com/google/s2a-go/internal/handshaker/service"
 	commonpb "github.com/google/s2a-go/internal/proto/common_go_proto"
+	s2av2pb "github.com/google/s2a-go/internal/proto/v2/s2a_go_proto"
 	"github.com/google/s2a-go/internal/v2"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/grpclog"
@@ -83,7 +84,8 @@ func NewClientCreds(opts *ClientOptions) (credentials.TransportCredentials, erro
 		return nil, err
 	}
 	if opts.EnableV2 {
-		return v2.NewClientCreds(opts.S2AAddress, localIdentity)
+		verificationMode := getVerificationMode(opts.VerificationMode)
+		return v2.NewClientCreds(opts.S2AAddress, localIdentity, verificationMode)
 	} else {
 		return &s2aTransportCreds{
 			info: &credentials.ProtocolInfo{
@@ -120,7 +122,8 @@ func NewServerCreds(opts *ServerOptions) (credentials.TransportCredentials, erro
 		localIdentities = append(localIdentities, protoLocalIdentity)
 	}
 	if opts.EnableV2 {
-		return v2.NewServerCreds(opts.S2AAddress, localIdentities)
+		verificationMode := getVerificationMode(opts.VerificationMode)
+		return v2.NewServerCreds(opts.S2AAddress, localIdentities, verificationMode)
 	} else {
 		return &s2aTransportCreds{
 			info: &credentials.ProtocolInfo{
@@ -272,4 +275,15 @@ func (c *s2aTransportCreds) Clone() credentials.TransportCredentials {
 func (c *s2aTransportCreds) OverrideServerName(serverNameOverride string) error {
 	c.info.ServerName = serverNameOverride
 	return nil
+}
+
+func getVerificationMode(verificationMode VerificationModeType) s2av2pb.ValidatePeerCertificateChainReq_VerificationMode {
+	switch verificationMode {
+	case CONNECT_TO_GOOGLE:
+		return s2av2pb.ValidatePeerCertificateChainReq_CONNECT_TO_GOOGLE
+	case SPIFFE:
+		return s2av2pb.ValidatePeerCertificateChainReq_SPIFFE
+	default:
+		return s2av2pb.ValidatePeerCertificateChainReq_UNSPECIFIED
+	}
 }
