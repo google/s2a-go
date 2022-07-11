@@ -37,6 +37,7 @@ func (s *remoteSigner) Sign(rand io.Reader, digest []byte, opts crypto.SignerOpt
 	if err := s.cstream.Send(&s2av2pb.SessionReq{
 		ReqOneof: &s2av2pb.SessionReq_OffloadPrivateKeyOperationReq{
 			OffloadPrivateKeyOperationReq: &s2av2pb.OffloadPrivateKeyOperationReq{
+				// TODO(rmehta19): Specify digest or raw bytes once proto field added.
 				Operation:          s2av2pb.OffloadPrivateKeyOperationReq_SIGN,
 				SignatureAlgorithm: signatureAlgorithm,
 				InBytes:            []byte(digest),
