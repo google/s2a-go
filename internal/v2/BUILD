@@ -17,6 +17,7 @@ go_library(
     "//internal/proto/v2/s2a_go_proto:s2a_go_proto",
     "//internal/tokenmanager",
     "//internal/v2/tls_config_store",
+    "@com_github_golang_protobuf//proto",
     "@org_golang_google_grpc//credentials:go_default_library",
     "@org_golang_google_grpc//:go_default_library",
   ]
@@ -30,6 +31,7 @@ go_test(
   ],
   embed = [":v2"],
   deps = [
+    "//internal/proto/common_go_proto:common_go_proto",
     "//internal/proto/examples/helloworld_go_proto:helloworld_go_proto",
     "//internal/proto/v2/s2a_go_proto:s2a_go_proto",
     "//internal/v2/fakes2av2",

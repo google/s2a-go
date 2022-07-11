@@ -83,7 +83,7 @@ func NewClientCreds(opts *ClientOptions) (credentials.TransportCredentials, erro
 		return nil, err
 	}
 	if opts.EnableV2 {
-		return v2.NewClientCreds(opts.S2AAddress)
+		return v2.NewClientCreds(opts.S2AAddress, localIdentity)
 	} else {
 		return &s2aTransportCreds{
 			info: &credentials.ProtocolInfo{
@@ -120,7 +120,7 @@ func NewServerCreds(opts *ServerOptions) (credentials.TransportCredentials, erro
 		localIdentities = append(localIdentities, protoLocalIdentity)
 	}
 	if opts.EnableV2 {
-		return v2.NewServerCreds(opts.S2AAddress)
+		return v2.NewServerCreds(opts.S2AAddress, localIdentities)
 	} else {
 		return &s2aTransportCreds{
 			info: &credentials.ProtocolInfo{

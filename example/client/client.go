@@ -4,6 +4,7 @@ import (
 	"context"
 	"flag"
 	pb "github.com/google/s2a-go/example/proto/echo_go_proto"
+	commonpbv1 "github.com/google/s2a-go/internal/proto/common_go_proto"
 	"github.com/google/s2a-go/internal/v2"
 	"google.golang.org/grpc"
 	"log"
@@ -16,10 +17,15 @@ const (
 
 var (
 	serverAddr = flag.String("server_addr", "0.0.0.0:8080", "Echo service address.")
+	s2aAddr    = flag.String("s2a_addr", "0.0.0.0:61366", "S2A service address.")
 )
 
 func runClient(serverAddr *string) {
-	creds, err := v2.NewClientCreds("0.0.0.0:8008")
+	creds, err := v2.NewClientCreds(*s2aAddr, &commonpbv1.Identity{
+		IdentityOneof: &commonpbv1.Identity_Hostname{
+			Hostname: "test_rsa_client_identity",
+		},
+	})
 	if err != nil {
 		log.Fatalf("NewClientCreds() failed: %v", err)
 	}

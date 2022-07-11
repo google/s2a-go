@@ -3,6 +3,7 @@ package v2
 import (
 	"context"
 	"github.com/google/go-cmp/cmp"
+	commonpbv1 "github.com/google/s2a-go/internal/proto/common_go_proto"
 	"github.com/google/s2a-go/internal/tokenmanager"
 	"google.golang.org/protobuf/testing/protocmp"
 	"os"
@@ -27,7 +28,11 @@ func TestNewClientCreds(t *testing.T) {
 		},
 	} {
 		t.Run(tc.description, func(t *testing.T) {
-			c, err := NewClientCreds(fakes2av2Address)
+			c, err := NewClientCreds(fakes2av2Address, &commonpbv1.Identity{
+				IdentityOneof: &commonpbv1.Identity_Hostname{
+					Hostname: "test_rsa_client_identity",
+				},
+			})
 			if err != nil {
 				t.Fatalf("NewClientCreds() failed: %v", err)
 			}
@@ -52,7 +57,13 @@ func TestNewServerCreds(t *testing.T) {
 		},
 	} {
 		t.Run(tc.description, func(t *testing.T) {
-			c, err := NewServerCreds(fakes2av2Address)
+			var localIdentities []*commonpbv1.Identity
+			localIdentities = append(localIdentities, &commonpbv1.Identity{
+				IdentityOneof: &commonpbv1.Identity_Hostname{
+					Hostname: "test_rsa_server_identity",
+				},
+			})
+			c, err := NewServerCreds(fakes2av2Address, localIdentities)
 			if err != nil {
 				t.Fatalf("NewServerCreds() failed: %v", err)
 			}
@@ -83,7 +94,11 @@ func TestServerHandshakeFail(t *testing.T) {
 
 func TestInfo(t *testing.T) {
 	os.Setenv("S2A_ACCESS_TOKEN", "TestInfo_s2a_access_token")
-	c, err := NewClientCreds(fakes2av2Address)
+	c, err := NewClientCreds(fakes2av2Address, &commonpbv1.Identity{
+		IdentityOneof: &commonpbv1.Identity_Hostname{
+			Hostname: "test_rsa_client_identity",
+		},
+	})
 	if err != nil {
 		t.Fatalf("NewClientCreds() failed: %v", err)
 	}
@@ -95,7 +110,11 @@ func TestInfo(t *testing.T) {
 
 func TestCloneClient(t *testing.T) {
 	os.Setenv("S2A_ACCESS_TOKEN", "TestCloneClient_s2a_access_token")
-	c, err := NewClientCreds(fakes2av2Address)
+	c, err := NewClientCreds(fakes2av2Address, &commonpbv1.Identity{
+		IdentityOneof: &commonpbv1.Identity_Hostname{
+			Hostname: "test_rsa_client_identity",
+		},
+	})
 	if err != nil {
 		t.Fatalf("NewClientCreds() failed: %v", err)
 	}
@@ -148,7 +167,13 @@ func TestCloneClient(t *testing.T) {
 
 func TestCloneServer(t *testing.T) {
 	os.Setenv("S2A_ACCESS_TOKEN", "TestCloneServer_s2a_access_token")
-	c, err := NewServerCreds(fakes2av2Address)
+	var localIdentities []*commonpbv1.Identity
+	localIdentities = append(localIdentities, &commonpbv1.Identity{
+		IdentityOneof: &commonpbv1.Identity_Hostname{
+			Hostname: "test_rsa_server_identity",
+		},
+	})
+	c, err := NewServerCreds(fakes2av2Address, localIdentities)
 	if err != nil {
 		t.Fatalf("NewServerCreds() failed: %v", err)
 	}
@@ -202,7 +227,11 @@ func TestCloneServer(t *testing.T) {
 func TestOverrideServerName(t *testing.T) {
 	// Setup test.
 	os.Setenv("S2A_ACCESS_TOKEN", "TestOverrideServerName_s2a_access_token")
-	c, err := NewClientCreds(fakes2av2Address)
+	c, err := NewClientCreds(fakes2av2Address, &commonpbv1.Identity{
+		IdentityOneof: &commonpbv1.Identity_Hostname{
+			Hostname: "test_rsa_client_identity",
+		},
+	})
 	s2av2Creds, ok := c.(*s2av2TransportCreds)
 	if !ok {
 		t.Fatal("the created creds is not of type s2av2TransportCreds")
