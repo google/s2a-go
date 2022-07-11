@@ -10,8 +10,10 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	_ "embed"
+	"fmt"
 	"log"
 	"net"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -205,28 +207,139 @@ func TestNew(t *testing.T) {
 // Test GetSignatureAlgorithm runs unit test for getSignatureAlgorithm.
 func TestGetSignatureAlgorithm(t *testing.T) {
 	for _, tc := range []struct {
-		description           string
-		opts                  crypto.SignerOpts
-		expSignatureAlgorithm s2av2pb.SignatureAlgorithm
+		description            string
+		leafCert               *x509.Certificate
+		signerOpts             crypto.SignerOpts
+		wantSignatureAlgorithm s2av2pb.SignatureAlgorithm
+		wantError              error
 	}{
 		{
-			description:           "RSA PSS SHA256",
-			opts:                  &rsa.PSSOptions{SaltLength: rsa.PSSSaltLengthEqualsHash, Hash: crypto.SHA256},
-			expSignatureAlgorithm: s2av2pb.SignatureAlgorithm_S2A_SSL_SIGN_RSA_PSS_RSAE_SHA256,
+			description: "Leaf certificate is nil",
+			leafCert:    nil,
+			signerOpts:  crypto.SHA256,
+			wantError:   fmt.Errorf("unknown signature algorithm"),
 		},
 		{
-			description:           "RSA PKCS1 SHA256",
-			opts:                  crypto.SHA256,
-			expSignatureAlgorithm: s2av2pb.SignatureAlgorithm_S2A_SSL_SIGN_RSA_PKCS1_SHA256,
+			description: "Signer options are nil",
+			leafCert:    &x509.Certificate{},
+			signerOpts:  nil,
+			wantError:   fmt.Errorf("unknown signature algorithm"),
 		},
 		{
-			description:           "UNSPECIFIED",
-			opts:                  crypto.SHA1,
-			expSignatureAlgorithm: s2av2pb.SignatureAlgorithm_S2A_SSL_SIGN_UNSPECIFIED,
+			description:            "RSA PSS SHA256",
+			leafCert:               &x509.Certificate{PublicKeyAlgorithm: x509.RSA},
+			signerOpts:             &rsa.PSSOptions{SaltLength: rsa.PSSSaltLengthEqualsHash, Hash: crypto.SHA256},
+			wantSignatureAlgorithm: s2av2pb.SignatureAlgorithm_S2A_SSL_SIGN_RSA_PSS_RSAE_SHA256,
+		},
+		{
+			description:            "RSA PSS SHA384",
+			leafCert:               &x509.Certificate{PublicKeyAlgorithm: x509.RSA},
+			signerOpts:             &rsa.PSSOptions{SaltLength: rsa.PSSSaltLengthEqualsHash, Hash: crypto.SHA384},
+			wantSignatureAlgorithm: s2av2pb.SignatureAlgorithm_S2A_SSL_SIGN_RSA_PSS_RSAE_SHA384,
+		},
+		{
+			description:            "RSA PSS SHA512",
+			leafCert:               &x509.Certificate{PublicKeyAlgorithm: x509.RSA},
+			signerOpts:             &rsa.PSSOptions{SaltLength: rsa.PSSSaltLengthEqualsHash, Hash: crypto.SHA512},
+			wantSignatureAlgorithm: s2av2pb.SignatureAlgorithm_S2A_SSL_SIGN_RSA_PSS_RSAE_SHA512,
+		},
+		{
+			description: "RSA PSS with unsupported hash",
+			leafCert:    &x509.Certificate{PublicKeyAlgorithm: x509.RSA},
+			signerOpts:  &rsa.PSSOptions{SaltLength: rsa.PSSSaltLengthEqualsHash, Hash: crypto.MD5},
+			wantError:   fmt.Errorf("unknown signature algorithm"),
+		},
+		{
+			description:            "RSA PKCS1 SHA256",
+			leafCert:               &x509.Certificate{PublicKeyAlgorithm: x509.RSA},
+			signerOpts:             crypto.SHA256,
+			wantSignatureAlgorithm: s2av2pb.SignatureAlgorithm_S2A_SSL_SIGN_RSA_PKCS1_SHA256,
+		},
+		{
+			description:            "RSA PKCS1 SHA384",
+			leafCert:               &x509.Certificate{PublicKeyAlgorithm: x509.RSA},
+			signerOpts:             crypto.SHA384,
+			wantSignatureAlgorithm: s2av2pb.SignatureAlgorithm_S2A_SSL_SIGN_RSA_PKCS1_SHA384,
+		},
+		{
+			description:            "RSA PKCS1 SHA512",
+			leafCert:               &x509.Certificate{PublicKeyAlgorithm: x509.RSA},
+			signerOpts:             crypto.SHA512,
+			wantSignatureAlgorithm: s2av2pb.SignatureAlgorithm_S2A_SSL_SIGN_RSA_PKCS1_SHA512,
+		},
+		{
+			description: "RSA PKCS1 with unsupported hash",
+			leafCert:    &x509.Certificate{PublicKeyAlgorithm: x509.RSA},
+			signerOpts:  crypto.MD5,
+			wantError:   fmt.Errorf("unknown signature algorithm"),
+		},
+		{
+			description:            "ECDSA SHA256",
+			leafCert:               &x509.Certificate{PublicKeyAlgorithm: x509.ECDSA},
+			signerOpts:             crypto.SHA256,
+			wantSignatureAlgorithm: s2av2pb.SignatureAlgorithm_S2A_SSL_SIGN_ECDSA_SECP256R1_SHA256,
+		},
+		{
+			description:            "ECDSA SHA384",
+			leafCert:               &x509.Certificate{PublicKeyAlgorithm: x509.ECDSA},
+			signerOpts:             crypto.SHA384,
+			wantSignatureAlgorithm: s2av2pb.SignatureAlgorithm_S2A_SSL_SIGN_ECDSA_SECP384R1_SHA384,
+		},
+		{
+			description:            "ECDSA SHA512",
+			leafCert:               &x509.Certificate{PublicKeyAlgorithm: x509.ECDSA},
+			signerOpts:             crypto.SHA512,
+			wantSignatureAlgorithm: s2av2pb.SignatureAlgorithm_S2A_SSL_SIGN_ECDSA_SECP521R1_SHA512,
+		},
+		{
+			description: "ECDSA with unsupported hash",
+			leafCert:    &x509.Certificate{PublicKeyAlgorithm: x509.ECDSA},
+			signerOpts:  crypto.MD5,
+			wantError:   fmt.Errorf("unknown signature algorithm"),
+		},
+		{
+			description:            "ED25519",
+			leafCert:               &x509.Certificate{PublicKeyAlgorithm: x509.Ed25519},
+			signerOpts:             crypto.SHA256,
+			wantSignatureAlgorithm: s2av2pb.SignatureAlgorithm_S2A_SSL_SIGN_ED25519,
+		},
+		{
+			description: "DSA",
+			leafCert:    &x509.Certificate{PublicKeyAlgorithm: x509.DSA},
+			signerOpts:  crypto.SHA256,
+			wantError:   fmt.Errorf("unknown signature algorithm: \"DSA\""),
+		},
+		{
+			description: "Unknown public key algorithm",
+			leafCert:    &x509.Certificate{PublicKeyAlgorithm: x509.UnknownPublicKeyAlgorithm},
+			signerOpts:  crypto.SHA256,
+			wantError:   fmt.Errorf("unknown signature algorithm: \"0\""),
+		},
+		{
+			description: "No public key algorithm",
+			leafCert:    &x509.Certificate{},
+			signerOpts:  crypto.SHA256,
+			wantError:   fmt.Errorf("unknown signature algorithm: \"0\""),
 		},
 	} {
-		if got, want := getSignatureAlgorithm(tc.opts), tc.expSignatureAlgorithm; got != want {
-			t.Errorf("getSignatureAlgorithm(%v): got: %v, want: %v", tc.opts, got, want)
-		}
+		t.Run(tc.description, func(t *testing.T) {
+			algorithm, err := getSignatureAlgorithm(tc.signerOpts, tc.leafCert)
+
+			if tc.wantError != nil {
+				if got, want := algorithm, s2av2pb.SignatureAlgorithm_S2A_SSL_SIGN_UNSPECIFIED; got != want {
+					t.Errorf("signature algorithm, got: %v, want: %v", got, want)
+				}
+				if !strings.Contains(tc.wantError.Error(), err.Error()) {
+					t.Errorf("unexpected error, got: %v, want: %v", err, tc.wantError)
+				}
+			} else {
+				if got, want := algorithm, tc.wantSignatureAlgorithm; got != want {
+					t.Errorf("signature algorithm, got: %v, want: %v", got, want)
+				}
+				if err != nil {
+					t.Errorf("unexpected error: %v", err)
+				}
+			}
+		})
 	}
 }
