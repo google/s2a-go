@@ -24,6 +24,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	s2apb "github.com/google/s2a-go/internal/proto/common_go_proto"
+	s2av2pb "github.com/google/s2a-go/internal/proto/v2/s2a_go_proto"
 	"google.golang.org/protobuf/testing/protocmp"
 )
 
@@ -463,5 +464,35 @@ func TestOverrideServerName(t *testing.T) {
 	}
 	if got, want := c.Info().ServerName, wantServerName; got != want {
 		t.Errorf("c.Info().ServerName = %v, want %v", got, want)
+	}
+}
+
+func TestGetVerificationMode(t *testing.T) {
+	for _, tc := range []struct {
+		description         string
+		verificationMode    VerificationModeType
+		expVerificationMode s2av2pb.ValidatePeerCertificateChainReq_VerificationMode
+	}{
+		{
+			description:         "connect to google",
+			verificationMode:    CONNECT_TO_GOOGLE,
+			expVerificationMode: s2av2pb.ValidatePeerCertificateChainReq_CONNECT_TO_GOOGLE,
+		},
+		{
+			description:         "spiffe",
+			verificationMode:    SPIFFE,
+			expVerificationMode: s2av2pb.ValidatePeerCertificateChainReq_SPIFFE,
+		},
+		{
+			description:         "unspecified",
+			verificationMode:    UNSPECIFIED,
+			expVerificationMode: s2av2pb.ValidatePeerCertificateChainReq_UNSPECIFIED,
+		},
+	} {
+		t.Run(tc.description, func(t *testing.T) {
+			if got, want := getVerificationMode(tc.verificationMode), tc.expVerificationMode; got != want {
+				t.Errorf("got = %v, want = %v", got, want)
+			}
+		})
 	}
 }

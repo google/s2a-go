@@ -11,13 +11,13 @@ import (
 
 // VerifyClientCertificateChain builds a SessionReq, sends it to S2Av2 and
 // receives a SessionResp.
-func VerifyClientCertificateChain(cstream s2av2pb.S2AService_SetUpSessionClient) func(rawCerts [][]byte, verifiedChains [][]*x509.Certificate) error {
+func VerifyClientCertificateChain(verificationMode s2av2pb.ValidatePeerCertificateChainReq_VerificationMode, cstream s2av2pb.S2AService_SetUpSessionClient) func(rawCerts [][]byte, verifiedChains [][]*x509.Certificate) error {
 	return func(rawCerts [][]byte, verifiedChains [][]*x509.Certificate) error {
 		// Offload verification to S2Av2.
 		if err := cstream.Send(&s2av2pb.SessionReq{
 			ReqOneof: &s2av2pb.SessionReq_ValidatePeerCertificateChainReq{
 				ValidatePeerCertificateChainReq: &s2av2pb.ValidatePeerCertificateChainReq{
-					Mode: s2av2pb.ValidatePeerCertificateChainReq_CONNECT_TO_GOOGLE,
+					Mode: verificationMode,
 					PeerOneof: &s2av2pb.ValidatePeerCertificateChainReq_ClientPeer_{
 						ClientPeer: &s2av2pb.ValidatePeerCertificateChainReq_ClientPeer{
 							CertificateChain: rawCerts,
@@ -46,13 +46,13 @@ func VerifyClientCertificateChain(cstream s2av2pb.S2AService_SetUpSessionClient)
 
 // VerifyServerCertificateChain builds a SessionReq, sends it to S2Av2 and
 // receives a SessionResp.
-func VerifyServerCertificateChain(hostname string, cstream s2av2pb.S2AService_SetUpSessionClient) func(rawCerts [][]byte, verifiedChains [][]*x509.Certificate) error {
+func VerifyServerCertificateChain(hostname string, verificationMode s2av2pb.ValidatePeerCertificateChainReq_VerificationMode, cstream s2av2pb.S2AService_SetUpSessionClient) func(rawCerts [][]byte, verifiedChains [][]*x509.Certificate) error {
 	return func(rawCerts [][]byte, verifiedChains [][]*x509.Certificate) error {
 		// Offload verification to S2Av2.
 		if err := cstream.Send(&s2av2pb.SessionReq{
 			ReqOneof: &s2av2pb.SessionReq_ValidatePeerCertificateChainReq{
 				ValidatePeerCertificateChainReq: &s2av2pb.ValidatePeerCertificateChainReq{
-					Mode: s2av2pb.ValidatePeerCertificateChainReq_CONNECT_TO_GOOGLE,
+					Mode: verificationMode,
 					PeerOneof: &s2av2pb.ValidatePeerCertificateChainReq_ServerPeer_{
 						ServerPeer: &s2av2pb.ValidatePeerCertificateChainReq_ServerPeer{
 							CertificateChain: rawCerts,

@@ -8,6 +8,8 @@ import (
 	"google.golang.org/protobuf/testing/protocmp"
 	"os"
 	"testing"
+
+	s2av2pb "github.com/google/s2a-go/internal/proto/v2/s2a_go_proto"
 )
 
 var (
@@ -32,7 +34,7 @@ func TestNewClientCreds(t *testing.T) {
 				IdentityOneof: &commonpbv1.Identity_Hostname{
 					Hostname: "test_rsa_client_identity",
 				},
-			})
+			}, s2av2pb.ValidatePeerCertificateChainReq_CONNECT_TO_GOOGLE)
 			if err != nil {
 				t.Fatalf("NewClientCreds() failed: %v", err)
 			}
@@ -63,7 +65,7 @@ func TestNewServerCreds(t *testing.T) {
 					Hostname: "test_rsa_server_identity",
 				},
 			})
-			c, err := NewServerCreds(fakes2av2Address, localIdentities)
+			c, err := NewServerCreds(fakes2av2Address, localIdentities, s2av2pb.ValidatePeerCertificateChainReq_CONNECT_TO_GOOGLE)
 			if err != nil {
 				t.Fatalf("NewServerCreds() failed: %v", err)
 			}
@@ -98,7 +100,7 @@ func TestInfo(t *testing.T) {
 		IdentityOneof: &commonpbv1.Identity_Hostname{
 			Hostname: "test_rsa_client_identity",
 		},
-	})
+	}, s2av2pb.ValidatePeerCertificateChainReq_CONNECT_TO_GOOGLE)
 	if err != nil {
 		t.Fatalf("NewClientCreds() failed: %v", err)
 	}
@@ -114,7 +116,7 @@ func TestCloneClient(t *testing.T) {
 		IdentityOneof: &commonpbv1.Identity_Hostname{
 			Hostname: "test_rsa_client_identity",
 		},
-	})
+	}, s2av2pb.ValidatePeerCertificateChainReq_CONNECT_TO_GOOGLE)
 	if err != nil {
 		t.Fatalf("NewClientCreds() failed: %v", err)
 	}
@@ -173,7 +175,7 @@ func TestCloneServer(t *testing.T) {
 			Hostname: "test_rsa_server_identity",
 		},
 	})
-	c, err := NewServerCreds(fakes2av2Address, localIdentities)
+	c, err := NewServerCreds(fakes2av2Address, localIdentities, s2av2pb.ValidatePeerCertificateChainReq_CONNECT_TO_GOOGLE)
 	if err != nil {
 		t.Fatalf("NewServerCreds() failed: %v", err)
 	}
@@ -231,7 +233,7 @@ func TestOverrideServerName(t *testing.T) {
 		IdentityOneof: &commonpbv1.Identity_Hostname{
 			Hostname: "test_rsa_client_identity",
 		},
-	})
+	}, s2av2pb.ValidatePeerCertificateChainReq_CONNECT_TO_GOOGLE)
 	s2av2Creds, ok := c.(*s2av2TransportCreds)
 	if !ok {
 		t.Fatal("the created creds is not of type s2av2TransportCreds")

@@ -37,6 +37,7 @@ go_library(
         "//internal/handshaker",
         "//internal/handshaker/service",
         "//internal/proto/common_go_proto:common_go_proto",
+        "//internal/proto/v2/s2a_go_proto:s2a_go_proto",
         "//internal/v2",
         "@com_github_golang_protobuf//proto",
         "@org_golang_google_grpc//credentials:go_default_library",

@@ -115,7 +115,8 @@ func TestVerifyClientCertChain(t *testing.T) {
 			}
 			log.Printf("Client: set up bidirectional streaming RPC session.")
 
-			VerifyPeerCertificateFunc := VerifyClientCertificateChain(cstream)
+			// TODO(rmehta19): Add verificationMode to struct, and vary between tests.
+			VerifyPeerCertificateFunc := VerifyClientCertificateChain(s2av2pb.ValidatePeerCertificateChainReq_CONNECT_TO_GOOGLE, cstream)
 			got, want := VerifyPeerCertificateFunc(tc.rawCerts, nil), tc.expectedErr
 			if want == nil {
 				if got != nil {
@@ -195,7 +196,8 @@ func TestVerifyServerCertChain(t *testing.T) {
 			}
 			log.Printf("Client: set up bidirectional streaming RPC session.")
 
-			VerifyPeerCertificateFunc := VerifyServerCertificateChain(tc.hostname, cstream)
+			// TODO(rmehta19): Add verificationMode to struct, and vary between tests.
+			VerifyPeerCertificateFunc := VerifyServerCertificateChain(tc.hostname, s2av2pb.ValidatePeerCertificateChainReq_CONNECT_TO_GOOGLE, cstream)
 			got, want := VerifyPeerCertificateFunc(tc.rawCerts, nil), tc.expectedErr
 			if want == nil {
 				if got != nil {

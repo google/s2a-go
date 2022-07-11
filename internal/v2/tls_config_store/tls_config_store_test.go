@@ -153,7 +153,7 @@ func TestTLSConfigStoreClient(t *testing.T) {
 				t.Fatalf("Client: failed to setup bidirectional streaming RPC session: %v", err)
 			}
 			log.Printf("Client: set up bidirectional streaming RPC session.")
-			config, err := GetTlsConfigurationForClient(tc.ServerName, cstream, accessTokenManager, nil)
+			config, err := GetTlsConfigurationForClient(tc.ServerName, cstream, accessTokenManager, nil, s2av2pb.ValidatePeerCertificateChainReq_CONNECT_TO_GOOGLE)
 			if err != nil {
 				t.Errorf("GetTlsConfigurationForClient failed: %v", err)
 			}
@@ -238,7 +238,7 @@ func TestTLSConfigStoreServer(t *testing.T) {
 				t.Fatalf("Client: failed to setup bidirectional streaming RPC session: %v", err)
 			}
 			log.Printf("Client: set up bidirectional streaming RPC session.")
-			config, err := GetTlsConfigurationForServer(cstream, accessTokenManager, identities)
+			config, err := GetTlsConfigurationForServer(cstream, accessTokenManager, identities, s2av2pb.ValidatePeerCertificateChainReq_CONNECT_TO_GOOGLE)
 			if err != nil {
 				t.Errorf("GetTlsConfigurationForClient failed: %v", err)
 			}
@@ -614,7 +614,7 @@ func TestGetClientConfig(t *testing.T) {
 				t.Fatalf("Client: failed to setup bidirectional streaming RPC session: %v", err)
 			}
 			log.Printf("Client: set up bidirectional streaming RPC session.")
-			clientConfigFunc := ClientConfig(accessTokenManager, identities, cstream)
+			clientConfigFunc := ClientConfig(accessTokenManager, identities, s2av2pb.ValidatePeerCertificateChainReq_CONNECT_TO_GOOGLE, cstream)
 			config, err := clientConfigFunc(&tls.ClientHelloInfo{
 				ServerName: "host_1",
 			})
