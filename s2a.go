@@ -28,13 +28,13 @@ import (
 	"sync"
 	"time"
 
-	"google.golang.org/grpc/credentials"
-	"google.golang.org/grpc/grpclog"
 	"github.com/golang/protobuf/proto"
 	"github.com/google/s2a-go/internal/handshaker"
 	"github.com/google/s2a-go/internal/handshaker/service"
-	"github.com/google/s2a-go/internal/v2"
 	commonpb "github.com/google/s2a-go/internal/proto/common_go_proto"
+	"github.com/google/s2a-go/internal/v2"
+	"google.golang.org/grpc/credentials"
+	"google.golang.org/grpc/grpclog"
 )
 
 const (

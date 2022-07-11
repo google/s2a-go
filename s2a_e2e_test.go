@@ -28,16 +28,16 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/s2a-go/internal/fakehandshaker/service"
 	commonpb "github.com/google/s2a-go/internal/proto/common_go_proto"
+	helloworldpb "github.com/google/s2a-go/internal/proto/examples/helloworld_go_proto"
 	s2apb "github.com/google/s2a-go/internal/proto/s2a_go_proto"
 	s2av2pb "github.com/google/s2a-go/internal/proto/v2/s2a_go_proto"
-	"google.golang.org/grpc/credentials"
+	"github.com/google/s2a-go/internal/v2/fakes2av2"
 	grpc "google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/grpclog"
 	"google.golang.org/grpc/peer"
-	"github.com/google/s2a-go/internal/fakehandshaker/service"
-	"github.com/google/s2a-go/internal/v2/fakes2av2"
-	helloworldpb "github.com/google/s2a-go/internal/proto/examples/helloworld_go_proto"
 )
 
 const (
@@ -45,12 +45,12 @@ const (
 	testAccessToken        = "test_access_token"
 	testV2AccessToken      = "valid_token"
 
-	applicationProtocol = "grpc"
-	authType            = "s2a"
-	clientHostname      = "test_client_hostname"
-	serverSpiffeID      = "test_server_spiffe_id"
-	clientMessage       = "echo"
-	defaultE2ETestTimeout      = time.Second * 5
+	applicationProtocol   = "grpc"
+	authType              = "s2a"
+	clientHostname        = "test_client_hostname"
+	serverSpiffeID        = "test_server_spiffe_id"
+	clientMessage         = "echo"
+	defaultE2ETestTimeout = time.Second * 5
 )
 
 // server is used to implement helloworld.GreeterServer.
@@ -110,7 +110,6 @@ func startFakeS2AOnUDS(t *testing.T, enableV2 bool, expToken string) string {
 	return fmt.Sprintf("unix://%s", lis.Addr().String())
 }
 
-
 // startServer starts up a server and returns the address that it is listening
 // on.
 func startServer(t *testing.T, s2aAddress string, enableV2 bool) string {
@@ -144,7 +143,7 @@ func runClient(ctx context.Context, t *testing.T, clientS2AAddress, serverAddr s
 		TargetIdentities: []Identity{NewSpiffeID(serverSpiffeID)},
 		LocalIdentity:    NewHostname(clientHostname),
 		S2AAddress:       clientS2AAddress,
-		EnableV2:	  enableV2,
+		EnableV2:         enableV2,
 	}
 	creds, err := NewClientCreds(clientOpts)
 	if err != nil {

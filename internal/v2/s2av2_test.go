@@ -1,12 +1,12 @@
 package v2
 
 import (
-	"os"
-	"testing"
 	"context"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/s2a-go/internal/tokenmanager"
 	"google.golang.org/protobuf/testing/protocmp"
+	"os"
+	"testing"
 )
 
 var (
@@ -25,8 +25,8 @@ func TestNewClientCreds(t *testing.T) {
 		{
 			description: "static",
 		},
-	}{
-		t.Run(tc.description, func(t *testing.T){
+	} {
+		t.Run(tc.description, func(t *testing.T) {
 			c, err := NewClientCreds(fakes2av2Address)
 			if err != nil {
 				t.Fatalf("NewClientCreds() failed: %v", err)
@@ -50,8 +50,8 @@ func TestNewServerCreds(t *testing.T) {
 		{
 			description: "static",
 		},
-	}{
-		t.Run(tc.description, func(t *testing.T){
+	} {
+		t.Run(tc.description, func(t *testing.T) {
 			c, err := NewServerCreds(fakes2av2Address)
 			if err != nil {
 				t.Fatalf("NewServerCreds() failed: %v", err)
@@ -217,29 +217,29 @@ func TestOverrideServerName(t *testing.T) {
 		t.Errorf("c.serverName = %v, want %v", got, want)
 	}
 	for _, tc := range []struct {
-		description string
-		override string
+		description    string
+		override       string
 		wantServerName string
-		expectError bool
-	} {
+		expectError    bool
+	}{
 		{
-			description: "empty string",
-			override: "",
+			description:    "empty string",
+			override:       "",
 			wantServerName: "",
 		},
 		{
-			description: "host only",
-			override: "server.name",
+			description:    "host only",
+			override:       "server.name",
 			wantServerName: "server.name",
 		},
 		{
-			description: "invalid syntax",
-			override: "server::",
+			description:    "invalid syntax",
+			override:       "server::",
 			wantServerName: "server::",
 		},
 		{
-			description: "split host port",
-			override: "host:port",
+			description:    "split host port",
+			override:       "host:port",
 			wantServerName: "host",
 		},
 	} {

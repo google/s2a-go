@@ -2,21 +2,21 @@
 package tlsconfigstore
 
 import (
-	"fmt"
-	"errors"
 	"crypto/tls"
-	"encoding/pem"
 	"crypto/x509"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/grpclog"
+	"encoding/pem"
+	"errors"
+	"fmt"
 	"github.com/google/s2a-go/internal/tokenmanager"
 	"github.com/google/s2a-go/internal/v2/cert_verifier"
 	"github.com/google/s2a-go/internal/v2/remote_signer"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/grpclog"
 
 	_ "embed"
-	s2av2pb "github.com/google/s2a-go/internal/proto/v2/s2a_go_proto"
-	commonpb "github.com/google/s2a-go/internal/proto/v2/common_go_proto"
 	commonpbv1 "github.com/google/s2a-go/internal/proto/common_go_proto"
+	commonpb "github.com/google/s2a-go/internal/proto/v2/common_go_proto"
+	s2av2pb "github.com/google/s2a-go/internal/proto/v2/s2a_go_proto"
 )
 
 var (
@@ -34,10 +34,10 @@ var (
 func GetTlsConfigurationForClient(serverHostname string, cstream s2av2pb.S2AService_SetUpSessionClient, tokenManager tokenmanager.AccessTokenManager, localIdentity *commonpbv1.Identity) (*tls.Config, error) {
 	authMechanisms := getAuthMechanisms(tokenManager, []*commonpbv1.Identity{localIdentity})
 	// Send request to S2Av2 for config.
-	if err := cstream.Send(&s2av2pb.SessionReq {
+	if err := cstream.Send(&s2av2pb.SessionReq{
 		AuthenticationMechanisms: authMechanisms,
-		ReqOneof: &s2av2pb.SessionReq_GetTlsConfigurationReq {
-			&s2av2pb.GetTlsConfigurationReq {
+		ReqOneof: &s2av2pb.SessionReq_GetTlsConfigurationReq{
+			GetTlsConfigurationReq: &s2av2pb.GetTlsConfigurationReq{
 				ConnectionSide: commonpb.ConnectionSide_CONNECTION_SIDE_CLIENT,
 			},
 		},
@@ -81,29 +81,28 @@ func GetTlsConfigurationForClient(serverHostname string, cstream s2av2pb.S2AServ
 		return nil, errors.New("failed to retrieve Private Key from Remote Signer Library")
 	}
 
-
 	minVersion, maxVersion, err := getTLSMinMaxVersionsClient(tlsConfig)
 	if err != nil {
 		return nil, err
 	}
 
 	// Create mTLS credentials for client.
-	return &tls.Config {
+	return &tls.Config{
 		// TODO(rmehta19): Make use of tlsConfig.HandshakeCiphersuites /
 		// RecordCiphersuites.
-		Certificates: []tls.Certificate{cert},
+		Certificates:          []tls.Certificate{cert},
 		VerifyPeerCertificate: certverifier.VerifyServerCertificateChain(serverHostname, cstream),
-		ServerName: serverHostname,
-		InsecureSkipVerify: true,
-		ClientSessionCache: nil,
-		MinVersion: minVersion,
-		MaxVersion: maxVersion,
+		ServerName:            serverHostname,
+		InsecureSkipVerify:    true,
+		ClientSessionCache:    nil,
+		MinVersion:            minVersion,
+		MaxVersion:            maxVersion,
 	}, nil
 }
 
 // GetTlsConfigurationForServer returns a tls.Config instance for use by a server application.
 func GetTlsConfigurationForServer(cstream s2av2pb.S2AService_SetUpSessionClient, tokenManager tokenmanager.AccessTokenManager, localIdentities []*commonpbv1.Identity) (*tls.Config, error) {
-	return &tls.Config {
+	return &tls.Config{
 		GetConfigForClient: ClientConfig(tokenManager, localIdentities, cstream),
 	}, nil
 }
@@ -115,11 +114,11 @@ func GetTlsConfigurationForServer(cstream s2av2pb.S2AService_SetUpSessionClient,
 func ClientConfig(tokenManager tokenmanager.AccessTokenManager, localIdentities []*commonpbv1.Identity, cstream s2av2pb.S2AService_SetUpSessionClient) func(chi *tls.ClientHelloInfo) (*tls.Config, error) {
 	return func(chi *tls.ClientHelloInfo) (*tls.Config, error) {
 		localIdentities = append(localIdentities,
-		&commonpbv1.Identity{
-			IdentityOneof: &commonpbv1.Identity_Hostname{
-				Hostname: chi.ServerName,
-			},
-		})
+			&commonpbv1.Identity{
+				IdentityOneof: &commonpbv1.Identity_Hostname{
+					Hostname: chi.ServerName,
+				},
+			})
 		tlsConfig, err := getServerConfigFromS2Av2(tokenManager, localIdentities, cstream)
 		if err != nil {
 			return nil, err
@@ -155,14 +154,14 @@ func ClientConfig(tokenManager tokenmanager.AccessTokenManager, localIdentities 
 		clientAuth := getTLSClientAuthType(tlsConfig)
 
 		// Create mTLS credentials for server.
-		return &tls.Config {
+		return &tls.Config{
 			// TODO(rmehta19): Make use of tlsConfig.HandshakeCiphersuites /
 			// RecordCiphersuites / TlsResumptionEnabled / MaxOverheadOfTicketAead.
-			Certificates: []tls.Certificate{cert},
+			Certificates:          []tls.Certificate{cert},
 			VerifyPeerCertificate: certverifier.VerifyClientCertificateChain(cstream),
-			ClientAuth: clientAuth,
-			MinVersion: minVersion,
-			MaxVersion: maxVersion,
+			ClientAuth:            clientAuth,
+			MinVersion:            minVersion,
+			MaxVersion:            maxVersion,
 		}, nil
 	}
 }
@@ -170,10 +169,10 @@ func ClientConfig(tokenManager tokenmanager.AccessTokenManager, localIdentities 
 func getServerConfigFromS2Av2(tokenManager tokenmanager.AccessTokenManager, localIdentities []*commonpbv1.Identity, cstream s2av2pb.S2AService_SetUpSessionClient) (*s2av2pb.GetTlsConfigurationResp_ServerTlsConfiguration, error) {
 	authMechanisms := getAuthMechanisms(tokenManager, localIdentities)
 	// Send request to S2Av2 for config.
-	if err := cstream.Send(&s2av2pb.SessionReq {
+	if err := cstream.Send(&s2av2pb.SessionReq{
 		AuthenticationMechanisms: authMechanisms,
-		ReqOneof: &s2av2pb.SessionReq_GetTlsConfigurationReq {
-			&s2av2pb.GetTlsConfigurationReq {
+		ReqOneof: &s2av2pb.SessionReq_GetTlsConfigurationReq{
+			GetTlsConfigurationReq: &s2av2pb.GetTlsConfigurationReq{
 				ConnectionSide: commonpb.ConnectionSide_CONNECTION_SIDE_SERVER,
 			},
 		},
@@ -238,7 +237,7 @@ func getAuthMechanisms(tokenManager tokenmanager.AccessTokenManager, localIdenti
 			return nil
 		}
 		return []*s2av2pb.AuthenticationMechanism{
-			&s2av2pb.AuthenticationMechanism{
+			{
 				MechanismOneof: &s2av2pb.AuthenticationMechanism_Token{
 					Token: token,
 				},
@@ -253,9 +252,9 @@ func getAuthMechanisms(tokenManager tokenmanager.AccessTokenManager, localIdenti
 				grpclog.Infof("unable to get default token for local identity %v: %v", localIdentity, err)
 				continue
 			}
-			authMechanisms = append(authMechanisms, &s2av2pb.AuthenticationMechanism {
+			authMechanisms = append(authMechanisms, &s2av2pb.AuthenticationMechanism{
 				Identity: localIdentity,
-				MechanismOneof: &s2av2pb.AuthenticationMechanism_Token {
+				MechanismOneof: &s2av2pb.AuthenticationMechanism_Token{
 					Token: token,
 				},
 			})
@@ -265,9 +264,9 @@ func getAuthMechanisms(tokenManager tokenmanager.AccessTokenManager, localIdenti
 				grpclog.Infof("unable to get token for local identity %v: %v", localIdentity, err)
 				continue
 			}
-			authMechanisms = append(authMechanisms, &s2av2pb.AuthenticationMechanism {
+			authMechanisms = append(authMechanisms, &s2av2pb.AuthenticationMechanism{
 				Identity: localIdentity,
-				MechanismOneof: &s2av2pb.AuthenticationMechanism_Token {
+				MechanismOneof: &s2av2pb.AuthenticationMechanism_Token{
 					Token: token,
 				},
 			})

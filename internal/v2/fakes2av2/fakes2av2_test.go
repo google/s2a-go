@@ -1,27 +1,27 @@
 package fakes2av2
 
 import (
-	"net"
-	"log"
-	"fmt"
-	"time"
-	"sync"
-	"errors"
+	"context"
 	"crypto"
 	"crypto/rand"
 	"crypto/sha256"
 	"crypto/tls"
-	"context"
-	"testing"
+	"errors"
+	"fmt"
 	"github.com/google/go-cmp/cmp"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/protobuf/testing/protocmp"
+	"log"
+	"net"
+	"sync"
+	"testing"
+	"time"
 
+	commonpb "github.com/google/s2a-go/internal/proto/v2/common_go_proto"
 	s2av2ctx "github.com/google/s2a-go/internal/proto/v2/s2a_context_go_proto"
 	s2av2pb "github.com/google/s2a-go/internal/proto/v2/s2a_go_proto"
-	commonpb "github.com/google/s2a-go/internal/proto/v2/common_go_proto"
 )
 
 const (
@@ -44,7 +44,7 @@ func startFakeS2Av2Server(wg *sync.WaitGroup) (address string, stop func(), err 
 			log.Printf("failed to serve: %v", err)
 		}
 	}()
-	return address, func() { s.Stop()}, nil
+	return address, func() { s.Stop() }, nil
 }
 
 func TestSetUpSession(t *testing.T) {
@@ -57,42 +57,41 @@ func TestSetUpSession(t *testing.T) {
 		log.Fatalf("failed to set up fake S2Av2 server.")
 	}
 
-
 	for _, tc := range []struct {
-		description		string
-		request			*s2av2pb.SessionReq
-		expErr			error
-		expectedResponse	*s2av2pb.SessionResp
+		description      string
+		request          *s2av2pb.SessionReq
+		expErr           error
+		expectedResponse *s2av2pb.SessionResp
 	}{
 		{
 			description: "Get TLS config for client.",
-			request: &s2av2pb.SessionReq {
-				AuthenticationMechanisms: []*s2av2pb.AuthenticationMechanism {
+			request: &s2av2pb.SessionReq{
+				AuthenticationMechanisms: []*s2av2pb.AuthenticationMechanism{
 					{
-						MechanismOneof: &s2av2pb.AuthenticationMechanism_Token{"valid_token"},
+						MechanismOneof: &s2av2pb.AuthenticationMechanism_Token{Token: "valid_token"},
 					},
 				},
-				ReqOneof: &s2av2pb.SessionReq_GetTlsConfigurationReq {
-					&s2av2pb.GetTlsConfigurationReq {
+				ReqOneof: &s2av2pb.SessionReq_GetTlsConfigurationReq{
+					GetTlsConfigurationReq: &s2av2pb.GetTlsConfigurationReq{
 						ConnectionSide: commonpb.ConnectionSide_CONNECTION_SIDE_CLIENT,
 					},
 				},
 			},
-			expectedResponse: &s2av2pb.SessionResp {
-				Status: &s2av2pb.Status {
+			expectedResponse: &s2av2pb.SessionResp{
+				Status: &s2av2pb.Status{
 					Code: uint32(codes.OK),
 				},
-				RespOneof: &s2av2pb.SessionResp_GetTlsConfigurationResp {
-					GetTlsConfigurationResp: &s2av2pb.GetTlsConfigurationResp {
-						TlsConfiguration: &s2av2pb.GetTlsConfigurationResp_ClientTlsConfiguration_ {
-							&s2av2pb.GetTlsConfigurationResp_ClientTlsConfiguration {
+				RespOneof: &s2av2pb.SessionResp_GetTlsConfigurationResp{
+					GetTlsConfigurationResp: &s2av2pb.GetTlsConfigurationResp{
+						TlsConfiguration: &s2av2pb.GetTlsConfigurationResp_ClientTlsConfiguration_{
+							ClientTlsConfiguration: &s2av2pb.GetTlsConfigurationResp_ClientTlsConfiguration{
 								CertificateChain: []string{
 									string(clientCert),
 								},
-								MinTlsVersion: commonpb.TLSVersion_TLS_VERSION_1_3,
-								MaxTlsVersion: commonpb.TLSVersion_TLS_VERSION_1_3,
+								MinTlsVersion:         commonpb.TLSVersion_TLS_VERSION_1_3,
+								MaxTlsVersion:         commonpb.TLSVersion_TLS_VERSION_1_3,
 								HandshakeCiphersuites: []commonpb.HandshakeCiphersuite{},
-								RecordCiphersuites: []commonpb.RecordCiphersuite {
+								RecordCiphersuites: []commonpb.RecordCiphersuite{
 									commonpb.RecordCiphersuite_RECORD_CIPHERSUITE_AES_128_GCM_SHA256,
 									commonpb.RecordCiphersuite_RECORD_CIPHERSUITE_AES_256_GCM_SHA384,
 									commonpb.RecordCiphersuite_RECORD_CIPHERSUITE_CHACHA20_POLY1305_SHA256,
@@ -105,40 +104,40 @@ func TestSetUpSession(t *testing.T) {
 		},
 		{
 			description: "Get TLS config for server.",
-			request: &s2av2pb.SessionReq {
-				AuthenticationMechanisms: []*s2av2pb.AuthenticationMechanism {
+			request: &s2av2pb.SessionReq{
+				AuthenticationMechanisms: []*s2av2pb.AuthenticationMechanism{
 					{
-						MechanismOneof: &s2av2pb.AuthenticationMechanism_Token{"valid_token"},
+						MechanismOneof: &s2av2pb.AuthenticationMechanism_Token{Token: "valid_token"},
 					},
 				},
-				ReqOneof: &s2av2pb.SessionReq_GetTlsConfigurationReq {
-					&s2av2pb.GetTlsConfigurationReq {
+				ReqOneof: &s2av2pb.SessionReq_GetTlsConfigurationReq{
+					GetTlsConfigurationReq: &s2av2pb.GetTlsConfigurationReq{
 						ConnectionSide: commonpb.ConnectionSide_CONNECTION_SIDE_SERVER,
 					},
 				},
 			},
-			expectedResponse: &s2av2pb.SessionResp {
-				Status: &s2av2pb.Status {
+			expectedResponse: &s2av2pb.SessionResp{
+				Status: &s2av2pb.Status{
 					Code: uint32(codes.OK),
 				},
-				RespOneof: &s2av2pb.SessionResp_GetTlsConfigurationResp {
-					GetTlsConfigurationResp: &s2av2pb.GetTlsConfigurationResp {
+				RespOneof: &s2av2pb.SessionResp_GetTlsConfigurationResp{
+					GetTlsConfigurationResp: &s2av2pb.GetTlsConfigurationResp{
 						TlsConfiguration: &s2av2pb.GetTlsConfigurationResp_ServerTlsConfiguration_{
-							&s2av2pb.GetTlsConfigurationResp_ServerTlsConfiguration{
+							ServerTlsConfiguration: &s2av2pb.GetTlsConfigurationResp_ServerTlsConfiguration{
 								CertificateChain: []string{
 									string(serverCert),
 								},
-								MinTlsVersion: commonpb.TLSVersion_TLS_VERSION_1_3,
-								MaxTlsVersion: commonpb.TLSVersion_TLS_VERSION_1_3,
+								MinTlsVersion:         commonpb.TLSVersion_TLS_VERSION_1_3,
+								MaxTlsVersion:         commonpb.TLSVersion_TLS_VERSION_1_3,
 								HandshakeCiphersuites: []commonpb.HandshakeCiphersuite{},
-								RecordCiphersuites: []commonpb.RecordCiphersuite {
+								RecordCiphersuites: []commonpb.RecordCiphersuite{
 									commonpb.RecordCiphersuite_RECORD_CIPHERSUITE_AES_128_GCM_SHA256,
 									commonpb.RecordCiphersuite_RECORD_CIPHERSUITE_AES_256_GCM_SHA384,
 									commonpb.RecordCiphersuite_RECORD_CIPHERSUITE_CHACHA20_POLY1305_SHA256,
 								},
-								TlsResumptionEnabled: false,
+								TlsResumptionEnabled:     false,
 								RequestClientCertificate: s2av2pb.GetTlsConfigurationResp_ServerTlsConfiguration_REQUEST_AND_REQUIRE_CLIENT_CERTIFICATE_AND_VERIFY,
-								MaxOverheadOfTicketAead: 0,
+								MaxOverheadOfTicketAead:  0,
 							},
 						},
 					},
@@ -147,35 +146,35 @@ func TestSetUpSession(t *testing.T) {
 		},
 		{
 			description: "Get TLS config error -- invalid connection side",
-			request: &s2av2pb.SessionReq {
-				AuthenticationMechanisms: []*s2av2pb.AuthenticationMechanism {
+			request: &s2av2pb.SessionReq{
+				AuthenticationMechanisms: []*s2av2pb.AuthenticationMechanism{
 					{
-						MechanismOneof: &s2av2pb.AuthenticationMechanism_Token{"valid_token"},
+						MechanismOneof: &s2av2pb.AuthenticationMechanism_Token{Token: "valid_token"},
 					},
 				},
-				ReqOneof: &s2av2pb.SessionReq_GetTlsConfigurationReq {
-					&s2av2pb.GetTlsConfigurationReq {
+				ReqOneof: &s2av2pb.SessionReq_GetTlsConfigurationReq{
+					GetTlsConfigurationReq: &s2av2pb.GetTlsConfigurationReq{
 						ConnectionSide: commonpb.ConnectionSide_CONNECTION_SIDE_UNSPECIFIED,
 					},
 				},
 			},
-			expectedResponse: &s2av2pb.SessionResp {
-				Status: &s2av2pb.Status {
-					Code: uint32(codes.InvalidArgument),
+			expectedResponse: &s2av2pb.SessionResp{
+				Status: &s2av2pb.Status{
+					Code:    uint32(codes.InvalidArgument),
 					Details: "unknown ConnectionSide, req.GetGetTlsConfigurationReq().GetConnectionSide() returned CONNECTION_SIDE_UNSPECIFIED",
 				},
 			},
 		},
 		{
 			description: "Get TLS config error -- invalid token",
-			request: &s2av2pb.SessionReq {
-				AuthenticationMechanisms: []*s2av2pb.AuthenticationMechanism {
+			request: &s2av2pb.SessionReq{
+				AuthenticationMechanisms: []*s2av2pb.AuthenticationMechanism{
 					{
-						MechanismOneof: &s2av2pb.AuthenticationMechanism_Token{"invalid_token"},
+						MechanismOneof: &s2av2pb.AuthenticationMechanism_Token{Token: "invalid_token"},
 					},
 				},
-				ReqOneof: &s2av2pb.SessionReq_GetTlsConfigurationReq {
-					&s2av2pb.GetTlsConfigurationReq {
+				ReqOneof: &s2av2pb.SessionReq_GetTlsConfigurationReq{
+					GetTlsConfigurationReq: &s2av2pb.GetTlsConfigurationReq{
 						ConnectionSide: commonpb.ConnectionSide_CONNECTION_SIDE_UNSPECIFIED,
 					},
 				},
@@ -184,89 +183,89 @@ func TestSetUpSession(t *testing.T) {
 		},
 		{
 			description: "Client Peer Verification",
-			request: &s2av2pb.SessionReq {
-				ReqOneof: &s2av2pb.SessionReq_ValidatePeerCertificateChainReq {
-					&s2av2pb.ValidatePeerCertificateChainReq {
+			request: &s2av2pb.SessionReq{
+				ReqOneof: &s2av2pb.SessionReq_ValidatePeerCertificateChainReq{
+					ValidatePeerCertificateChainReq: &s2av2pb.ValidatePeerCertificateChainReq{
 						Mode: s2av2pb.ValidatePeerCertificateChainReq_SPIFFE,
-						PeerOneof: &s2av2pb.ValidatePeerCertificateChainReq_ClientPeer_ {
-							&s2av2pb.ValidatePeerCertificateChainReq_ClientPeer {
-								CertificateChain: [][]byte{clientDERCert,},
+						PeerOneof: &s2av2pb.ValidatePeerCertificateChainReq_ClientPeer_{
+							ClientPeer: &s2av2pb.ValidatePeerCertificateChainReq_ClientPeer{
+								CertificateChain: [][]byte{clientDERCert},
 							},
 						},
 					},
 				},
 			},
-			expectedResponse: &s2av2pb.SessionResp {
-				Status: &s2av2pb.Status {
-					Code: uint32(codes.OK),
+			expectedResponse: &s2av2pb.SessionResp{
+				Status: &s2av2pb.Status{
+					Code:    uint32(codes.OK),
 					Details: "",
 				},
-				RespOneof: &s2av2pb.SessionResp_ValidatePeerCertificateChainResp {
-					&s2av2pb.ValidatePeerCertificateChainResp {
-						ValidationResult: s2av2pb.ValidatePeerCertificateChainResp_SUCCESS,
+				RespOneof: &s2av2pb.SessionResp_ValidatePeerCertificateChainResp{
+					ValidatePeerCertificateChainResp: &s2av2pb.ValidatePeerCertificateChainResp{
+						ValidationResult:  s2av2pb.ValidatePeerCertificateChainResp_SUCCESS,
 						ValidationDetails: "Client Peer Verification succeeded",
-						Context: &s2av2ctx.S2AContext{},
+						Context:           &s2av2ctx.S2AContext{},
 					},
 				},
 			},
 		},
 		{
 			description: "Client Peer Verification -- failure",
-			request: &s2av2pb.SessionReq {
-				ReqOneof: &s2av2pb.SessionReq_ValidatePeerCertificateChainReq {
-					&s2av2pb.ValidatePeerCertificateChainReq {
+			request: &s2av2pb.SessionReq{
+				ReqOneof: &s2av2pb.SessionReq_ValidatePeerCertificateChainReq{
+					ValidatePeerCertificateChainReq: &s2av2pb.ValidatePeerCertificateChainReq{
 						Mode: s2av2pb.ValidatePeerCertificateChainReq_SPIFFE,
-						PeerOneof: &s2av2pb.ValidatePeerCertificateChainReq_ClientPeer_ {
-							&s2av2pb.ValidatePeerCertificateChainReq_ClientPeer {
+						PeerOneof: &s2av2pb.ValidatePeerCertificateChainReq_ClientPeer_{
+							ClientPeer: &s2av2pb.ValidatePeerCertificateChainReq_ClientPeer{
 								CertificateChain: [][]byte{},
 							},
 						},
 					},
 				},
 			},
-			expectedResponse: &s2av2pb.SessionResp {
-				Status: &s2av2pb.Status {
-					Code: uint32(codes.InvalidArgument),
+			expectedResponse: &s2av2pb.SessionResp{
+				Status: &s2av2pb.Status{
+					Code:    uint32(codes.InvalidArgument),
 					Details: "Client Peer Verification failed: client cert chain is empty.",
 				},
-				RespOneof: &s2av2pb.SessionResp_ValidatePeerCertificateChainResp {
-					&s2av2pb.ValidatePeerCertificateChainResp {
-						ValidationResult: s2av2pb.ValidatePeerCertificateChainResp_FAILURE,
+				RespOneof: &s2av2pb.SessionResp_ValidatePeerCertificateChainResp{
+					ValidatePeerCertificateChainResp: &s2av2pb.ValidatePeerCertificateChainResp{
+						ValidationResult:  s2av2pb.ValidatePeerCertificateChainResp_FAILURE,
 						ValidationDetails: "Client Peer Verification failed: client cert chain is empty.",
-						Context: &s2av2ctx.S2AContext{},
+						Context:           &s2av2ctx.S2AContext{},
 					},
 				},
 			},
 		},
 		{
 			description: "Server Peer Verification",
-			request: &s2av2pb.SessionReq {
-				ReqOneof: &s2av2pb.SessionReq_ValidatePeerCertificateChainReq {
-					&s2av2pb.ValidatePeerCertificateChainReq {
+			request: &s2av2pb.SessionReq{
+				ReqOneof: &s2av2pb.SessionReq_ValidatePeerCertificateChainReq{
+					ValidatePeerCertificateChainReq: &s2av2pb.ValidatePeerCertificateChainReq{
 						Mode: s2av2pb.ValidatePeerCertificateChainReq_SPIFFE,
-						PeerOneof: &s2av2pb.ValidatePeerCertificateChainReq_ServerPeer_ {
-							&s2av2pb.ValidatePeerCertificateChainReq_ServerPeer {
-								CertificateChain: [][]byte{serverDERCert,},
+						PeerOneof: &s2av2pb.ValidatePeerCertificateChainReq_ServerPeer_{
+							ServerPeer: &s2av2pb.ValidatePeerCertificateChainReq_ServerPeer{
+								CertificateChain: [][]byte{serverDERCert},
 							},
 						},
 					},
 				},
 			},
-			expectedResponse: &s2av2pb.SessionResp {
-				Status: &s2av2pb.Status {
-					Code: uint32(codes.OK),
+			expectedResponse: &s2av2pb.SessionResp{
+				Status: &s2av2pb.Status{
+					Code:    uint32(codes.OK),
 					Details: "",
 				},
-				RespOneof: &s2av2pb.SessionResp_ValidatePeerCertificateChainResp {
-					&s2av2pb.ValidatePeerCertificateChainResp {
-						ValidationResult: s2av2pb.ValidatePeerCertificateChainResp_SUCCESS,
+				RespOneof: &s2av2pb.SessionResp_ValidatePeerCertificateChainResp{
+					ValidatePeerCertificateChainResp: &s2av2pb.ValidatePeerCertificateChainResp{
+						ValidationResult:  s2av2pb.ValidatePeerCertificateChainResp_SUCCESS,
 						ValidationDetails: "Server Peer Verification succeeded",
-						Context: &s2av2ctx.S2AContext{},
+						Context:           &s2av2ctx.S2AContext{},
 					},
 				},
 			},
 		},
-	}{
+	} {
 		t.Run(tc.description, func(t *testing.T) {
 			// Create new stream to server.
 			opts := []grpc.DialOption{
@@ -287,7 +286,7 @@ func TestSetUpSession(t *testing.T) {
 			// Setup bidrectional streaming session.
 			callOpts := []grpc.CallOption{}
 			cstream, err := c.SetUpSession(ctx, callOpts...)
-			if err != nil  {
+			if err != nil {
 				t.Fatalf("Client: failed to setup bidirectional streaming RPC session: %v", err)
 			}
 			log.Printf("Client: set up bidirectional streaming RPC session.")
@@ -357,30 +356,30 @@ func TestSetUpSessionPrivateKeyOperation(t *testing.T) {
 	}
 
 	for _, tc := range []struct {
-		description		string
-		connSide		commonpb.ConnectionSide
-		request			*s2av2pb.SessionReq
-		expectedResponse	*s2av2pb.SessionResp
+		description      string
+		connSide         commonpb.ConnectionSide
+		request          *s2av2pb.SessionReq
+		expectedResponse *s2av2pb.SessionResp
 	}{
 
 		{
 			description: "client side private key operation",
-			connSide: commonpb.ConnectionSide_CONNECTION_SIDE_CLIENT,
-			request: &s2av2pb.SessionReq {
-				ReqOneof: &s2av2pb.SessionReq_OffloadPrivateKeyOperationReq {
-					&s2av2pb.OffloadPrivateKeyOperationReq {
-						Operation: s2av2pb.OffloadPrivateKeyOperationReq_SIGN,
+			connSide:    commonpb.ConnectionSide_CONNECTION_SIDE_CLIENT,
+			request: &s2av2pb.SessionReq{
+				ReqOneof: &s2av2pb.SessionReq_OffloadPrivateKeyOperationReq{
+					OffloadPrivateKeyOperationReq: &s2av2pb.OffloadPrivateKeyOperationReq{
+						Operation:          s2av2pb.OffloadPrivateKeyOperationReq_SIGN,
 						SignatureAlgorithm: s2av2pb.SignatureAlgorithm_S2A_SSL_SIGN_RSA_PKCS1_SHA256,
-						InBytes: []byte(hsha256[:]),
+						InBytes:            []byte(hsha256[:]),
 					},
 				},
 			},
-			expectedResponse: &s2av2pb.SessionResp {
-				Status: &s2av2pb.Status {
+			expectedResponse: &s2av2pb.SessionResp{
+				Status: &s2av2pb.Status{
 					Code: uint32(codes.OK),
 				},
-				RespOneof: &s2av2pb.SessionResp_OffloadPrivateKeyOperationResp {
-					&s2av2pb.OffloadPrivateKeyOperationResp {
+				RespOneof: &s2av2pb.SessionResp_OffloadPrivateKeyOperationResp{
+					OffloadPrivateKeyOperationResp: &s2av2pb.OffloadPrivateKeyOperationResp{
 						OutBytes: signedWithClientKey,
 					},
 				},
@@ -388,22 +387,22 @@ func TestSetUpSessionPrivateKeyOperation(t *testing.T) {
 		},
 		{
 			description: "server side private key operation",
-			connSide: commonpb.ConnectionSide_CONNECTION_SIDE_SERVER,
-			request: &s2av2pb.SessionReq {
-				ReqOneof: &s2av2pb.SessionReq_OffloadPrivateKeyOperationReq {
-					&s2av2pb.OffloadPrivateKeyOperationReq {
-						Operation: s2av2pb.OffloadPrivateKeyOperationReq_SIGN,
+			connSide:    commonpb.ConnectionSide_CONNECTION_SIDE_SERVER,
+			request: &s2av2pb.SessionReq{
+				ReqOneof: &s2av2pb.SessionReq_OffloadPrivateKeyOperationReq{
+					OffloadPrivateKeyOperationReq: &s2av2pb.OffloadPrivateKeyOperationReq{
+						Operation:          s2av2pb.OffloadPrivateKeyOperationReq_SIGN,
 						SignatureAlgorithm: s2av2pb.SignatureAlgorithm_S2A_SSL_SIGN_RSA_PKCS1_SHA256,
-						InBytes: []byte(hsha256[:]),
+						InBytes:            []byte(hsha256[:]),
 					},
 				},
 			},
-			expectedResponse: &s2av2pb.SessionResp {
-				Status: &s2av2pb.Status {
+			expectedResponse: &s2av2pb.SessionResp{
+				Status: &s2av2pb.Status{
 					Code: uint32(codes.OK),
 				},
-				RespOneof: &s2av2pb.SessionResp_OffloadPrivateKeyOperationResp {
-					&s2av2pb.OffloadPrivateKeyOperationResp {
+				RespOneof: &s2av2pb.SessionResp_OffloadPrivateKeyOperationResp{
+					OffloadPrivateKeyOperationResp: &s2av2pb.OffloadPrivateKeyOperationResp{
 						OutBytes: signedWithServerKey,
 					},
 				},
@@ -411,24 +410,24 @@ func TestSetUpSessionPrivateKeyOperation(t *testing.T) {
 		},
 		{
 			description: "client side private key operation -- invalid signature algorithm",
-			connSide: commonpb.ConnectionSide_CONNECTION_SIDE_CLIENT,
-			request: &s2av2pb.SessionReq {
-				ReqOneof: &s2av2pb.SessionReq_OffloadPrivateKeyOperationReq {
-					&s2av2pb.OffloadPrivateKeyOperationReq {
-						Operation: s2av2pb.OffloadPrivateKeyOperationReq_SIGN,
+			connSide:    commonpb.ConnectionSide_CONNECTION_SIDE_CLIENT,
+			request: &s2av2pb.SessionReq{
+				ReqOneof: &s2av2pb.SessionReq_OffloadPrivateKeyOperationReq{
+					OffloadPrivateKeyOperationReq: &s2av2pb.OffloadPrivateKeyOperationReq{
+						Operation:          s2av2pb.OffloadPrivateKeyOperationReq_SIGN,
 						SignatureAlgorithm: s2av2pb.SignatureAlgorithm_S2A_SSL_SIGN_UNSPECIFIED,
-						InBytes: []byte(hsha256[:]),
+						InBytes:            []byte(hsha256[:]),
 					},
 				},
 			},
-			expectedResponse: &s2av2pb.SessionResp {
-				Status: &s2av2pb.Status {
-					Code: uint32(codes.InvalidArgument),
+			expectedResponse: &s2av2pb.SessionResp{
+				Status: &s2av2pb.Status{
+					Code:    uint32(codes.InvalidArgument),
 					Details: fmt.Sprintf("invalid signature algorithm: %v", s2av2pb.SignatureAlgorithm_S2A_SSL_SIGN_UNSPECIFIED),
 				},
 			},
 		},
-	}{
+	} {
 		t.Run(tc.description, func(t *testing.T) {
 			// Create new stream to server.
 			opts := []grpc.DialOption{
@@ -449,23 +448,23 @@ func TestSetUpSessionPrivateKeyOperation(t *testing.T) {
 			// Setup bidrectional streaming session.
 			callOpts := []grpc.CallOption{}
 			cstream, err := c.SetUpSession(ctx, callOpts...)
-			if err != nil  {
+			if err != nil {
 				t.Fatalf("Client: failed to setup bidirectional streaming RPC session: %v", err)
 			}
 			log.Printf("Client: set up bidirectional streaming RPC session.")
 
 			// Send first SessionReq for TLS Config. Sets isClientSide to ensure correct
 			// private key used to sign transcript.
-			if err := cstream.Send(&s2av2pb.SessionReq {
-				AuthenticationMechanisms: []*s2av2pb.AuthenticationMechanism {
+			if err := cstream.Send(&s2av2pb.SessionReq{
+				AuthenticationMechanisms: []*s2av2pb.AuthenticationMechanism{
 					{
-						MechanismOneof: &s2av2pb.AuthenticationMechanism_Token {
+						MechanismOneof: &s2av2pb.AuthenticationMechanism_Token{
 							Token: "valid_token",
 						},
 					},
 				},
-				ReqOneof: &s2av2pb.SessionReq_GetTlsConfigurationReq {
-					&s2av2pb.GetTlsConfigurationReq {
+				ReqOneof: &s2av2pb.SessionReq_GetTlsConfigurationReq{
+					GetTlsConfigurationReq: &s2av2pb.GetTlsConfigurationReq{
 						ConnectionSide: tc.connSide,
 					},
 				},

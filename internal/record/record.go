@@ -29,9 +29,9 @@ import (
 	"sync"
 
 	commonpb "github.com/google/s2a-go/internal/proto/common_go_proto"
-	"google.golang.org/grpc/grpclog"
 	"github.com/google/s2a-go/internal/record/internal/halfconn"
 	"github.com/google/s2a-go/internal/tokenmanager"
+	"google.golang.org/grpc/grpclog"
 )
 
 // recordType is the `ContentType` as described in

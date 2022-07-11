@@ -3,30 +3,30 @@
 package v2
 
 import (
-	"errors"
 	"context"
+	"crypto/tls"
+	"errors"
 	"net"
 	"time"
-	"crypto/tls"
 
+	"github.com/google/s2a-go/internal/handshaker/service"
+	commonpbv1 "github.com/google/s2a-go/internal/proto/common_go_proto"
+	s2av2pb "github.com/google/s2a-go/internal/proto/v2/s2a_go_proto"
+	"github.com/google/s2a-go/internal/tokenmanager"
+	"github.com/google/s2a-go/internal/v2/tls_config_store"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
-	"github.com/google/s2a-go/internal/v2/tls_config_store"
-	"github.com/google/s2a-go/internal/tokenmanager"
-	"github.com/google/s2a-go/internal/handshaker/service"
-	s2av2pb "github.com/google/s2a-go/internal/proto/v2/s2a_go_proto"
-	commonpbv1 "github.com/google/s2a-go/internal/proto/common_go_proto"
 )
 
 const (
 	s2aSecurityProtocol = "s2av2"
-	defaultTimeout = 20.0 * time.Second
+	defaultTimeout      = 20.0 * time.Second
 )
 
 type s2av2TransportCreds struct {
-	info     *credentials.ProtocolInfo
-	isClient bool
-	serverName string
+	info         *credentials.ProtocolInfo
+	isClient     bool
+	serverName   string
 	s2av2Address string
 	tokenManager *tokenmanager.AccessTokenManager
 }
@@ -43,8 +43,8 @@ func NewClientCreds(s2av2Address string) (credentials.TransportCredentials, erro
 		info: &credentials.ProtocolInfo{
 			SecurityProtocol: s2aSecurityProtocol,
 		},
-		isClient: true,
-		serverName: "",
+		isClient:     true,
+		serverName:   "",
 		s2av2Address: s2av2Address,
 		tokenManager: &accessTokenManager,
 	}
@@ -63,7 +63,7 @@ func NewServerCreds(s2av2Address string) (credentials.TransportCredentials, erro
 		info: &credentials.ProtocolInfo{
 			SecurityProtocol: s2aSecurityProtocol,
 		},
-		isClient: false,
+		isClient:     false,
 		s2av2Address: s2av2Address,
 		tokenManager: &accessTokenManager,
 	}
@@ -80,7 +80,9 @@ func (c *s2av2TransportCreds) ClientHandshake(ctx context.Context, serverAuthori
 	if err != nil {
 		serverName = serverAuthority
 	}
-	cstream, err := c.createStream()
+	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
+	defer cancel()
+	cstream, err := c.createStream(ctx)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -109,13 +111,15 @@ func (c *s2av2TransportCreds) ServerHandshake(rawConn net.Conn) (net.Conn, crede
 	if c.isClient {
 		return nil, nil, errors.New("server handshake called using client transport credentials.")
 	}
-	cstream, err := c.createStream()
+	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
+	defer cancel()
+	cstream, err := c.createStream(ctx)
 	if err != nil {
 		return nil, nil, err
 	}
 
 	// TODO(rmehta19): Populate localIdentites.
-	var localIdentities [] *commonpbv1.Identity
+	var localIdentities []*commonpbv1.Identity
 	localIdentities = append(localIdentities, nil)
 	config, err := tlsconfigstore.GetTlsConfigurationForServer(cstream, *c.tokenManager, localIdentities)
 	if err != nil {
@@ -131,23 +135,23 @@ func (c *s2av2TransportCreds) Info() credentials.ProtocolInfo {
 }
 
 // Clone makes a deep copy of s2av2TransportCreds.
-func (c * s2av2TransportCreds) Clone() credentials.TransportCredentials {
+func (c *s2av2TransportCreds) Clone() credentials.TransportCredentials {
 	info := *c.info
 	serverName := c.serverName
 	s2av2Address := c.s2av2Address
 	tokenManager := *c.tokenManager
 	return &s2av2TransportCreds{
-		info: &info,
-		isClient: c.isClient,
-		serverName: serverName,
-		s2av2Address : s2av2Address,
+		info:         &info,
+		isClient:     c.isClient,
+		serverName:   serverName,
+		s2av2Address: s2av2Address,
 		tokenManager: &tokenManager,
 	}
 }
 
 // OverrideServerName sets the ServerName in the s2av2TransportCreds protocol
 // info. The ServerName MUST be a hostname.
-func (c *s2av2TransportCreds) OverrideServerName(serverNameOverride string) error{
+func (c *s2av2TransportCreds) OverrideServerName(serverNameOverride string) error {
 	// Remove the port from serverNameOverride.
 	serverName, _, err := net.SplitHostPort(serverNameOverride)
 	if err != nil {
@@ -158,15 +162,12 @@ func (c *s2av2TransportCreds) OverrideServerName(serverNameOverride string) erro
 	return nil
 }
 
-func (c* s2av2TransportCreds) createStream() (s2av2pb.S2AService_SetUpSessionClient, error) {
+func (c *s2av2TransportCreds) createStream(ctx context.Context) (s2av2pb.S2AService_SetUpSessionClient, error) {
 	// TODO(rmehta19): Consider whether to close the connection to S2Av2.
 	conn, err := service.Dial(c.s2av2Address)
 	if err != nil {
 		return nil, err
 	}
 	client := s2av2pb.NewS2AServiceClient(conn)
-	ctx, _ := context.WithTimeout(context.Background(), defaultTimeout)
-	// TODO(rmehta19): Consider canceling the context(defer cancel()) when it
-	// times out.
 	return client.SetUpSession(ctx, []grpc.CallOption{}...)
 }

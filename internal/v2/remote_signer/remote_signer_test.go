@@ -1,26 +1,26 @@
 package remotesigner
 
 import (
-	"net"
-	"log"
-	"sync"
-	"time"
 	"bytes"
 	"context"
-	"testing"
 	"crypto"
-	"crypto/rsa"
 	"crypto/rand"
-	"crypto/x509"
+	"crypto/rsa"
 	"crypto/sha256"
 	"crypto/tls"
+	"crypto/x509"
 	_ "embed"
+	"log"
+	"net"
+	"sync"
+	"testing"
+	"time"
 
+	commonpb "github.com/google/s2a-go/internal/proto/v2/common_go_proto"
+	s2av2pb "github.com/google/s2a-go/internal/proto/v2/s2a_go_proto"
+	"github.com/google/s2a-go/internal/v2/fakes2av2"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
-	"github.com/google/s2a-go/internal/v2/fakes2av2"
-	s2av2pb "github.com/google/s2a-go/internal/proto/v2/s2a_go_proto"
-	commonpb "github.com/google/s2a-go/internal/proto/v2/common_go_proto"
 )
 
 const (
@@ -42,8 +42,9 @@ func startFakeS2Av2Server(wg *sync.WaitGroup, expToken string) (stop func(), add
 			log.Printf("failed to serve: %v", err)
 		}
 	}()
-	return func() { s.Stop()}, address, nil
+	return func() { s.Stop() }, address, nil
 }
+
 var (
 	//go:embed example_cert_key/client_cert.pem
 	clientCertPEM []byte
@@ -70,31 +71,30 @@ func TestSign(t *testing.T) {
 	}
 
 	for _, tc := range []struct {
-		description	string
-		PEMCert		[]byte
-		DERCert		[]byte
-		PEMKey		[]byte
-		connSide	commonpb.ConnectionSide
+		description string
+		PEMCert     []byte
+		DERCert     []byte
+		PEMKey      []byte
+		connSide    commonpb.ConnectionSide
 	}{
 		{
 			description: "Sign with client key",
-			PEMCert: clientCertPEM,
-			DERCert: clientCertDER,
-			PEMKey: clientKeyPEM,
-			connSide: commonpb.ConnectionSide_CONNECTION_SIDE_CLIENT,
+			PEMCert:     clientCertPEM,
+			DERCert:     clientCertDER,
+			PEMKey:      clientKeyPEM,
+			connSide:    commonpb.ConnectionSide_CONNECTION_SIDE_CLIENT,
 		},
 		{
 			description: "Sign with server key",
-			PEMCert: serverCertPEM,
-			DERCert: serverCertDER,
-			PEMKey: serverKeyPEM,
-			connSide: commonpb.ConnectionSide_CONNECTION_SIDE_SERVER,
+			PEMCert:     serverCertPEM,
+			DERCert:     serverCertDER,
+			PEMKey:      serverKeyPEM,
+			connSide:    commonpb.ConnectionSide_CONNECTION_SIDE_SERVER,
 		},
-
-	}{
+	} {
 		t.Run(tc.description, func(t *testing.T) {
 			// Create stream to S2Av2.
-			opts := []grpc.DialOption {
+			opts := []grpc.DialOption{
 				grpc.WithTransportCredentials(insecure.NewCredentials()),
 				grpc.WithReturnConnectionError(),
 				grpc.WithBlock(),
@@ -112,22 +112,22 @@ func TestSign(t *testing.T) {
 			// Setup bidrectional streaming session.
 			callOpts := []grpc.CallOption{}
 			cstream, err := c.SetUpSession(ctx, callOpts...)
-			if err != nil  {
+			if err != nil {
 				t.Fatalf("Client: failed to setup bidirectional streaming RPC session: %v", err)
 			}
 			log.Printf("Client: set up bidirectional streaming RPC session.")
 			// Send first SessionReq for TLS Config. Sets isClientSide to ensure correct
 			// private key used to sign transcript.
-			if err := cstream.Send(&s2av2pb.SessionReq {
-				AuthenticationMechanisms: []*s2av2pb.AuthenticationMechanism {
+			if err := cstream.Send(&s2av2pb.SessionReq{
+				AuthenticationMechanisms: []*s2av2pb.AuthenticationMechanism{
 					{
-						MechanismOneof: &s2av2pb.AuthenticationMechanism_Token {
+						MechanismOneof: &s2av2pb.AuthenticationMechanism_Token{
 							Token: "TestSign_token",
 						},
 					},
 				},
-				ReqOneof: &s2av2pb.SessionReq_GetTlsConfigurationReq {
-					&s2av2pb.GetTlsConfigurationReq {
+				ReqOneof: &s2av2pb.SessionReq_GetTlsConfigurationReq{
+					GetTlsConfigurationReq: &s2av2pb.GetTlsConfigurationReq{
 						ConnectionSide: tc.connSide,
 					},
 				},
@@ -172,7 +172,7 @@ func TestSign(t *testing.T) {
 
 			// Test RSA PSS signature algorithm.
 			s = New(x509Cert, cstream)
-			pssSignerOpts := &rsa.PSSOptions {SaltLength: rsa.PSSSaltLengthEqualsHash, Hash: crypto.SHA256 }
+			pssSignerOpts := &rsa.PSSOptions{SaltLength: rsa.PSSSaltLengthEqualsHash, Hash: crypto.SHA256}
 
 			gotSignedBytes, err = s.Sign(rand.Reader, hsha256[:], pssSignerOpts)
 			if err = rsa.VerifyPSS(x509Cert.PublicKey.(*rsa.PublicKey), crypto.SHA256, hsha256[:], gotSignedBytes, pssSignerOpts); err != nil {
@@ -205,23 +205,23 @@ func TestNew(t *testing.T) {
 // Test GetSignatureAlgorithm runs unit test for getSignatureAlgorithm.
 func TestGetSignatureAlgorithm(t *testing.T) {
 	for _, tc := range []struct {
-		description string
-		opts crypto.SignerOpts
+		description           string
+		opts                  crypto.SignerOpts
 		expSignatureAlgorithm s2av2pb.SignatureAlgorithm
-	} {
+	}{
 		{
-			description: "RSA PSS SHA256",
-			opts: &rsa.PSSOptions{SaltLength: rsa.PSSSaltLengthEqualsHash, Hash: crypto.SHA256},
+			description:           "RSA PSS SHA256",
+			opts:                  &rsa.PSSOptions{SaltLength: rsa.PSSSaltLengthEqualsHash, Hash: crypto.SHA256},
 			expSignatureAlgorithm: s2av2pb.SignatureAlgorithm_S2A_SSL_SIGN_RSA_PSS_RSAE_SHA256,
 		},
 		{
-			description: "RSA PKCS1 SHA256",
-			opts: crypto.SHA256,
+			description:           "RSA PKCS1 SHA256",
+			opts:                  crypto.SHA256,
 			expSignatureAlgorithm: s2av2pb.SignatureAlgorithm_S2A_SSL_SIGN_RSA_PKCS1_SHA256,
 		},
 		{
-			description: "UNSPECIFIED",
-			opts: crypto.SHA1,
+			description:           "UNSPECIFIED",
+			opts:                  crypto.SHA1,
 			expSignatureAlgorithm: s2av2pb.SignatureAlgorithm_S2A_SSL_SIGN_UNSPECIFIED,
 		},
 	} {

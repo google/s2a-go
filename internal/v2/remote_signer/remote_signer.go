@@ -2,12 +2,12 @@
 package remotesigner
 
 import (
-	"io"
-	"fmt"
 	"crypto"
 	"crypto/rsa"
 	"crypto/x509"
+	"fmt"
 	"google.golang.org/grpc/codes"
+	"io"
 
 	s2av2pb "github.com/google/s2a-go/internal/proto/v2/s2a_go_proto"
 )
@@ -15,9 +15,8 @@ import (
 // remoteSigner implementes the crypto.Signer interface.
 type remoteSigner struct {
 	leafCert *x509.Certificate
-	cstream s2av2pb.S2AService_SetUpSessionClient
+	cstream  s2av2pb.S2AService_SetUpSessionClient
 }
-
 
 // New returns an instance of RemoteSigner, an implementation of the
 // crypto.Signer interface.
@@ -31,9 +30,9 @@ func (s *remoteSigner) Public() crypto.PublicKey {
 
 func (s *remoteSigner) Sign(rand io.Reader, digest []byte, opts crypto.SignerOpts) (signature []byte, err error) {
 	// Send request to S2Av2 to perform private key operation.
-	if err := s.cstream.Send(&s2av2pb.SessionReq {
-		ReqOneof: &s2av2pb.SessionReq_OffloadPrivateKeyOperationReq {
-			&s2av2pb.OffloadPrivateKeyOperationReq {
+	if err := s.cstream.Send(&s2av2pb.SessionReq{
+		ReqOneof: &s2av2pb.SessionReq_OffloadPrivateKeyOperationReq{
+			OffloadPrivateKeyOperationReq: &s2av2pb.OffloadPrivateKeyOperationReq{
 				Operation: s2av2pb.OffloadPrivateKeyOperationReq_SIGN,
 				// TODO(rmehta19): Use Signtuare Algorithm from s.leafCert. To do this,
 				// need to create a mapping from x509 Signature Algorithm:
@@ -42,7 +41,7 @@ func (s *remoteSigner) Sign(rand io.Reader, digest []byte, opts crypto.SignerOpt
 				// 2eb8a32e71c9747a4e56196460bfd0feafb5189b/internal/proto/v2/
 				// s2a_go_proto/s2a.pb.go#L43
 				SignatureAlgorithm: getSignatureAlgorithm(opts),
-				InBytes: []byte(digest),
+				InBytes:            []byte(digest),
 			},
 		},
 	}); err != nil {

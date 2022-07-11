@@ -21,8 +21,8 @@ package s2a
 import (
 	"testing"
 
-	s2apb "github.com/google/s2a-go/internal/proto/common_go_proto"
 	"github.com/google/go-cmp/cmp"
+	s2apb "github.com/google/s2a-go/internal/proto/common_go_proto"
 	"google.golang.org/protobuf/testing/protocmp"
 )
 

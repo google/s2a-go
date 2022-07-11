@@ -1,25 +1,25 @@
 package v2
 
 import (
-	"os"
-	"time"
 	"context"
 	"fmt"
 	"io/ioutil"
 	"net"
+	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
+	helloworldpb "github.com/google/s2a-go/internal/proto/examples/helloworld_go_proto"
 	s2av2pb "github.com/google/s2a-go/internal/proto/v2/s2a_go_proto"
+	"github.com/google/s2a-go/internal/v2/fakes2av2"
 	grpc "google.golang.org/grpc"
 	"google.golang.org/grpc/grpclog"
-	"github.com/google/s2a-go/internal/v2/fakes2av2"
-	helloworldpb "github.com/google/s2a-go/internal/proto/examples/helloworld_go_proto"
 )
 
 const (
 	accessTokenEnvVariable = "S2A_ACCESS_TOKEN"
-	defaultE2ETimeout      = time.Second*5
+	defaultE2ETimeout      = time.Second * 5
 	clientMessage          = "echo"
 )
 
