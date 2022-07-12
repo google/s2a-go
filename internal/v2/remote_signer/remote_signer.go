@@ -29,18 +29,16 @@ func (s *remoteSigner) Public() crypto.PublicKey {
 }
 
 func (s *remoteSigner) Sign(rand io.Reader, digest []byte, opts crypto.SignerOpts) (signature []byte, err error) {
+	signatureAlgorithm, err := getSignatureAlgorithm(opts, s.leafCert)
+	if err != nil {
+		return nil, err
+	}
 	// Send request to S2Av2 to perform private key operation.
 	if err := s.cstream.Send(&s2av2pb.SessionReq{
 		ReqOneof: &s2av2pb.SessionReq_OffloadPrivateKeyOperationReq{
 			OffloadPrivateKeyOperationReq: &s2av2pb.OffloadPrivateKeyOperationReq{
-				Operation: s2av2pb.OffloadPrivateKeyOperationReq_SIGN,
-				// TODO(rmehta19): Use Signtuare Algorithm from s.leafCert. To do this,
-				// need to create a mapping from x509 Signature Algorithm:
-				// https://pkg.go.dev/crypto/x509#SignatureAlgorithm
-				// to s2av2 signature algorithm: https://github.com/google/s2a-go/blob/
-				// 2eb8a32e71c9747a4e56196460bfd0feafb5189b/internal/proto/v2/
-				// s2a_go_proto/s2a.pb.go#L43
-				SignatureAlgorithm: getSignatureAlgorithm(opts),
+				Operation:          s2av2pb.OffloadPrivateKeyOperationReq_SIGN,
+				SignatureAlgorithm: signatureAlgorithm,
 				InBytes:            []byte(digest),
 			},
 		},
@@ -71,15 +69,63 @@ func (s *remoteSigner) getStream() s2av2pb.S2AService_SetUpSessionClient {
 	return s.cstream
 }
 
-// getSignatureAlgorithm analyzes opts and determines signature algorithm to be
-// used.
-// TODO(rmehta19): fill in rest of logic(coverage of all signature algorithms).
-func getSignatureAlgorithm(opts crypto.SignerOpts) s2av2pb.SignatureAlgorithm {
-	if _, ok := opts.(*rsa.PSSOptions); ok {
-		return s2av2pb.SignatureAlgorithm_S2A_SSL_SIGN_RSA_PSS_RSAE_SHA256
-	} else if opts == crypto.SHA256 {
-		return s2av2pb.SignatureAlgorithm_S2A_SSL_SIGN_RSA_PKCS1_SHA256
-	} else {
-		return s2av2pb.SignatureAlgorithm_S2A_SSL_SIGN_UNSPECIFIED
+// getSignatureAlgorithm returns the signature algorithm that S2A must use when
+// performing a signing operation that has been offloaded by an application
+// using the crypto/tls libraries.
+func getSignatureAlgorithm(opts crypto.SignerOpts, leafCert *x509.Certificate) (s2av2pb.SignatureAlgorithm, error) {
+	if opts == nil || leafCert == nil {
+		return s2av2pb.SignatureAlgorithm_S2A_SSL_SIGN_UNSPECIFIED, fmt.Errorf("unknown signature algorithm")
+	}
+	switch leafCert.PublicKeyAlgorithm {
+	case x509.RSA:
+		if rsaPSSOpts, ok := opts.(*rsa.PSSOptions); ok {
+			return rsaPSSAlgorithm(rsaPSSOpts)
+		}
+		return rsaPPKCS1Algorithm(opts)
+	case x509.ECDSA:
+		return ecdsaAlgorithm(opts)
+	case x509.Ed25519:
+		return s2av2pb.SignatureAlgorithm_S2A_SSL_SIGN_ED25519, nil
+	default:
+		return s2av2pb.SignatureAlgorithm_S2A_SSL_SIGN_UNSPECIFIED, fmt.Errorf("unknown signature algorithm: %q", leafCert.PublicKeyAlgorithm)
+	}
+}
+
+func rsaPSSAlgorithm(opts *rsa.PSSOptions) (s2av2pb.SignatureAlgorithm, error) {
+	switch opts.HashFunc() {
+	case crypto.SHA256:
+		return s2av2pb.SignatureAlgorithm_S2A_SSL_SIGN_RSA_PSS_RSAE_SHA256, nil
+	case crypto.SHA384:
+		return s2av2pb.SignatureAlgorithm_S2A_SSL_SIGN_RSA_PSS_RSAE_SHA384, nil
+	case crypto.SHA512:
+		return s2av2pb.SignatureAlgorithm_S2A_SSL_SIGN_RSA_PSS_RSAE_SHA512, nil
+	default:
+		return s2av2pb.SignatureAlgorithm_S2A_SSL_SIGN_UNSPECIFIED, fmt.Errorf("unknown signature algorithm")
+	}
+}
+
+func rsaPPKCS1Algorithm(opts crypto.SignerOpts) (s2av2pb.SignatureAlgorithm, error) {
+	switch opts.HashFunc() {
+	case crypto.SHA256:
+		return s2av2pb.SignatureAlgorithm_S2A_SSL_SIGN_RSA_PKCS1_SHA256, nil
+	case crypto.SHA384:
+		return s2av2pb.SignatureAlgorithm_S2A_SSL_SIGN_RSA_PKCS1_SHA384, nil
+	case crypto.SHA512:
+		return s2av2pb.SignatureAlgorithm_S2A_SSL_SIGN_RSA_PKCS1_SHA512, nil
+	default:
+		return s2av2pb.SignatureAlgorithm_S2A_SSL_SIGN_UNSPECIFIED, fmt.Errorf("unknown signature algorithm")
+	}
+}
+
+func ecdsaAlgorithm(opts crypto.SignerOpts) (s2av2pb.SignatureAlgorithm, error) {
+	switch opts.HashFunc() {
+	case crypto.SHA256:
+		return s2av2pb.SignatureAlgorithm_S2A_SSL_SIGN_ECDSA_SECP256R1_SHA256, nil
+	case crypto.SHA384:
+		return s2av2pb.SignatureAlgorithm_S2A_SSL_SIGN_ECDSA_SECP384R1_SHA384, nil
+	case crypto.SHA512:
+		return s2av2pb.SignatureAlgorithm_S2A_SSL_SIGN_ECDSA_SECP521R1_SHA512, nil
+	default:
+		return s2av2pb.SignatureAlgorithm_S2A_SSL_SIGN_UNSPECIFIED, fmt.Errorf("unknown signature algorithm")
 	}
 }
