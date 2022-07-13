@@ -31,5 +31,7 @@ go_test(
     "//internal/v2/fakes2av2",
     "@org_golang_google_grpc//credentials/insecure:go_default_library",
     "@org_golang_google_grpc//:go_default_library",
+    "@org_golang_google_protobuf//testing/protocmp:go_default_library",
+    "@com_github_google_go_cmp//cmp:go_default_library",
   ],
 )

@@ -370,7 +370,9 @@ func TestSetUpSessionPrivateKeyOperation(t *testing.T) {
 					OffloadPrivateKeyOperationReq: &s2av2pb.OffloadPrivateKeyOperationReq{
 						Operation:          s2av2pb.OffloadPrivateKeyOperationReq_SIGN,
 						SignatureAlgorithm: s2av2pb.SignatureAlgorithm_S2A_SSL_SIGN_RSA_PKCS1_SHA256,
-						InBytes:            []byte(hsha256[:]),
+						InBytes: &s2av2pb.OffloadPrivateKeyOperationReq_Sha256Digest{
+							Sha256Digest: []byte(hsha256[:]),
+						},
 					},
 				},
 			},
@@ -393,7 +395,9 @@ func TestSetUpSessionPrivateKeyOperation(t *testing.T) {
 					OffloadPrivateKeyOperationReq: &s2av2pb.OffloadPrivateKeyOperationReq{
 						Operation:          s2av2pb.OffloadPrivateKeyOperationReq_SIGN,
 						SignatureAlgorithm: s2av2pb.SignatureAlgorithm_S2A_SSL_SIGN_RSA_PKCS1_SHA256,
-						InBytes:            []byte(hsha256[:]),
+						InBytes: &s2av2pb.OffloadPrivateKeyOperationReq_Sha256Digest{
+							Sha256Digest: []byte(hsha256[:]),
+						},
 					},
 				},
 			},
@@ -416,7 +420,9 @@ func TestSetUpSessionPrivateKeyOperation(t *testing.T) {
 					OffloadPrivateKeyOperationReq: &s2av2pb.OffloadPrivateKeyOperationReq{
 						Operation:          s2av2pb.OffloadPrivateKeyOperationReq_SIGN,
 						SignatureAlgorithm: s2av2pb.SignatureAlgorithm_S2A_SSL_SIGN_UNSPECIFIED,
-						InBytes:            []byte(hsha256[:]),
+						InBytes: &s2av2pb.OffloadPrivateKeyOperationReq_Sha256Digest{
+							Sha256Digest: []byte(hsha256[:]),
+						},
 					},
 				},
 			},

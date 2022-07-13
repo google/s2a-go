@@ -175,9 +175,17 @@ message OffloadPrivateKeyOperationReq {
   // The signature algorithm to be used for signing operations.
   SignatureAlgorithm signature_algorithm = 2;
 
-  // The input bytes to be signed or decrypted. These bytes MAY be hashed using
-  // the hashing algorithm specified by the signature algorithm.
-  bytes in_bytes = 3;
+  // The input bytes to be signed or decrypted.
+  oneof in_bytes {
+    // Raw bytes to be hashed and signed, or decrypted.
+    bytes raw_bytes = 4;
+    // A SHA256 hash to be signed. Must be 32 bytes.
+    bytes sha256_digest = 5;
+    // A SHA384 hash to be signed. Must be 48 bytes.
+    bytes sha384_digest = 6;
+    // A SHA512 hash to be signed. Must be 64 bytes.
+    bytes sha512_digest = 7;
+  }
 }
 
 message OffloadPrivateKeyOperationResp {
