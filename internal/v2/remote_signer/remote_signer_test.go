@@ -18,11 +18,13 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/go-cmp/cmp"
 	commonpb "github.com/google/s2a-go/internal/proto/v2/common_go_proto"
 	s2av2pb "github.com/google/s2a-go/internal/proto/v2/s2a_go_proto"
 	"github.com/google/s2a-go/internal/v2/fakes2av2"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/protobuf/testing/protocmp"
 )
 
 const (
@@ -339,6 +341,146 @@ func TestGetSignatureAlgorithm(t *testing.T) {
 				if err != nil {
 					t.Errorf("unexpected error: %v", err)
 				}
+			}
+		})
+	}
+}
+
+func TestGetSignReq(t *testing.T) {
+	for _, tc := range []struct {
+		description        string
+		signatureAlgorithm s2av2pb.SignatureAlgorithm
+		expReq             *s2av2pb.OffloadPrivateKeyOperationReq
+		expErr             error
+	}{
+		{
+			description:        "Unspecified",
+			signatureAlgorithm: s2av2pb.SignatureAlgorithm_S2A_SSL_SIGN_UNSPECIFIED,
+			expErr:             fmt.Errorf("unknown signature algorithm: %v", s2av2pb.SignatureAlgorithm_S2A_SSL_SIGN_UNSPECIFIED),
+		},
+		{
+			description:        "RSA PKCS1 SHA256",
+			signatureAlgorithm: s2av2pb.SignatureAlgorithm_S2A_SSL_SIGN_RSA_PKCS1_SHA256,
+			expReq: &s2av2pb.OffloadPrivateKeyOperationReq{
+				Operation:          s2av2pb.OffloadPrivateKeyOperationReq_SIGN,
+				SignatureAlgorithm: s2av2pb.SignatureAlgorithm_S2A_SSL_SIGN_RSA_PKCS1_SHA256,
+				InBytes: &s2av2pb.OffloadPrivateKeyOperationReq_Sha256Digest{
+					Sha256Digest: []byte(""),
+				},
+			},
+		},
+		{
+			description:        "RSA PSS SHA256",
+			signatureAlgorithm: s2av2pb.SignatureAlgorithm_S2A_SSL_SIGN_RSA_PSS_RSAE_SHA256,
+			expReq: &s2av2pb.OffloadPrivateKeyOperationReq{
+				Operation:          s2av2pb.OffloadPrivateKeyOperationReq_SIGN,
+				SignatureAlgorithm: s2av2pb.SignatureAlgorithm_S2A_SSL_SIGN_RSA_PSS_RSAE_SHA256,
+				InBytes: &s2av2pb.OffloadPrivateKeyOperationReq_Sha256Digest{
+					Sha256Digest: []byte(""),
+				},
+			},
+		},
+		{
+			description:        "ECDSA SHA256",
+			signatureAlgorithm: s2av2pb.SignatureAlgorithm_S2A_SSL_SIGN_ECDSA_SECP256R1_SHA256,
+			expReq: &s2av2pb.OffloadPrivateKeyOperationReq{
+				Operation:          s2av2pb.OffloadPrivateKeyOperationReq_SIGN,
+				SignatureAlgorithm: s2av2pb.SignatureAlgorithm_S2A_SSL_SIGN_ECDSA_SECP256R1_SHA256,
+				InBytes: &s2av2pb.OffloadPrivateKeyOperationReq_Sha256Digest{
+					Sha256Digest: []byte(""),
+				},
+			},
+		},
+		{
+			description:        "RSA PKCS1 SHA384",
+			signatureAlgorithm: s2av2pb.SignatureAlgorithm_S2A_SSL_SIGN_RSA_PKCS1_SHA384,
+			expReq: &s2av2pb.OffloadPrivateKeyOperationReq{
+				Operation:          s2av2pb.OffloadPrivateKeyOperationReq_SIGN,
+				SignatureAlgorithm: s2av2pb.SignatureAlgorithm_S2A_SSL_SIGN_RSA_PKCS1_SHA384,
+				InBytes: &s2av2pb.OffloadPrivateKeyOperationReq_Sha384Digest{
+					Sha384Digest: []byte(""),
+				},
+			},
+		},
+		{
+			description:        "RSA PSS SHA384",
+			signatureAlgorithm: s2av2pb.SignatureAlgorithm_S2A_SSL_SIGN_RSA_PSS_RSAE_SHA384,
+			expReq: &s2av2pb.OffloadPrivateKeyOperationReq{
+				Operation:          s2av2pb.OffloadPrivateKeyOperationReq_SIGN,
+				SignatureAlgorithm: s2av2pb.SignatureAlgorithm_S2A_SSL_SIGN_RSA_PSS_RSAE_SHA384,
+				InBytes: &s2av2pb.OffloadPrivateKeyOperationReq_Sha384Digest{
+					Sha384Digest: []byte(""),
+				},
+			},
+		},
+		{
+			description:        "ECDSA SHA384",
+			signatureAlgorithm: s2av2pb.SignatureAlgorithm_S2A_SSL_SIGN_ECDSA_SECP384R1_SHA384,
+			expReq: &s2av2pb.OffloadPrivateKeyOperationReq{
+				Operation:          s2av2pb.OffloadPrivateKeyOperationReq_SIGN,
+				SignatureAlgorithm: s2av2pb.SignatureAlgorithm_S2A_SSL_SIGN_ECDSA_SECP384R1_SHA384,
+				InBytes: &s2av2pb.OffloadPrivateKeyOperationReq_Sha384Digest{
+					Sha384Digest: []byte(""),
+				},
+			},
+		},
+		{
+			description:        "RSA PKCS1 SHA512",
+			signatureAlgorithm: s2av2pb.SignatureAlgorithm_S2A_SSL_SIGN_RSA_PKCS1_SHA512,
+			expReq: &s2av2pb.OffloadPrivateKeyOperationReq{
+				Operation:          s2av2pb.OffloadPrivateKeyOperationReq_SIGN,
+				SignatureAlgorithm: s2av2pb.SignatureAlgorithm_S2A_SSL_SIGN_RSA_PKCS1_SHA512,
+				InBytes: &s2av2pb.OffloadPrivateKeyOperationReq_Sha512Digest{
+					Sha512Digest: []byte(""),
+				},
+			},
+		},
+		{
+			description:        "RSA PSS SHA512",
+			signatureAlgorithm: s2av2pb.SignatureAlgorithm_S2A_SSL_SIGN_RSA_PSS_RSAE_SHA512,
+			expReq: &s2av2pb.OffloadPrivateKeyOperationReq{
+				Operation:          s2av2pb.OffloadPrivateKeyOperationReq_SIGN,
+				SignatureAlgorithm: s2av2pb.SignatureAlgorithm_S2A_SSL_SIGN_RSA_PSS_RSAE_SHA512,
+				InBytes: &s2av2pb.OffloadPrivateKeyOperationReq_Sha512Digest{
+					Sha512Digest: []byte(""),
+				},
+			},
+		},
+		{
+			description:        "ECDSA SHA512",
+			signatureAlgorithm: s2av2pb.SignatureAlgorithm_S2A_SSL_SIGN_ECDSA_SECP521R1_SHA512,
+			expReq: &s2av2pb.OffloadPrivateKeyOperationReq{
+				Operation:          s2av2pb.OffloadPrivateKeyOperationReq_SIGN,
+				SignatureAlgorithm: s2av2pb.SignatureAlgorithm_S2A_SSL_SIGN_ECDSA_SECP521R1_SHA512,
+				InBytes: &s2av2pb.OffloadPrivateKeyOperationReq_Sha512Digest{
+					Sha512Digest: []byte(""),
+				},
+			},
+		},
+		{
+			description:        "ED25519",
+			signatureAlgorithm: s2av2pb.SignatureAlgorithm_S2A_SSL_SIGN_ED25519,
+			expReq: &s2av2pb.OffloadPrivateKeyOperationReq{
+				Operation:          s2av2pb.OffloadPrivateKeyOperationReq_SIGN,
+				SignatureAlgorithm: s2av2pb.SignatureAlgorithm_S2A_SSL_SIGN_ED25519,
+				InBytes: &s2av2pb.OffloadPrivateKeyOperationReq_Sha512Digest{
+					Sha512Digest: []byte(""),
+				},
+			},
+		},
+	} {
+		t.Run(tc.description, func(t *testing.T) {
+			gotReq, gotErr := getSignReq(tc.signatureAlgorithm, []byte(""))
+			if gotErr != tc.expErr {
+				if (gotErr == nil) || (tc.expErr == nil) {
+					t.Errorf("gotErr = %v, expErr = %v", gotErr, tc.expErr)
+				}
+				if gotErr.Error() != tc.expErr.Error() {
+					t.Errorf("gotErr = %v, expErr = %v", gotErr, tc.expErr)
+				}
+			}
+			if diff := cmp.Diff(tc.expReq, gotReq, protocmp.Transform()); diff != "" {
+				t.Errorf("getSignReq returned incorrect OffloadPrivateKeyOperationReq, (-want +got):\n%s", diff)
 			}
 		})
 	}

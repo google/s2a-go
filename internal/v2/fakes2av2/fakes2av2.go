@@ -140,13 +140,13 @@ func offloadPrivateKeyOperation(req *s2av2pb.OffloadPrivateKeyOperationReq, isAs
 		}
 		var signedBytes []byte
 		if req.GetSignatureAlgorithm() == s2av2pb.SignatureAlgorithm_S2A_SSL_SIGN_RSA_PKCS1_SHA256 {
-			signedBytes, err = root.PrivateKey.(crypto.Signer).Sign(rand.Reader, req.GetInBytes(), crypto.SHA256)
+			signedBytes, err = root.PrivateKey.(crypto.Signer).Sign(rand.Reader, req.GetSha256Digest(), crypto.SHA256)
 			if err != nil {
 				return nil, err
 			}
 		} else if req.GetSignatureAlgorithm() == s2av2pb.SignatureAlgorithm_S2A_SSL_SIGN_RSA_PSS_RSAE_SHA256 {
 			opts := &rsa.PSSOptions{SaltLength: rsa.PSSSaltLengthEqualsHash, Hash: crypto.SHA256}
-			signedBytes, err = root.PrivateKey.(crypto.Signer).Sign(rand.Reader, req.GetInBytes(), opts)
+			signedBytes, err = root.PrivateKey.(crypto.Signer).Sign(rand.Reader, req.GetSha256Digest(), opts)
 			if err != nil {
 				return nil, err
 			}

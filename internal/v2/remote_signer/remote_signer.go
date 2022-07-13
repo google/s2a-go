@@ -33,15 +33,15 @@ func (s *remoteSigner) Sign(rand io.Reader, digest []byte, opts crypto.SignerOpt
 	if err != nil {
 		return nil, err
 	}
+
+	req, err := getSignReq(signatureAlgorithm, digest)
+	if err != nil {
+		return nil, err
+	}
 	// Send request to S2Av2 to perform private key operation.
 	if err := s.cstream.Send(&s2av2pb.SessionReq{
 		ReqOneof: &s2av2pb.SessionReq_OffloadPrivateKeyOperationReq{
-			OffloadPrivateKeyOperationReq: &s2av2pb.OffloadPrivateKeyOperationReq{
-				// TODO(rmehta19): Specify digest or raw bytes once proto field added.
-				Operation:          s2av2pb.OffloadPrivateKeyOperationReq_SIGN,
-				SignatureAlgorithm: signatureAlgorithm,
-				InBytes:            []byte(digest),
-			},
+			OffloadPrivateKeyOperationReq: req,
 		},
 	}); err != nil {
 		return nil, err
@@ -68,6 +68,36 @@ func (s *remoteSigner) getCert() *x509.Certificate {
 // getStream returns the cstream field in s.
 func (s *remoteSigner) getStream() s2av2pb.S2AService_SetUpSessionClient {
 	return s.cstream
+}
+
+func getSignReq(signatureAlgorithm s2av2pb.SignatureAlgorithm, digest []byte) (*s2av2pb.OffloadPrivateKeyOperationReq, error) {
+	if (signatureAlgorithm == s2av2pb.SignatureAlgorithm_S2A_SSL_SIGN_RSA_PKCS1_SHA256) || (signatureAlgorithm == s2av2pb.SignatureAlgorithm_S2A_SSL_SIGN_ECDSA_SECP256R1_SHA256) || (signatureAlgorithm == s2av2pb.SignatureAlgorithm_S2A_SSL_SIGN_RSA_PSS_RSAE_SHA256) {
+		return &s2av2pb.OffloadPrivateKeyOperationReq{
+			Operation:          s2av2pb.OffloadPrivateKeyOperationReq_SIGN,
+			SignatureAlgorithm: signatureAlgorithm,
+			InBytes: &s2av2pb.OffloadPrivateKeyOperationReq_Sha256Digest{
+				Sha256Digest: digest,
+			},
+		}, nil
+	} else if (signatureAlgorithm == s2av2pb.SignatureAlgorithm_S2A_SSL_SIGN_RSA_PKCS1_SHA384) || (signatureAlgorithm == s2av2pb.SignatureAlgorithm_S2A_SSL_SIGN_ECDSA_SECP384R1_SHA384) || (signatureAlgorithm == s2av2pb.SignatureAlgorithm_S2A_SSL_SIGN_RSA_PSS_RSAE_SHA384) {
+		return &s2av2pb.OffloadPrivateKeyOperationReq{
+			Operation:          s2av2pb.OffloadPrivateKeyOperationReq_SIGN,
+			SignatureAlgorithm: signatureAlgorithm,
+			InBytes: &s2av2pb.OffloadPrivateKeyOperationReq_Sha384Digest{
+				Sha384Digest: digest,
+			},
+		}, nil
+	} else if (signatureAlgorithm == s2av2pb.SignatureAlgorithm_S2A_SSL_SIGN_RSA_PKCS1_SHA512) || (signatureAlgorithm == s2av2pb.SignatureAlgorithm_S2A_SSL_SIGN_ECDSA_SECP521R1_SHA512) || (signatureAlgorithm == s2av2pb.SignatureAlgorithm_S2A_SSL_SIGN_RSA_PSS_RSAE_SHA512) || (signatureAlgorithm == s2av2pb.SignatureAlgorithm_S2A_SSL_SIGN_ED25519) {
+		return &s2av2pb.OffloadPrivateKeyOperationReq{
+			Operation:          s2av2pb.OffloadPrivateKeyOperationReq_SIGN,
+			SignatureAlgorithm: signatureAlgorithm,
+			InBytes: &s2av2pb.OffloadPrivateKeyOperationReq_Sha512Digest{
+				Sha512Digest: digest,
+			},
+		}, nil
+	} else {
+		return nil, fmt.Errorf("unknown signature algorithm: %v", signatureAlgorithm)
+	}
 }
 
 // getSignatureAlgorithm returns the signature algorithm that S2A must use when
