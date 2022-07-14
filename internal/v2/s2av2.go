@@ -14,7 +14,7 @@ import (
 	commonpbv1 "github.com/google/s2a-go/internal/proto/common_go_proto"
 	s2av2pb "github.com/google/s2a-go/internal/proto/v2/s2a_go_proto"
 	"github.com/google/s2a-go/internal/tokenmanager"
-	"github.com/google/s2a-go/internal/v2/tls_config_store"
+	tlsconfigstore "github.com/google/s2a-go/internal/v2/tls_config_store"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 )

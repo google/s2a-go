@@ -8,8 +8,8 @@ import (
 	"errors"
 	"fmt"
 	"github.com/google/s2a-go/internal/tokenmanager"
-	"github.com/google/s2a-go/internal/v2/cert_verifier"
-	"github.com/google/s2a-go/internal/v2/remote_signer"
+	certverifier "github.com/google/s2a-go/internal/v2/cert_verifier"
+	remotesigner "github.com/google/s2a-go/internal/v2/remote_signer"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/grpclog"
 
