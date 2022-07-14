@@ -1,3 +1,4 @@
+// Package main runs an Echo service.
 package main
 
 import (

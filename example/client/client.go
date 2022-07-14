@@ -1,3 +1,4 @@
+// Package main establishes a connection with an Echo service.
 package main
 
 import (

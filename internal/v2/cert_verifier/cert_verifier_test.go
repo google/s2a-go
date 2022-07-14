@@ -72,7 +72,7 @@ func TestVerifyClientCertChain(t *testing.T) {
 		{
 			description: "empty chain",
 			rawCerts:    nil,
-			expectedErr: errors.New("Failed to offload client cert verification to S2A: 3, Client Peer Verification failed: client cert chain is empty."),
+			expectedErr: errors.New("failed to offload client cert verification to S2A: 3, Client Peer Verification failed: client cert chain is empty"),
 		},
 		{
 			description: "chain of length 1",
@@ -87,7 +87,7 @@ func TestVerifyClientCertChain(t *testing.T) {
 		{
 			description: "chain of length 2 error: missing intermediate",
 			rawCerts:    [][]byte{clientLeafDERCert, clientRootDERCert},
-			expectedErr: errors.New("Failed to offload client cert verification to S2A: 3, Client Peer Verification failed: x509: certificate signed by unknown authority (possibly because of \"crypto/rsa: verification error\" while trying to verify candidate authority certificate \"s2a_test_cert\")"),
+			expectedErr: errors.New("failed to offload client cert verification to S2A: 3, Client Peer Verification failed: x509: certificate signed by unknown authority (possibly because of \"crypto/rsa: verification error\" while trying to verify candidate authority certificate \"s2a_test_cert\")"),
 		},
 	} {
 		t.Run(tc.description, func(t *testing.T) {
@@ -156,7 +156,7 @@ func TestVerifyServerCertChain(t *testing.T) {
 			description: "empty chain",
 			hostname:    "host",
 			rawCerts:    nil,
-			expectedErr: errors.New("Failed to offload client cert verification to S2A: 3, Server Peer Verification failed: server cert chain is empty."),
+			expectedErr: errors.New("failed to offload client cert verification to S2A: 3, Server Peer Verification failed: server cert chain is empty"),
 		},
 		{
 			description: "chain of length 1",

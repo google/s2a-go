@@ -1,3 +1,4 @@
+// Package main runs an S2Av2 service.
 package main
 
 import (

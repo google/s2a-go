@@ -179,6 +179,9 @@ func TestSign(t *testing.T) {
 			pssSignerOpts := &rsa.PSSOptions{SaltLength: rsa.PSSSaltLengthEqualsHash, Hash: crypto.SHA256}
 
 			gotSignedBytes, err = s.Sign(rand.Reader, hsha256[:], pssSignerOpts)
+			if err != nil {
+				t.Errorf("Failed to generate gotSignedBytes using RSA PSS: %v", err)
+			}
 			if err = rsa.VerifyPSS(x509Cert.PublicKey.(*rsa.PublicKey), crypto.SHA256, hsha256[:], gotSignedBytes, pssSignerOpts); err != nil {
 				t.Errorf("failed to verify RSA PSS signature: %v", err)
 			}

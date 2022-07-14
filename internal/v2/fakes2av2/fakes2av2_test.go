@@ -226,12 +226,12 @@ func TestSetUpSession(t *testing.T) {
 			expectedResponse: &s2av2pb.SessionResp{
 				Status: &s2av2pb.Status{
 					Code:    uint32(codes.InvalidArgument),
-					Details: "Client Peer Verification failed: client cert chain is empty.",
+					Details: "Client Peer Verification failed: client cert chain is empty",
 				},
 				RespOneof: &s2av2pb.SessionResp_ValidatePeerCertificateChainResp{
 					ValidatePeerCertificateChainResp: &s2av2pb.ValidatePeerCertificateChainResp{
 						ValidationResult:  s2av2pb.ValidatePeerCertificateChainResp_FAILURE,
-						ValidationDetails: "Client Peer Verification failed: client cert chain is empty.",
+						ValidationDetails: "Client Peer Verification failed: client cert chain is empty",
 						Context:           &s2av2ctx.S2AContext{},
 					},
 				},
@@ -308,7 +308,7 @@ func TestSetUpSession(t *testing.T) {
 					t.Fatalf("err = %v, expErr = %v", err, tc.expErr)
 				}
 			}
-			log.Printf("Client: recieved SessionResp")
+			log.Printf("Client: received SessionResp")
 			if diff := cmp.Diff(tc.expectedResponse, resp, protocmp.Transform()); diff != "" {
 				t.Errorf("cstream.Recv() returned incorrect SessionResp, (-want +got):\n%s", diff)
 			}
@@ -493,7 +493,7 @@ func TestSetUpSessionPrivateKeyOperation(t *testing.T) {
 			if err != nil {
 				t.Fatalf("Client: failed to receive SessionResp: %v", err)
 			}
-			log.Printf("Client: recieved SessionResp")
+			log.Printf("Client: received SessionResp")
 			if diff := cmp.Diff(tc.expectedResponse, resp, protocmp.Transform()); diff != "" {
 				t.Errorf("cstream.Recv() returned incorrect SessionResp, (-want +got):\n%s", diff)
 			}

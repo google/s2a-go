@@ -83,7 +83,7 @@ func NewServerCreds(s2av2Address string, localIdentities []*commonpbv1.Identity,
 // ClientHandshake performs a client-side mTLS handshake using the S2Av2.
 func (c *s2av2TransportCreds) ClientHandshake(ctx context.Context, serverAuthority string, rawConn net.Conn) (net.Conn, credentials.AuthInfo, error) {
 	if !c.isClient {
-		return nil, nil, errors.New("client handshake called using server transport credentials.")
+		return nil, nil, errors.New("client handshake called using server transport credentials")
 	}
 	// Remove the port from serverAuthority.
 	serverName, _, err := net.SplitHostPort(serverAuthority)
@@ -117,7 +117,7 @@ func (c *s2av2TransportCreds) ClientHandshake(ctx context.Context, serverAuthori
 // ServerHandshake performs a server-side mTLS handshake using the S2Av2.
 func (c *s2av2TransportCreds) ServerHandshake(rawConn net.Conn) (net.Conn, credentials.AuthInfo, error) {
 	if c.isClient {
-		return nil, nil, errors.New("server handshake called using client transport credentials.")
+		return nil, nil, errors.New("server handshake called using client transport credentials")
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
 	defer cancel()
