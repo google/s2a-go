@@ -140,9 +140,8 @@ func TestCloneClient(t *testing.T) {
 		}
 		if xToken == yToken {
 			return true
-		} else {
-			return false
 		}
+		return false
 	})), true; got != want {
 		t.Errorf("cmp.Equal(%+v, %+v) = %v, want %v", s2av2Creds, s2av2CloneCreds, got, want)
 	}
@@ -159,9 +158,8 @@ func TestCloneClient(t *testing.T) {
 		}
 		if xToken == yToken {
 			return true
-		} else {
-			return false
 		}
+		return false
 	})), false; got != want {
 		t.Errorf("cmp.Equal(%+v, %+v) = %v, want %v", s2av2Creds, s2av2CloneCreds, got, want)
 	}
@@ -199,9 +197,8 @@ func TestCloneServer(t *testing.T) {
 		}
 		if xToken == yToken {
 			return true
-		} else {
-			return false
 		}
+		return false
 	})), true; got != want {
 		t.Errorf("cmp.Equal(%+v, %+v) = %v, want %v", s2av2Creds, s2av2CloneCreds, got, want)
 	}
@@ -218,9 +215,8 @@ func TestCloneServer(t *testing.T) {
 		}
 		if xToken == yToken {
 			return true
-		} else {
-			return false
 		}
+		return false
 	})), false; got != want {
 		t.Errorf("cmp.Equal(%+v, %+v) = %v, want %v", s2av2Creds, s2av2CloneCreds, got, want)
 	}

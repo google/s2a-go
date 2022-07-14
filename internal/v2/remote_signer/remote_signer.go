@@ -1,4 +1,4 @@
-// Remote signer library that offloads private key operations to S2Av2.
+// Package remotesigner offloads private key operations to S2Av2.
 package remotesigner
 
 import (

@@ -1,4 +1,4 @@
-// Certificate verifier library that offloads verifications to S2Av2.
+// Package certverifier offloads verifications to S2Av2.
 package certverifier
 
 import (
@@ -37,7 +37,7 @@ func VerifyClientCertificateChain(verificationMode s2av2pb.ValidatePeerCertifica
 
 		// Parse the response
 		if (resp.GetStatus() != nil) && (resp.GetStatus().Code != uint32(codes.OK)) {
-			return fmt.Errorf("Failed to offload client cert verification to S2A: %d, %v", resp.GetStatus().Code, resp.GetStatus().Details)
+			return fmt.Errorf("failed to offload client cert verification to S2A: %d, %v", resp.GetStatus().Code, resp.GetStatus().Details)
 
 		}
 		return nil
@@ -73,7 +73,7 @@ func VerifyServerCertificateChain(hostname string, verificationMode s2av2pb.Vali
 
 		// Parse the response
 		if (resp.GetStatus() != nil) && (resp.GetStatus().Code != uint32(codes.OK)) {
-			return fmt.Errorf("Failed to offload client cert verification to S2A: %d, %v", resp.GetStatus().Code, resp.GetStatus().Details)
+			return fmt.Errorf("failed to offload client cert verification to S2A: %d, %v", resp.GetStatus().Code, resp.GetStatus().Details)
 		}
 		return nil
 	}

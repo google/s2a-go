@@ -1,4 +1,4 @@
-// Builds TLS configurations that offload operations to S2Av2.
+// Package tlsconfigstore offloads operations to S2Av2.
 package tlsconfigstore
 
 import (
@@ -66,7 +66,7 @@ func GetTlsConfigurationForClient(serverHostname string, cstream s2av2pb.S2AServ
 		// Populate Certificates field
 		block, _ := pem.Decode([]byte(v))
 		if block == nil {
-			return nil, errors.New("certificate in CertificateChain obtained from S2Av2 is empty.")
+			return nil, errors.New("certificate in CertificateChain obtained from S2Av2 is empty")
 		}
 		x509Cert, err := x509.ParseCertificate(block.Bytes)
 		if err != nil {
@@ -131,7 +131,7 @@ func ClientConfig(tokenManager tokenmanager.AccessTokenManager, localIdentities 
 			// Populate Certificates field
 			block, _ := pem.Decode([]byte(v))
 			if block == nil {
-				return nil, errors.New("certificate in CertificateChain obtained from S2Av2 is empty.")
+				return nil, errors.New("certificate in CertificateChain obtained from S2Av2 is empty")
 			}
 			x509Cert, err := x509.ParseCertificate(block.Bytes)
 			if err != nil {
@@ -314,7 +314,7 @@ func getTLSMinMaxVersionsClient(tlsConfig *s2av2pb.GetTlsConfigurationResp_Clien
 		return minVersion, maxVersion, fmt.Errorf("S2Av2 provided invalid MaxTlsVersion: %v", x)
 	}
 	if minVersion > maxVersion {
-		return minVersion, maxVersion, errors.New("S2Av2 provided minVersion > maxVersion.")
+		return minVersion, maxVersion, errors.New("S2Av2 provided minVersion > maxVersion")
 	}
 	return minVersion, maxVersion, nil
 }
@@ -349,7 +349,7 @@ func getTLSMinMaxVersionsServer(tlsConfig *s2av2pb.GetTlsConfigurationResp_Serve
 		return minVersion, maxVersion, fmt.Errorf("S2Av2 provided invalid MaxTlsVersion: %v", x)
 	}
 	if minVersion > maxVersion {
-		return minVersion, maxVersion, errors.New("S2Av2 provided minVersion > maxVersion.")
+		return minVersion, maxVersion, errors.New("S2Av2 provided minVersion > maxVersion")
 	}
 	return minVersion, maxVersion, nil
 }

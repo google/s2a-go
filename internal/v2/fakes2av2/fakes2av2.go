@@ -1,3 +1,4 @@
+// Package fakes2av2 is a fake S2Av2 Go implementation.
 package fakes2av2
 
 import (
@@ -169,7 +170,7 @@ func offloadPrivateKeyOperation(req *s2av2pb.OffloadPrivateKeyOperationReq, isAs
 			},
 		}, nil
 	case s2av2pb.OffloadPrivateKeyOperationReq_DECRYPT:
-		return nil, errors.New("Decrypt operation not implemented yet.")
+		return nil, errors.New("decrypt operation not implemented yet")
 	default:
 		s := fmt.Sprintf("Unspecified private key operation requested: %d", x)
 		return nil, errors.New(s)
@@ -183,7 +184,7 @@ func validatePeerCertificateChain(req *s2av2pb.ValidatePeerCertificateChainReq) 
 	case *s2av2pb.ValidatePeerCertificateChainReq_ServerPeer_:
 		return verifyServerPeer(req)
 	default:
-		err := errors.New(fmt.Sprintf("Peer Verification failed: invalid Peer type %T", x))
+		err := fmt.Errorf("Peer Verification failed: invalid Peer type %T", x)
 		return buildValidatePeerCertificateChainSessionResp(uint32(codes.InvalidArgument), err.Error(), s2av2pb.ValidatePeerCertificateChainResp_FAILURE, err.Error(), &s2av2ctx.S2AContext{}), err
 	}
 }
@@ -214,7 +215,7 @@ func getTlsConfiguration(req *s2av2pb.GetTlsConfigurationReq) (*s2av2pb.SessionR
 				},
 			},
 		}, nil
-	} else {
+	} else if req.GetConnectionSide() == commonpb.ConnectionSide_CONNECTION_SIDE_SERVER {
 		return &s2av2pb.SessionResp{
 			Status: &s2av2pb.Status{
 				Code: uint32(codes.OK),
@@ -243,6 +244,7 @@ func getTlsConfiguration(req *s2av2pb.GetTlsConfigurationReq) (*s2av2pb.SessionR
 			},
 		}, nil
 	}
+	return nil, fmt.Errorf("unspecified connection side: %v", req.GetConnectionSide())
 }
 
 func buildValidatePeerCertificateChainSessionResp(StatusCode uint32, StatusDetails string, ValidationResult s2av2pb.ValidatePeerCertificateChainResp_ValidationResult, ValidationDetails string, Context *s2av2ctx.S2AContext) *s2av2pb.SessionResp {
@@ -264,14 +266,14 @@ func buildValidatePeerCertificateChainSessionResp(StatusCode uint32, StatusDetai
 func verifyClientPeer(req *s2av2pb.ValidatePeerCertificateChainReq) (*s2av2pb.SessionResp, error) {
 	derCertChain := req.GetClientPeer().CertificateChain
 	if len(derCertChain) == 0 {
-		s := "Client Peer Verification failed: client cert chain is empty."
+		s := "Client Peer Verification failed: client cert chain is empty"
 		return buildValidatePeerCertificateChainSessionResp(uint32(codes.InvalidArgument), s, s2av2pb.ValidatePeerCertificateChainResp_FAILURE, s, &s2av2ctx.S2AContext{}), nil
 	}
 
 	// Obtain the set of root certificates.
 	rootCertPool := x509.NewCertPool()
 	if ok := rootCertPool.AppendCertsFromPEM(clientCert); ok != true {
-		err := errors.New("Client Peer Verification failed: S2Av2 could not obtain/parse roots.")
+		err := errors.New("client peer verification failed: S2Av2 could not obtain/parse roots")
 		return buildValidatePeerCertificateChainSessionResp(uint32(codes.Internal), err.Error(), s2av2pb.ValidatePeerCertificateChainResp_FAILURE, err.Error(), &s2av2ctx.S2AContext{}), err
 	}
 
@@ -306,14 +308,14 @@ func verifyClientPeer(req *s2av2pb.ValidatePeerCertificateChainReq) (*s2av2pb.Se
 func verifyServerPeer(req *s2av2pb.ValidatePeerCertificateChainReq) (*s2av2pb.SessionResp, error) {
 	derCertChain := req.GetServerPeer().CertificateChain
 	if len(derCertChain) == 0 {
-		s := "Server Peer Verification failed: server cert chain is empty."
+		s := "Server Peer Verification failed: server cert chain is empty"
 		return buildValidatePeerCertificateChainSessionResp(uint32(codes.InvalidArgument), s, s2av2pb.ValidatePeerCertificateChainResp_FAILURE, s, &s2av2ctx.S2AContext{}), nil
 	}
 
 	// Obtain the set of root certificates.
 	rootCertPool := x509.NewCertPool()
 	if ok := rootCertPool.AppendCertsFromPEM(serverCert); ok != true {
-		err := errors.New("Server Peer Verification failed: S2Av2 could not obtain/parse roots.")
+		err := errors.New("server peer verification failed: S2Av2 could not obtain/parse roots")
 		return buildValidatePeerCertificateChainSessionResp(uint32(codes.Internal), err.Error(), s2av2pb.ValidatePeerCertificateChainResp_FAILURE, err.Error(), &s2av2ctx.S2AContext{}), err
 	}
 

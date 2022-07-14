@@ -76,7 +76,7 @@ func startFakeS2AOnUDS(t *testing.T, expToken string) string {
 // startServer starts up a server and returns the address that it is listening
 // on.
 func startServer(t *testing.T, s2aAddress string, localIdentities []*commonpbv1.Identity) string {
-	// TODO(rmehta19): Pass verificationMode as a paramter to startServer.
+	// TODO(rmehta19): Pass verificationMode as a parameter to startServer.
 	creds, err := NewServerCreds(s2aAddress, localIdentities, s2av2pb.ValidatePeerCertificateChainReq_CONNECT_TO_GOOGLE)
 	if err != nil {
 		t.Errorf("NewServerCreds(%s) failed: %v", s2aAddress, err)
