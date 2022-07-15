@@ -20,13 +20,7 @@ go_test(
   srcs = ["cert_verifier_test.go"],
   embed = [":cert_verifier"],
   embedsrcs = [
-    "example_cert_key/client_root_cert.der",
-    "example_cert_key/server_root_cert.der",
-    "example_cert_key/client_intermediate_cert.der",
-    "example_cert_key/server_intermediate_cert.der",
-    "example_cert_key/client_leaf_cert.der",
-    "example_cert_key/server_leaf_cert.der",
-
+    "//internal/v2/cert_verifier/example_cert_key:export_testdata", # keep
   ],
   deps = [
     "//internal/proto/v2/s2a_go_proto:s2a_go_proto",

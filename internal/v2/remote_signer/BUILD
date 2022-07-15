@@ -20,12 +20,7 @@ go_test(
   srcs = ["remote_signer_test.go"],
   embed = [":remote_signer"],
   embedsrcs = [
-    "example_cert_key/client_cert.pem",
-    "example_cert_key/client_cert.der",
-    "example_cert_key/client_key.pem",
-    "example_cert_key/server_cert.pem",
-    "example_cert_key/server_cert.der",
-    "example_cert_key/server_key.pem",
+    "//internal/v2/remote_signer/example_cert_key:export_testdata", # keep
   ],
   deps = [
     "//internal/v2/fakes2av2",

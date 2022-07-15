@@ -10,12 +10,7 @@ go_library(
   importpath = "github.com/google/s2a-go/internal/v2/fakes2av2",
   testonly = True,
   embedsrcs = [
-    "example_cert_key/client_root_cert.pem",
-    "example_cert_key/client_root_cert.der",
-    "example_cert_key/client_root_key.pem",
-    "example_cert_key/server_root_cert.pem",
-    "example_cert_key/server_root_cert.der",
-    "example_cert_key/server_root_key.pem",
+    "//internal/v2/fakes2av2/example_cert_key:export_testdata", # keep
   ],
   deps = [
     "//internal/proto/v2/common_go_proto:common_go_proto",
