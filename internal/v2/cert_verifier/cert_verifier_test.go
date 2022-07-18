@@ -1,11 +1,26 @@
+/*
+ *
+ * Copyright 2022 Google LLC
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ */
+
 package certverifier
 
 import (
 	"context"
 	"errors"
-	"github.com/google/s2a-go/internal/v2/fakes2av2"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials/insecure"
 	"log"
 	"net"
 	"sync"
@@ -13,6 +28,11 @@ import (
 	"time"
 
 	_ "embed"
+
+	"github.com/google/s2a-go/internal/v2/fakes2av2"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
+
 	s2av2pb "github.com/google/s2a-go/internal/proto/v2/s2a_go_proto"
 )
 
@@ -38,7 +58,7 @@ var (
 func startFakeS2Av2Server(wg *sync.WaitGroup) (stop func(), address string, err error) {
 	listener, err := net.Listen("tcp", ":0")
 	if err != nil {
-		log.Fatalf("failed to listen on address %s: %v", address, err)
+		log.Fatalf("Failed to listen on address %s: %v", address, err)
 	}
 	address = listener.Addr().String()
 	s := grpc.NewServer()
@@ -47,7 +67,7 @@ func startFakeS2Av2Server(wg *sync.WaitGroup) (stop func(), address string, err 
 	go func() {
 		wg.Done()
 		if err := s.Serve(listener); err != nil {
-			log.Printf("failed to serve: %v", err)
+			log.Printf("Failed to serve: %v", err)
 		}
 	}()
 	return func() { s.Stop() }, address, nil
@@ -61,7 +81,7 @@ func TestVerifyClientCertChain(t *testing.T) {
 	stop, address, err := startFakeS2Av2Server(&wg)
 	wg.Wait()
 	if err != nil {
-		t.Fatalf("error starting fake S2Av2 Server: %v", err)
+		t.Fatalf("Error starting fake S2Av2 Server: %v", err)
 	}
 
 	for _, tc := range []struct {
@@ -72,7 +92,7 @@ func TestVerifyClientCertChain(t *testing.T) {
 		{
 			description: "empty chain",
 			rawCerts:    nil,
-			expectedErr: errors.New("failed to offload client cert verification to S2A: 3, Client Peer Verification failed: client cert chain is empty"),
+			expectedErr: errors.New("failed to offload client cert verification to S2A: 3, client peer verification failed: client cert chain is empty"),
 		},
 		{
 			description: "chain of length 1",
@@ -87,7 +107,7 @@ func TestVerifyClientCertChain(t *testing.T) {
 		{
 			description: "chain of length 2 error: missing intermediate",
 			rawCerts:    [][]byte{clientLeafDERCert, clientRootDERCert},
-			expectedErr: errors.New("failed to offload client cert verification to S2A: 3, Client Peer Verification failed: x509: certificate signed by unknown authority (possibly because of \"crypto/rsa: verification error\" while trying to verify candidate authority certificate \"s2a_test_cert\")"),
+			expectedErr: errors.New("failed to offload client cert verification to S2A: 3, client peer verification failed: x509: certificate signed by unknown authority (possibly because of \"crypto/rsa: verification error\" while trying to verify candidate authority certificate \"s2a_test_cert\")"),
 		},
 	} {
 		t.Run(tc.description, func(t *testing.T) {
@@ -120,14 +140,14 @@ func TestVerifyClientCertChain(t *testing.T) {
 			got, want := VerifyPeerCertificateFunc(tc.rawCerts, nil), tc.expectedErr
 			if want == nil {
 				if got != nil {
-					t.Errorf("Peer Certificate verification failed, got: %v, want: %v", got, want)
+					t.Errorf("Peer certificate verification failed, got: %v, want: %v", got, want)
 				}
 			} else {
 				if got == nil {
-					t.Errorf("Peer Certificate verification failed, got: %v, want: %v", got, want)
+					t.Errorf("Peer certificate verification failed, got: %v, want: %v", got, want)
 				}
 				if got.Error() != want.Error() {
-					t.Errorf("Peer Certificate verification failed, got: %v, want: %v", got, want)
+					t.Errorf("Peer certificate verification failed, got: %v, want: %v", got, want)
 				}
 			}
 		})
@@ -143,7 +163,7 @@ func TestVerifyServerCertChain(t *testing.T) {
 	stop, address, err := startFakeS2Av2Server(&wg)
 	wg.Wait()
 	if err != nil {
-		t.Fatalf("error starting fake S2Av2 Server: %v", err)
+		t.Fatalf("Error starting fake S2Av2 Server: %v", err)
 	}
 
 	for _, tc := range []struct {
@@ -156,7 +176,7 @@ func TestVerifyServerCertChain(t *testing.T) {
 			description: "empty chain",
 			hostname:    "host",
 			rawCerts:    nil,
-			expectedErr: errors.New("failed to offload client cert verification to S2A: 3, Server Peer Verification failed: server cert chain is empty"),
+			expectedErr: errors.New("failed to offload client cert verification to S2A: 3, server peer verification failed: server cert chain is empty"),
 		},
 		{
 			description: "chain of length 1",
@@ -201,14 +221,14 @@ func TestVerifyServerCertChain(t *testing.T) {
 			got, want := VerifyPeerCertificateFunc(tc.rawCerts, nil), tc.expectedErr
 			if want == nil {
 				if got != nil {
-					t.Errorf("Peer Certificate verification failed, got: %v, want: %v", got, want)
+					t.Errorf("Peer certificate verification failed, got: %v, want: %v", got, want)
 				}
 			} else {
 				if got == nil {
-					t.Errorf("Peer Certificate verification failed, got: %v, want: %v", got, want)
+					t.Errorf("Peer certificate verification failed, got: %v, want: %v", got, want)
 				}
 				if got.Error() != want.Error() {
-					t.Errorf("Peer Certificate verification failed, got: %v, want: %v", got, want)
+					t.Errorf("Peer certificate verification failed, got: %v, want: %v", got, want)
 				}
 			}
 		})

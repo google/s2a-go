@@ -18,6 +18,7 @@
 
 package s2a
 
+// TODO: Please do a readbility review of this file.
 import (
 	"context"
 	"fmt"
@@ -29,15 +30,17 @@ import (
 	"time"
 
 	"github.com/google/s2a-go/internal/fakehandshaker/service"
+	"github.com/google/s2a-go/internal/v2/fakes2av2"
+	"google.golang.org/grpc/credentials"
+	"google.golang.org/grpc/grpclog"
+	"google.golang.org/grpc/peer"
+
+	grpc "google.golang.org/grpc"
+
 	commonpb "github.com/google/s2a-go/internal/proto/common_go_proto"
 	helloworldpb "github.com/google/s2a-go/internal/proto/examples/helloworld_go_proto"
 	s2apb "github.com/google/s2a-go/internal/proto/s2a_go_proto"
 	s2av2pb "github.com/google/s2a-go/internal/proto/v2/s2a_go_proto"
-	"github.com/google/s2a-go/internal/v2/fakes2av2"
-	grpc "google.golang.org/grpc"
-	"google.golang.org/grpc/credentials"
-	"google.golang.org/grpc/grpclog"
-	"google.golang.org/grpc/peer"
 )
 
 const (
@@ -89,7 +92,7 @@ func startFakeS2A(t *testing.T, enableV2 bool, expToken string) string {
 func startFakeS2AOnUDS(t *testing.T, enableV2 bool, expToken string) string {
 	dir, err := ioutil.TempDir("/tmp", "socket_dir")
 	if err != nil {
-		t.Errorf("unable to create temporary directory: %v", err)
+		t.Errorf("Unable to create temporary directory: %v", err)
 	}
 	udsAddress := filepath.Join(dir, "socket")
 	lis, err := net.Listen("unix", filepath.Join(dir, "socket"))
@@ -154,7 +157,7 @@ func runClient(ctx context.Context, t *testing.T, clientS2AAddress, serverAddr s
 		grpc.WithBlock(),
 	}
 
-	grpclog.Info("client dialing server at address: %v", serverAddr)
+	grpclog.Info("Client dialing server at address: %v", serverAddr)
 	// Establish a connection to the server.
 	conn, err := grpc.Dial(serverAddr, dialOptions...)
 	if err != nil {
@@ -166,7 +169,7 @@ func runClient(ctx context.Context, t *testing.T, clientS2AAddress, serverAddr s
 	peer := new(peer.Peer)
 	c := helloworldpb.NewGreeterClient(conn)
 	req := &helloworldpb.HelloRequest{Name: clientMessage}
-	grpclog.Infof("client calling SayHello with request: %v", req)
+	grpclog.Infof("Client calling SayHello with request: %v", req)
 	resp, err := c.SayHello(ctx, req, grpc.Peer(peer), grpc.WaitForReady(true))
 	if err != nil {
 		t.Errorf("c.SayHello(%v, %v) failed: %v", ctx, req, err)
@@ -174,7 +177,7 @@ func runClient(ctx context.Context, t *testing.T, clientS2AAddress, serverAddr s
 	if got, want := resp.GetMessage(), "Hello "+clientMessage; got != want {
 		t.Errorf("r.GetMessage() = %v, want %v", got, want)
 	}
-	grpclog.Infof("client received message from server: %s", resp.GetMessage())
+	grpclog.Infof("Client received message from server: %s", resp.GetMessage())
 
 	if !enableV2 {
 		// Check the auth info.
@@ -209,13 +212,13 @@ func TestV1EndToEndUsingFakeS2AOverTCP(t *testing.T) {
 
 	// Start the fake S2As for the client and server.
 	serverHandshakerAddr := startFakeS2A(t, false, "")
-	grpclog.Infof("fake handshaker for server running at address: %v", serverHandshakerAddr)
+	grpclog.Infof("Fake handshaker for server running at address: %v", serverHandshakerAddr)
 	clientHandshakerAddr := startFakeS2A(t, false, "")
-	grpclog.Infof("fake handshaker for client running at address: %v", clientHandshakerAddr)
+	grpclog.Infof("Fake handshaker for client running at address: %v", clientHandshakerAddr)
 
 	// Start the server.
 	serverAddr := startServer(t, serverHandshakerAddr, false)
-	grpclog.Infof("server running at address: %v", serverAddr)
+	grpclog.Infof("Server running at address: %v", serverAddr)
 
 	// Finally, start up the client.
 	ctx, cancel := context.WithTimeout(context.Background(), defaultE2ETestTimeout)
@@ -228,13 +231,13 @@ func TestV2EndToEndUsingFakeS2AOverTCP(t *testing.T) {
 
 	// Start the fake S2As for the client and server.
 	serverHandshakerAddr := startFakeS2A(t, true, testV2AccessToken)
-	grpclog.Infof("fake handshaker for server running at address: %v", serverHandshakerAddr)
+	grpclog.Infof("Fake handshaker for server running at address: %v", serverHandshakerAddr)
 	clientHandshakerAddr := startFakeS2A(t, true, testV2AccessToken)
-	grpclog.Infof("fake handshaker for client running at address: %v", clientHandshakerAddr)
+	grpclog.Infof("Fake handshaker for client running at address: %v", clientHandshakerAddr)
 
 	// Start the server.
 	serverAddr := startServer(t, serverHandshakerAddr, true)
-	grpclog.Infof("server running at address: %v", serverAddr)
+	grpclog.Infof("Server running at address: %v", serverAddr)
 
 	// Finally, start up the client.
 	ctx, cancel := context.WithTimeout(context.Background(), defaultE2ETestTimeout)
@@ -246,13 +249,13 @@ func TestV1EndToEndUsingTokens(t *testing.T) {
 
 	// Start the handshaker servers for the client and server.
 	serverS2AAddress := startFakeS2A(t, false, "")
-	grpclog.Infof("fake S2A for server running at address: %v", serverS2AAddress)
+	grpclog.Infof("Fake S2A for server running at address: %v", serverS2AAddress)
 	clientS2AAddress := startFakeS2A(t, false, "")
-	grpclog.Infof("fake S2A for client running at address: %v", clientS2AAddress)
+	grpclog.Infof("Fake S2A for client running at address: %v", clientS2AAddress)
 
 	// Start the server.
 	serverAddr := startServer(t, serverS2AAddress, false)
-	grpclog.Infof("server running at address: %v", serverAddr)
+	grpclog.Infof("Server running at address: %v", serverAddr)
 
 	// Finally, start up the client.
 	ctx, cancel := context.WithTimeout(context.Background(), defaultE2ETestTimeout)
@@ -265,13 +268,13 @@ func TestV2EndToEndUsingTokens(t *testing.T) {
 
 	// Start the handshaker servers for the client and server.
 	serverS2AAddress := startFakeS2A(t, true, testV2AccessToken)
-	grpclog.Infof("fake S2A for server running at address: %v", serverS2AAddress)
+	grpclog.Infof("Fake S2A for server running at address: %v", serverS2AAddress)
 	clientS2AAddress := startFakeS2A(t, true, testV2AccessToken)
-	grpclog.Infof("fake S2A for client running at address: %v", clientS2AAddress)
+	grpclog.Infof("Fake S2A for client running at address: %v", clientS2AAddress)
 
 	// Start the server.
 	serverAddr := startServer(t, serverS2AAddress, true)
-	grpclog.Infof("server running at address: %v", serverAddr)
+	grpclog.Infof("Server running at address: %v", serverAddr)
 
 	// Finally, start up the client.
 	ctx, cancel := context.WithTimeout(context.Background(), defaultE2ETestTimeout)
@@ -284,13 +287,13 @@ func TestV1EndToEndUsingFakeS2AOnUDS(t *testing.T) {
 
 	// Start fake S2As for use by the client and server.
 	serverS2AAddress := startFakeS2AOnUDS(t, false, "")
-	grpclog.Infof("fake S2A for server listening on UDS at address: %v", serverS2AAddress)
+	grpclog.Infof("Fake S2A for server listening on UDS at address: %v", serverS2AAddress)
 	clientS2AAddress := startFakeS2AOnUDS(t, false, "")
-	grpclog.Infof("fake S2A for client listening on UDS at address: %v", clientS2AAddress)
+	grpclog.Infof("Fake S2A for client listening on UDS at address: %v", clientS2AAddress)
 
 	// Start the server.
 	serverAddress := startServer(t, serverS2AAddress, false)
-	grpclog.Infof("server running at address: %v", serverS2AAddress)
+	grpclog.Infof("Server running at address: %v", serverS2AAddress)
 
 	// Finally, start up the client.
 	ctx, cancel := context.WithTimeout(context.Background(), defaultE2ETestTimeout)
@@ -303,13 +306,13 @@ func TestV2EndToEndUsingFakeS2AOnUDS(t *testing.T) {
 
 	// Start fake S2As for use by the client and server.
 	serverS2AAddress := startFakeS2AOnUDS(t, true, testV2AccessToken)
-	grpclog.Infof("fake S2A for server listening on UDS at address: %v", serverS2AAddress)
+	grpclog.Infof("Fake S2A for server listening on UDS at address: %v", serverS2AAddress)
 	clientS2AAddress := startFakeS2AOnUDS(t, true, testV2AccessToken)
-	grpclog.Infof("fake S2A for client listening on UDS at address: %v", clientS2AAddress)
+	grpclog.Infof("Fake S2A for client listening on UDS at address: %v", clientS2AAddress)
 
 	// Start the server.
 	serverAddress := startServer(t, serverS2AAddress, true)
-	grpclog.Infof("server running at address: %v", serverS2AAddress)
+	grpclog.Infof("Server running at address: %v", serverS2AAddress)
 
 	// Finally, start up the client.
 	ctx, cancel := context.WithTimeout(context.Background(), defaultE2ETestTimeout)

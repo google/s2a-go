@@ -20,6 +20,7 @@
 // application.
 package s2a
 
+// TODO: Please do a readbility review of this file.
 import (
 	"context"
 	"errors"
@@ -31,11 +32,12 @@ import (
 	"github.com/golang/protobuf/proto"
 	"github.com/google/s2a-go/internal/handshaker"
 	"github.com/google/s2a-go/internal/handshaker/service"
-	commonpb "github.com/google/s2a-go/internal/proto/common_go_proto"
-	s2av2pb "github.com/google/s2a-go/internal/proto/v2/s2a_go_proto"
 	"github.com/google/s2a-go/internal/v2"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/grpclog"
+
+	commonpb "github.com/google/s2a-go/internal/proto/common_go_proto"
+	s2av2pb "github.com/google/s2a-go/internal/proto/v2/s2a_go_proto"
 )
 
 const (
@@ -150,7 +152,7 @@ func (c *s2aTransportCreds) ClientHandshake(ctx context.Context, serverAuthority
 	// Connect to the S2A.
 	hsConn, err := service.Dial(c.s2aAddr)
 	if err != nil {
-		grpclog.Infof("failed to connect to S2A: %v", err)
+		grpclog.Infof("Failed to connect to S2A: %v", err)
 		return nil, nil, err
 	}
 
@@ -169,13 +171,13 @@ func (c *s2aTransportCreds) ClientHandshake(ctx context.Context, serverAuthority
 	}
 	chs, err := handshaker.NewClientHandshaker(ctx, hsConn, rawConn, c.s2aAddr, opts)
 	if err != nil {
-		grpclog.Infof("call to handshaker.NewClientHandshaker failed: %v", err)
+		grpclog.Infof("Call to handshaker.NewClientHandshaker failed: %v", err)
 		return nil, nil, err
 	}
 	defer func() {
 		if err != nil {
 			if closeErr := chs.Close(); closeErr != nil {
-				grpclog.Infof("close failed unexpectedly: %v", err)
+				grpclog.Infof("Close failed unexpectedly: %v", err)
 				err = fmt.Errorf("%v: close unexpectedly failed: %v", err, closeErr)
 			}
 		}
@@ -198,7 +200,7 @@ func (c *s2aTransportCreds) ServerHandshake(rawConn net.Conn) (net.Conn, credent
 	// Connect to the S2A.
 	hsConn, err := service.Dial(c.s2aAddr)
 	if err != nil {
-		grpclog.Infof("failed to connect to S2A: %v", err)
+		grpclog.Infof("Failed to connect to S2A: %v", err)
 		return nil, nil, err
 	}
 
@@ -213,13 +215,13 @@ func (c *s2aTransportCreds) ServerHandshake(rawConn net.Conn) (net.Conn, credent
 	}
 	shs, err := handshaker.NewServerHandshaker(ctx, hsConn, rawConn, c.s2aAddr, opts)
 	if err != nil {
-		grpclog.Infof("call to handshaker.NewServerHandshaker failed: %v", err)
+		grpclog.Infof("Call to handshaker.NewServerHandshaker failed: %v", err)
 		return nil, nil, err
 	}
 	defer func() {
 		if err != nil {
 			if closeErr := shs.Close(); closeErr != nil {
-				grpclog.Infof("close failed unexpectedly: %v", err)
+				grpclog.Infof("Close failed unexpectedly: %v", err)
 				err = fmt.Errorf("%v: close unexpectedly failed: %v", err, closeErr)
 			}
 		}

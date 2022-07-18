@@ -1,3 +1,21 @@
+/*
+ *
+ * Copyright 2022 Google LLC
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ */
+
 // Package tlsconfigstore offloads operations to S2Av2.
 package tlsconfigstore
 
@@ -7,6 +25,7 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
+
 	"github.com/google/s2a-go/internal/tokenmanager"
 	"github.com/google/s2a-go/internal/v2/cert_verifier"
 	"github.com/google/s2a-go/internal/v2/remote_signer"
@@ -14,6 +33,7 @@ import (
 	"google.golang.org/grpc/grpclog"
 
 	_ "embed"
+
 	commonpbv1 "github.com/google/s2a-go/internal/proto/common_go_proto"
 	commonpb "github.com/google/s2a-go/internal/proto/v2/common_go_proto"
 	s2av2pb "github.com/google/s2a-go/internal/proto/v2/s2a_go_proto"
@@ -55,7 +75,7 @@ func GetTlsConfigurationForClient(serverHostname string, cstream s2av2pb.S2AServ
 
 	// TODO(rmehta19): Add unit test for this if statement.
 	if (resp.GetStatus() != nil) && (resp.GetStatus().Code != uint32(codes.OK)) {
-		return nil, fmt.Errorf("Failed to get TLS configuration from S2A: %d, %v", resp.GetStatus().Code, resp.GetStatus().Details)
+		return nil, fmt.Errorf("failed to get TLS configuration from S2A: %d, %v", resp.GetStatus().Code, resp.GetStatus().Details)
 	}
 
 	// Extract TLS configiguration from SessionResp.
@@ -63,7 +83,7 @@ func GetTlsConfigurationForClient(serverHostname string, cstream s2av2pb.S2AServ
 
 	var cert tls.Certificate
 	for i, v := range tlsConfig.CertificateChain {
-		// Populate Certificates field
+		// Populate Certificates field.
 		block, _ := pem.Decode([]byte(v))
 		if block == nil {
 			return nil, errors.New("certificate in CertificateChain obtained from S2Av2 is empty")
@@ -128,7 +148,7 @@ func ClientConfig(tokenManager tokenmanager.AccessTokenManager, localIdentities 
 
 		var cert tls.Certificate
 		for i, v := range tlsConfig.CertificateChain {
-			// Populate Certificates field
+			// Populate Certificates field.
 			block, _ := pem.Decode([]byte(v))
 			if block == nil {
 				return nil, errors.New("certificate in CertificateChain obtained from S2Av2 is empty")
@@ -170,14 +190,13 @@ func ClientConfig(tokenManager tokenmanager.AccessTokenManager, localIdentities 
 
 func getServerConfigFromS2Av2(tokenManager tokenmanager.AccessTokenManager, localIdentities []*commonpbv1.Identity, cstream s2av2pb.S2AService_SetUpSessionClient) (*s2av2pb.GetTlsConfigurationResp_ServerTlsConfiguration, error) {
 	authMechanisms := getAuthMechanisms(tokenManager, localIdentities)
-	var locId *commonpbv1.Identity
+	var locID *commonpbv1.Identity
 	if localIdentities != nil {
-		locId = localIdentities[0]
+		locID = localIdentities[0]
 	}
 
-	// Send request to S2Av2 for config.
 	if err := cstream.Send(&s2av2pb.SessionReq{
-		LocalIdentity:            locId,
+		LocalIdentity:            locID,
 		AuthenticationMechanisms: authMechanisms,
 		ReqOneof: &s2av2pb.SessionReq_GetTlsConfigurationReq{
 			GetTlsConfigurationReq: &s2av2pb.GetTlsConfigurationReq{
@@ -188,7 +207,6 @@ func getServerConfigFromS2Av2(tokenManager tokenmanager.AccessTokenManager, loca
 		return nil, err
 	}
 
-	// Get the response containing config from S2Av2.
 	resp, err := cstream.Recv()
 	if err != nil {
 		return nil, err
@@ -196,10 +214,9 @@ func getServerConfigFromS2Av2(tokenManager tokenmanager.AccessTokenManager, loca
 
 	// TODO(rmehta19): Add unit test for this if statement.
 	if (resp.GetStatus() != nil) && (resp.GetStatus().Code != uint32(codes.OK)) {
-		return nil, fmt.Errorf("Failed to get TLS configuration from S2A: %d, %v", resp.GetStatus().Code, resp.GetStatus().Details)
+		return nil, fmt.Errorf("failed to get TLS configuration from S2A: %d, %v", resp.GetStatus().Code, resp.GetStatus().Details)
 	}
 
-	// Extract TLS configiguration from SessionResp.
 	return resp.GetGetTlsConfigurationResp().GetServerTlsConfiguration(), nil
 }
 
@@ -241,7 +258,7 @@ func getAuthMechanisms(tokenManager tokenmanager.AccessTokenManager, localIdenti
 	if len(localIdentities) == 0 {
 		token, err := tokenManager.DefaultToken()
 		if err != nil {
-			grpclog.Infof("unable to get token for empty local identity: %v", err)
+			grpclog.Infof("Unable to get token for empty local identity: %v", err)
 			return nil
 		}
 		return []*s2av2pb.AuthenticationMechanism{
@@ -257,7 +274,7 @@ func getAuthMechanisms(tokenManager tokenmanager.AccessTokenManager, localIdenti
 		if localIdentity == nil {
 			token, err := tokenManager.DefaultToken()
 			if err != nil {
-				grpclog.Infof("unable to get default token for local identity %v: %v", localIdentity, err)
+				grpclog.Infof("Unable to get default token for local identity %v: %v", localIdentity, err)
 				continue
 			}
 			authMechanisms = append(authMechanisms, &s2av2pb.AuthenticationMechanism{
@@ -269,7 +286,7 @@ func getAuthMechanisms(tokenManager tokenmanager.AccessTokenManager, localIdenti
 		} else {
 			token, err := tokenManager.Token(localIdentity)
 			if err != nil {
-				grpclog.Infof("unable to get token for local identity %v: %v", localIdentity, err)
+				grpclog.Infof("Unable to get token for local identity %v: %v", localIdentity, err)
 				continue
 			}
 			authMechanisms = append(authMechanisms, &s2av2pb.AuthenticationMechanism{

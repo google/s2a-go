@@ -1,3 +1,21 @@
+/*
+ *
+ * Copyright 2022 Google LLC
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ */
+
 package tlsconfigstore
 
 import (
@@ -12,17 +30,19 @@ import (
 	"testing"
 	"time"
 
-	_ "embed"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
-	commonpbv1 "github.com/google/s2a-go/internal/proto/common_go_proto"
-	commonpb "github.com/google/s2a-go/internal/proto/v2/common_go_proto"
-	s2av2pb "github.com/google/s2a-go/internal/proto/v2/s2a_go_proto"
 	"github.com/google/s2a-go/internal/tokenmanager"
 	"github.com/google/s2a-go/internal/v2/fakes2av2"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/protobuf/testing/protocmp"
+
+	_ "embed"
+
+	commonpbv1 "github.com/google/s2a-go/internal/proto/common_go_proto"
+	commonpb "github.com/google/s2a-go/internal/proto/v2/common_go_proto"
+	s2av2pb "github.com/google/s2a-go/internal/proto/v2/s2a_go_proto"
 )
 
 const (
@@ -72,7 +92,7 @@ func (m *fakeAccessTokenManager) Token(identity *commonpbv1.Identity) (string, e
 func startFakeS2Av2Server(wg *sync.WaitGroup, expToken string) (stop func(), address string, err error) {
 	listener, err := net.Listen("tcp", ":0")
 	if err != nil {
-		log.Fatalf("failed to listen on address %s: %v", address, err)
+		log.Fatalf("Failed to listen on address %s: %v", address, err)
 	}
 	address = listener.Addr().String()
 	s := grpc.NewServer()
@@ -81,7 +101,7 @@ func startFakeS2Av2Server(wg *sync.WaitGroup, expToken string) (stop func(), add
 	go func() {
 		wg.Done()
 		if err := s.Serve(listener); err != nil {
-			log.Printf("failed to serve: %v", err)
+			log.Printf("Failed to serve: %v", err)
 		}
 	}()
 	return func() { s.Stop() }, address, nil
@@ -103,7 +123,7 @@ func TestTLSConfigStoreClient(t *testing.T) {
 	stop, address, err := startFakeS2Av2Server(&wg, "TestTlsConfigStoreClient_token")
 	wg.Wait()
 	if err != nil {
-		t.Fatalf("error starting fake S2Av2 Server: %v", err)
+		t.Fatalf("Error starting fake S2Av2 Server: %v", err)
 	}
 
 	accessTokenManager := &fakeAccessTokenManager{
@@ -190,7 +210,7 @@ func TestTLSConfigStoreServer(t *testing.T) {
 	stop, address, err := startFakeS2Av2Server(&wg, "TestTlsConfigStoreServer_token")
 	wg.Wait()
 	if err != nil {
-		t.Fatalf("error starting fake S2Av2 Server: %v", err)
+		t.Fatalf("Error starting fake S2Av2 Server: %v", err)
 	}
 
 	accessTokenManager := &fakeAccessTokenManager{
@@ -437,13 +457,13 @@ func TestGetServerConfigFromS2Av2(t *testing.T) {
 	stop, address, err := startFakeS2Av2Server(&wg, "TestGetServerConfigFromS2Av2_token")
 	wg.Wait()
 	if err != nil {
-		t.Fatalf("error starting fake S2Av2 Server: %v", err)
+		t.Fatalf("Error starting fake S2Av2 Server: %v", err)
 	}
 	for _, tc := range []struct {
 		description     string
 		tokenManager    tokenmanager.AccessTokenManager
 		localIdentities []*commonpbv1.Identity
-		expTlsConfig    *s2av2pb.GetTlsConfigurationResp_ServerTlsConfiguration
+		expTLSConfig    *s2av2pb.GetTlsConfigurationResp_ServerTlsConfiguration
 		expErr          error
 	}{
 		{
@@ -493,7 +513,7 @@ func TestGetServerConfigFromS2Av2(t *testing.T) {
 					},
 				},
 			},
-			expTlsConfig: &s2av2pb.GetTlsConfigurationResp_ServerTlsConfiguration{
+			expTLSConfig: &s2av2pb.GetTlsConfigurationResp_ServerTlsConfiguration{
 				CertificateChain: []string{
 					string(serverCertpem),
 				},
@@ -536,7 +556,7 @@ func TestGetServerConfigFromS2Av2(t *testing.T) {
 				t.Fatalf("Client: failed to setup bidirectional streaming RPC session: %v", err)
 			}
 			log.Printf("Client: set up bidirectional streaming RPC session.")
-			gotTlsConfig, gotErr := getServerConfigFromS2Av2(tc.tokenManager, tc.localIdentities, cstream)
+			gotTLSConfig, gotErr := getServerConfigFromS2Av2(tc.tokenManager, tc.localIdentities, cstream)
 			if gotErr != tc.expErr {
 				if (gotErr == nil) || (tc.expErr == nil) {
 					t.Errorf("gotErr = %v,  tc.expErr = %v", gotErr, tc.expErr)
@@ -545,7 +565,7 @@ func TestGetServerConfigFromS2Av2(t *testing.T) {
 				}
 			}
 			if (gotErr == nil) && (tc.expErr == nil) {
-				if diff := cmp.Diff(gotTlsConfig, tc.expTlsConfig, protocmp.Transform()); diff != "" {
+				if diff := cmp.Diff(gotTLSConfig, tc.expTLSConfig, protocmp.Transform()); diff != "" {
 					t.Errorf("getServerConfigFromS2Av2 returned incorrect GetTlsConfigurationResp_ServerTlsConfiguration, (-want +got):\n%s", diff)
 				}
 			}
@@ -566,7 +586,7 @@ func TestGetClientConfig(t *testing.T) {
 	stop, address, err := startFakeS2Av2Server(&wg, "TestGetClientConfig_token")
 	wg.Wait()
 	if err != nil {
-		t.Fatalf("error starting fake S2Av2 Server: %v", err)
+		t.Fatalf("Error starting fake S2Av2 Server: %v", err)
 	}
 
 	accessTokenManager := &fakeAccessTokenManager{

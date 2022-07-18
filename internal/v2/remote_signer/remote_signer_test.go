@@ -1,3 +1,21 @@
+/*
+ *
+ * Copyright 2022 Google LLC
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ */
+
 package remotesigner
 
 import (
@@ -9,7 +27,6 @@ import (
 	"crypto/sha256"
 	"crypto/tls"
 	"crypto/x509"
-	_ "embed"
 	"fmt"
 	"log"
 	"net"
@@ -19,12 +36,15 @@ import (
 	"time"
 
 	"github.com/google/go-cmp/cmp"
-	commonpb "github.com/google/s2a-go/internal/proto/v2/common_go_proto"
-	s2av2pb "github.com/google/s2a-go/internal/proto/v2/s2a_go_proto"
 	"github.com/google/s2a-go/internal/v2/fakes2av2"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/protobuf/testing/protocmp"
+
+	_ "embed"
+
+	commonpb "github.com/google/s2a-go/internal/proto/v2/common_go_proto"
+	s2av2pb "github.com/google/s2a-go/internal/proto/v2/s2a_go_proto"
 )
 
 const (
@@ -34,7 +54,7 @@ const (
 func startFakeS2Av2Server(wg *sync.WaitGroup, expToken string) (stop func(), address string, err error) {
 	listener, err := net.Listen("tcp", ":0")
 	if err != nil {
-		log.Fatalf("failed to listen on address %s: %v", address, err)
+		log.Fatalf("Failed to listen on address %s: %v", address, err)
 	}
 	address = listener.Addr().String()
 	s := grpc.NewServer()
@@ -43,7 +63,7 @@ func startFakeS2Av2Server(wg *sync.WaitGroup, expToken string) (stop func(), add
 	go func() {
 		wg.Done()
 		if err := s.Serve(listener); err != nil {
-			log.Printf("failed to serve: %v", err)
+			log.Printf("Failed to serve: %v", err)
 		}
 	}()
 	return func() { s.Stop() }, address, nil
@@ -71,7 +91,7 @@ func TestSign(t *testing.T) {
 	stop, address, err := startFakeS2Av2Server(&wg, "TestSign_token")
 	wg.Wait()
 	if err != nil {
-		t.Fatalf("error starting fake S2Av2 Server: %v", err)
+		t.Fatalf("Error starting fake S2Av2 Server: %v", err)
 	}
 
 	for _, tc := range []struct {
@@ -120,6 +140,7 @@ func TestSign(t *testing.T) {
 				t.Fatalf("Client: failed to setup bidirectional streaming RPC session: %v", err)
 			}
 			log.Printf("Client: set up bidirectional streaming RPC session.")
+
 			// Send first SessionReq for TLS Config. Sets isClientSide to ensure correct
 			// private key used to sign transcript.
 			if err := cstream.Send(&s2av2pb.SessionReq{
@@ -136,20 +157,21 @@ func TestSign(t *testing.T) {
 					},
 				},
 			}); err != nil {
-				t.Fatalf("setup failed: failed to send initial SessionReq for TLS config: %v", err)
+				t.Fatalf("Setup failed: failed to send initial SessionReq for TLS config: %v", err)
 			}
 
 			if _, err := cstream.Recv(); err != nil {
-				t.Fatalf("setup failed: failed to receive initial SessionResp for TLS config: %v", err)
+				t.Fatalf("Setup failed: failed to receive initial SessionResp for TLS config: %v", err)
 			}
+
 			// Setup data for testing Sign.
-			TlsCert, err := tls.X509KeyPair(tc.PEMCert, tc.PEMKey)
+			TLSCert, err := tls.X509KeyPair(tc.PEMCert, tc.PEMKey)
 			if err != nil {
 				t.Fatalf("tls.X509KeyPair failed: %v", err)
 			}
 			x509Cert, err := x509.ParseCertificate(tc.DERCert)
 			if err != nil {
-				t.Fatalf("failed to parse cert: %v", err)
+				t.Fatalf("Failed to parse cert: %v", err)
 			}
 			testInBytes := []byte("Test data.")
 
@@ -161,17 +183,17 @@ func TestSign(t *testing.T) {
 
 			gotSignedBytes, err := s.Sign(rand.Reader, hsha256[:], crypto.SHA256)
 			if err != nil {
-				t.Errorf("call to remote signer Sign API failed: %v", err)
+				t.Errorf("Call to remote signer Sign API failed: %v", err)
 			}
-			wantSignedBytes, err := TlsCert.PrivateKey.(crypto.Signer).Sign(rand.Reader, hsha256[:], crypto.SHA256)
+			wantSignedBytes, err := TLSCert.PrivateKey.(crypto.Signer).Sign(rand.Reader, hsha256[:], crypto.SHA256)
 			if err != nil {
-				t.Errorf("call to Sign API failed: %v", err)
+				t.Errorf("Call to Sign API failed: %v", err)
 			}
 			if !bytes.Equal(gotSignedBytes, wantSignedBytes) {
 				t.Errorf("gotSignedBytes = %v, wantSignedBytes = %v", gotSignedBytes, wantSignedBytes)
 			}
 			if err = rsa.VerifyPKCS1v15(x509Cert.PublicKey.(*rsa.PublicKey), crypto.SHA256, hsha256[:], gotSignedBytes); err != nil {
-				t.Errorf("failed to verify RSA PKCS #1 v1.5 signature: %v", err)
+				t.Errorf("Failed to verify RSA PKCS #1 v1.5 signature: %v", err)
 			}
 
 			// Test RSA PSS signature algorithm.
@@ -183,7 +205,7 @@ func TestSign(t *testing.T) {
 				t.Errorf("Failed to generate gotSignedBytes using RSA PSS: %v", err)
 			}
 			if err = rsa.VerifyPSS(x509Cert.PublicKey.(*rsa.PublicKey), crypto.SHA256, hsha256[:], gotSignedBytes, pssSignerOpts); err != nil {
-				t.Errorf("failed to verify RSA PSS signature: %v", err)
+				t.Errorf("Failed to verify RSA PSS signature: %v", err)
 			}
 		})
 	}
@@ -195,11 +217,10 @@ func TestNew(t *testing.T) {
 	// Setup data for testing New.
 	clientx509Cert, err := x509.ParseCertificate(clientCertDER)
 	if err != nil {
-		t.Errorf("failed to parse cert: %v", err)
+		t.Errorf("Failed to parse cert: %v", err)
 	}
 	var cstream s2av2pb.S2AService_SetUpSessionClient
 
-	// Test New.
 	got := New(clientx509Cert, cstream)
 	if v := got.(*remoteSigner).getCert(); v != clientx509Cert {
 		t.Errorf("RemoteSigner leafCert field is incorrect. got: %v, want: %v", v, clientx509Cert)
@@ -332,17 +353,17 @@ func TestGetSignatureAlgorithm(t *testing.T) {
 
 			if tc.wantError != nil {
 				if got, want := algorithm, s2av2pb.SignatureAlgorithm_S2A_SSL_SIGN_UNSPECIFIED; got != want {
-					t.Errorf("signature algorithm, got: %v, want: %v", got, want)
+					t.Errorf("Signature algorithm, got: %v, want: %v", got, want)
 				}
 				if !strings.Contains(tc.wantError.Error(), err.Error()) {
-					t.Errorf("unexpected error, got: %v, want: %v", err, tc.wantError)
+					t.Errorf("Unexpected error, got: %v, want: %v", err, tc.wantError)
 				}
 			} else {
 				if got, want := algorithm, tc.wantSignatureAlgorithm; got != want {
-					t.Errorf("signature algorithm, got: %v, want: %v", got, want)
+					t.Errorf("Signature algorithm, got: %v, want: %v", got, want)
 				}
 				if err != nil {
-					t.Errorf("unexpected error: %v", err)
+					t.Errorf("Unexpected error: %v", err)
 				}
 			}
 		})
