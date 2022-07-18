@@ -109,7 +109,7 @@ func startFakeS2Av2Server(wg *sync.WaitGroup, expToken string) (stop func(), add
 
 // TODO(rmehta19): In Client and Server test, verify contents of config.RootCAs once x509.CertPool.Equal function is officially released : https://cs.opensource.google/go/go/+/4aacb7ff0f103d95a724a91736823f44aa599634 .
 
-// TestTLSConfigStoreClient runs unit tests for GetTlsConfigurationForClient.
+// TestTLSConfigStoreClient runs unit tests for GetTLSConfigurationForClient.
 func TestTLSConfigStoreClient(t *testing.T) {
 	// Setup for static client test.
 	cert, err := tls.X509KeyPair(clientCertpem, clientKeypem)
@@ -173,9 +173,9 @@ func TestTLSConfigStoreClient(t *testing.T) {
 				t.Fatalf("Client: failed to setup bidirectional streaming RPC session: %v", err)
 			}
 			log.Printf("Client: set up bidirectional streaming RPC session.")
-			config, err := GetTlsConfigurationForClient(tc.ServerName, cstream, accessTokenManager, nil, s2av2pb.ValidatePeerCertificateChainReq_CONNECT_TO_GOOGLE)
+			config, err := GetTLSConfigurationForClient(tc.ServerName, cstream, accessTokenManager, nil, s2av2pb.ValidatePeerCertificateChainReq_CONNECT_TO_GOOGLE)
 			if err != nil {
-				t.Errorf("GetTlsConfigurationForClient failed: %v", err)
+				t.Errorf("GetTLSConfigurationForClient failed: %v", err)
 			}
 			if got, want := config.Certificates[0].Certificate[0], tc.Certificates[0].Certificate[0]; !bytes.Equal(got, want) {
 				t.Errorf("config.Certificates[0].Certificate[0] = %v, want %v", got, want)
@@ -258,9 +258,9 @@ func TestTLSConfigStoreServer(t *testing.T) {
 				t.Fatalf("Client: failed to setup bidirectional streaming RPC session: %v", err)
 			}
 			log.Printf("Client: set up bidirectional streaming RPC session.")
-			config, err := GetTlsConfigurationForServer(cstream, accessTokenManager, identities, s2av2pb.ValidatePeerCertificateChainReq_CONNECT_TO_GOOGLE)
+			config, err := GetTLSConfigurationForServer(cstream, accessTokenManager, identities, s2av2pb.ValidatePeerCertificateChainReq_CONNECT_TO_GOOGLE)
 			if err != nil {
-				t.Errorf("GetTlsConfigurationForClient failed: %v", err)
+				t.Errorf("GetTLSConfigurationForClient failed: %v", err)
 			}
 			clientConfigFunc := config.GetConfigForClient
 			config, err = clientConfigFunc(&tls.ClientHelloInfo{

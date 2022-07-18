@@ -5,11 +5,11 @@ To create a self signed cert(and private key), Run the following commands using 
 openssl req -x509 -sha256 -days 7305 -newkey rsa:2048 -keyout root_key.pem -out
 root_cert.pem
 ```
-To create a chain of certs:  
+To create a chain of certs:
 
 ```leafCert.pem``` < ```intermediateCert.pem``` < ```rootCert.pem```
 
-Run the following commands using openssl:  
+Run the following commands using openssl:
 
 Create a self signed root:
 ```

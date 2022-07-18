@@ -70,9 +70,9 @@ func NewUID(name string) Identity {
 type VerificationModeType int
 
 const (
-	UNSPECIFIED = iota
-	CONNECT_TO_GOOGLE
-	SPIFFE
+	Unspecified     = iota // Unspecified verification mode.
+	ConnectToGoogle        // Connect to Google verification mode.
+	Spiffe                 // Spiffe verification mode.
 )
 
 // ClientOptions contains the client-side options used to establish a secure
@@ -125,7 +125,7 @@ type ClientOptions struct {
 func DefaultClientOptions(s2aAddress string) *ClientOptions {
 	return &ClientOptions{
 		S2AAddress:       s2aAddress,
-		VerificationMode: CONNECT_TO_GOOGLE,
+		VerificationMode: ConnectToGoogle,
 	}
 }
 
@@ -149,7 +149,7 @@ type ServerOptions struct {
 func DefaultServerOptions(s2aAddress string) *ServerOptions {
 	return &ServerOptions{
 		S2AAddress:       s2aAddress,
-		VerificationMode: CONNECT_TO_GOOGLE,
+		VerificationMode: ConnectToGoogle,
 	}
 }
 

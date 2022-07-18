@@ -109,7 +109,7 @@ func (c *s2av2TransportCreds) ClientHandshake(ctx context.Context, serverAuthori
 	if err != nil {
 		serverName = serverAuthority
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
+	ctx, cancel := context.WithTimeout(ctx, defaultTimeout)
 	defer cancel()
 	cstream, err := c.createStream(ctx)
 	if err != nil {
@@ -118,12 +118,12 @@ func (c *s2av2TransportCreds) ClientHandshake(ctx context.Context, serverAuthori
 	var config *tls.Config
 
 	if c.serverName == "" {
-		config, err = tlsconfigstore.GetTlsConfigurationForClient(serverName, cstream, *c.tokenManager, c.localIdentity, c.verificationMode)
+		config, err = tlsconfigstore.GetTLSConfigurationForClient(serverName, cstream, *c.tokenManager, c.localIdentity, c.verificationMode)
 		if err != nil {
 			return nil, nil, err
 		}
 	} else {
-		config, err = tlsconfigstore.GetTlsConfigurationForClient(c.serverName, cstream, *c.tokenManager, c.localIdentity, c.verificationMode)
+		config, err = tlsconfigstore.GetTLSConfigurationForClient(c.serverName, cstream, *c.tokenManager, c.localIdentity, c.verificationMode)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -145,7 +145,7 @@ func (c *s2av2TransportCreds) ServerHandshake(rawConn net.Conn) (net.Conn, crede
 		return nil, nil, err
 	}
 
-	config, err := tlsconfigstore.GetTlsConfigurationForServer(cstream, *c.tokenManager, c.localIdentities, c.verificationMode)
+	config, err := tlsconfigstore.GetTLSConfigurationForServer(cstream, *c.tokenManager, c.localIdentities, c.verificationMode)
 	if err != nil {
 		return nil, nil, err
 	}
