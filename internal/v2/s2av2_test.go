@@ -1,24 +1,39 @@
+/*
+ *
+ * Copyright 2022 Google LLC
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ */
+
 package v2
 
 import (
 	"context"
-	"github.com/google/go-cmp/cmp"
-	commonpbv1 "github.com/google/s2a-go/internal/proto/common_go_proto"
-	"github.com/google/s2a-go/internal/tokenmanager"
-	"google.golang.org/protobuf/testing/protocmp"
 	"os"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
+	"github.com/google/s2a-go/internal/tokenmanager"
+	"google.golang.org/protobuf/testing/protocmp"
+
+	commonpbv1 "github.com/google/s2a-go/internal/proto/common_go_proto"
 	s2av2pb "github.com/google/s2a-go/internal/proto/v2/s2a_go_proto"
 )
 
 var (
 	fakes2av2Address = "0.0.0.0:0"
 )
-
-// TODO(rmehta19): Consider adding unit tests to test success of ClientHandshake
-// and ServerHandshake. Current testing of success is through use of
-// example/server, example/client and internal/v2/fakes2av2_server.
 
 func TestNewClientCreds(t *testing.T) {
 	os.Setenv("S2A_ACCESS_TOKEN", "TestNewClientCreds_s2a_access_token")
@@ -43,7 +58,7 @@ func TestNewClientCreds(t *testing.T) {
 			}
 			_, ok := c.(*s2av2TransportCreds)
 			if !ok {
-				t.Fatal("the created creds is not of type s2av2TransportCreds")
+				t.Fatal("The created creds is not of type s2av2TransportCreds")
 			}
 		})
 	}
@@ -59,12 +74,13 @@ func TestNewServerCreds(t *testing.T) {
 		},
 	} {
 		t.Run(tc.description, func(t *testing.T) {
-			var localIdentities []*commonpbv1.Identity
-			localIdentities = append(localIdentities, &commonpbv1.Identity{
-				IdentityOneof: &commonpbv1.Identity_Hostname{
-					Hostname: "test_rsa_server_identity",
+			localIdentities := []*commonpbv1.Identity{
+				{
+					IdentityOneof: &commonpbv1.Identity_Hostname{
+						Hostname: "test_rsa_server_identity",
+					},
 				},
-			})
+			}
 			c, err := NewServerCreds(fakes2av2Address, localIdentities, s2av2pb.ValidatePeerCertificateChainReq_CONNECT_TO_GOOGLE)
 			if err != nil {
 				t.Fatalf("NewServerCreds() failed: %v", err)
@@ -74,7 +90,7 @@ func TestNewServerCreds(t *testing.T) {
 			}
 			_, ok := c.(*s2av2TransportCreds)
 			if !ok {
-				t.Fatal("the created creds is not of type s2av2TransportCreds")
+				t.Fatal("The created creds is not of type s2av2TransportCreds")
 			}
 		})
 	}
@@ -123,20 +139,20 @@ func TestCloneClient(t *testing.T) {
 	cc := c.Clone()
 	s2av2Creds, ok := c.(*s2av2TransportCreds)
 	if !ok {
-		t.Fatal("the created creds is not of type s2av2TransportCreds")
+		t.Fatal("The created creds is not of type s2av2TransportCreds")
 	}
 	s2av2CloneCreds, ok := cc.(*s2av2TransportCreds)
 	if !ok {
-		t.Fatal("the created clone creds is not of type s2aTransportCreds")
+		t.Fatal("The created clone creds is not of type s2aTransportCreds")
 	}
 	if got, want := cmp.Equal(s2av2Creds, s2av2CloneCreds, protocmp.Transform(), cmp.AllowUnexported(s2av2TransportCreds{}), cmp.Comparer(func(x, y tokenmanager.AccessTokenManager) bool {
 		xToken, err := x.DefaultToken()
 		if err != nil {
-			t.Errorf("failed to compare cloned creds: %v", err)
+			t.Errorf("Failed to compare cloned creds: %v", err)
 		}
 		yToken, err := y.DefaultToken()
 		if err != nil {
-			t.Errorf("failed to compare cloned creds: %v", err)
+			t.Errorf("Failed to compare cloned creds: %v", err)
 		}
 		if xToken == yToken {
 			return true
@@ -150,11 +166,11 @@ func TestCloneClient(t *testing.T) {
 	if got, want := cmp.Equal(s2av2Creds, s2av2CloneCreds, protocmp.Transform(), cmp.AllowUnexported(s2av2TransportCreds{}), cmp.Comparer(func(x, y tokenmanager.AccessTokenManager) bool {
 		xToken, err := x.DefaultToken()
 		if err != nil {
-			t.Errorf("failed to compare cloned creds: %v", err)
+			t.Errorf("Failed to compare cloned creds: %v", err)
 		}
 		yToken, err := y.DefaultToken()
 		if err != nil {
-			t.Errorf("failed to compare cloned creds: %v", err)
+			t.Errorf("Failed to compare cloned creds: %v", err)
 		}
 		if xToken == yToken {
 			return true
@@ -167,12 +183,13 @@ func TestCloneClient(t *testing.T) {
 
 func TestCloneServer(t *testing.T) {
 	os.Setenv("S2A_ACCESS_TOKEN", "TestCloneServer_s2a_access_token")
-	var localIdentities []*commonpbv1.Identity
-	localIdentities = append(localIdentities, &commonpbv1.Identity{
-		IdentityOneof: &commonpbv1.Identity_Hostname{
-			Hostname: "test_rsa_server_identity",
+	localIdentities := []*commonpbv1.Identity{
+		{
+			IdentityOneof: &commonpbv1.Identity_Hostname{
+				Hostname: "test_rsa_server_identity",
+			},
 		},
-	})
+	}
 	c, err := NewServerCreds(fakes2av2Address, localIdentities, s2av2pb.ValidatePeerCertificateChainReq_CONNECT_TO_GOOGLE)
 	if err != nil {
 		t.Fatalf("NewServerCreds() failed: %v", err)
@@ -180,20 +197,20 @@ func TestCloneServer(t *testing.T) {
 	cc := c.Clone()
 	s2av2Creds, ok := c.(*s2av2TransportCreds)
 	if !ok {
-		t.Fatal("the created creds is not of type s2av2TransportCreds")
+		t.Fatal("The created creds is not of type s2av2TransportCreds")
 	}
 	s2av2CloneCreds, ok := cc.(*s2av2TransportCreds)
 	if !ok {
-		t.Fatal("the created clone creds is not of type s2aTransportCreds")
+		t.Fatal("The created clone creds is not of type s2aTransportCreds")
 	}
 	if got, want := cmp.Equal(s2av2Creds, s2av2CloneCreds, protocmp.Transform(), cmp.AllowUnexported(s2av2TransportCreds{}), cmp.Comparer(func(x, y tokenmanager.AccessTokenManager) bool {
 		xToken, err := x.DefaultToken()
 		if err != nil {
-			t.Errorf("failed to compare cloned creds: %v", err)
+			t.Errorf("Failed to compare cloned creds: %v", err)
 		}
 		yToken, err := y.DefaultToken()
 		if err != nil {
-			t.Errorf("failed to compare cloned creds: %v", err)
+			t.Errorf("Failed to compare cloned creds: %v", err)
 		}
 		if xToken == yToken {
 			return true
@@ -207,11 +224,11 @@ func TestCloneServer(t *testing.T) {
 	if got, want := cmp.Equal(s2av2Creds, s2av2CloneCreds, protocmp.Transform(), cmp.AllowUnexported(s2av2TransportCreds{}), cmp.Comparer(func(x, y tokenmanager.AccessTokenManager) bool {
 		xToken, err := x.DefaultToken()
 		if err != nil {
-			t.Errorf("failed to compare cloned creds: %v", err)
+			t.Errorf("Failed to compare cloned creds: %v", err)
 		}
 		yToken, err := y.DefaultToken()
 		if err != nil {
-			t.Errorf("failed to compare cloned creds: %v", err)
+			t.Errorf("Failed to compare cloned creds: %v", err)
 		}
 		if xToken == yToken {
 			return true
@@ -232,7 +249,7 @@ func TestOverrideServerName(t *testing.T) {
 	}, s2av2pb.ValidatePeerCertificateChainReq_CONNECT_TO_GOOGLE)
 	s2av2Creds, ok := c.(*s2av2TransportCreds)
 	if !ok {
-		t.Fatal("the created creds is not of type s2av2TransportCreds")
+		t.Fatal("The created creds is not of type s2av2TransportCreds")
 	}
 	if err != nil {
 		t.Fatalf("NewClientCreds() failed: %v", err)

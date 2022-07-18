@@ -1,3 +1,21 @@
+/*
+ *
+ * Copyright 2022 Google LLC
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ */
+
 // Package v2 provides the S2Av2 transport credentials used by a gRPC
 // application.
 package v2
@@ -11,12 +29,13 @@ import (
 
 	"github.com/golang/protobuf/proto"
 	"github.com/google/s2a-go/internal/handshaker/service"
-	commonpbv1 "github.com/google/s2a-go/internal/proto/common_go_proto"
-	s2av2pb "github.com/google/s2a-go/internal/proto/v2/s2a_go_proto"
 	"github.com/google/s2a-go/internal/tokenmanager"
 	"github.com/google/s2a-go/internal/v2/tls_config_store"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
+
+	commonpbv1 "github.com/google/s2a-go/internal/proto/common_go_proto"
+	s2av2pb "github.com/google/s2a-go/internal/proto/v2/s2a_go_proto"
 )
 
 const (

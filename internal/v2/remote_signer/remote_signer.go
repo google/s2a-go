@@ -1,3 +1,21 @@
+/*
+ *
+ * Copyright 2022 Google LLC
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ */
+
 // Package remotesigner offloads private key operations to S2Av2.
 package remotesigner
 
@@ -6,8 +24,9 @@ import (
 	"crypto/rsa"
 	"crypto/x509"
 	"fmt"
-	"google.golang.org/grpc/codes"
 	"io"
+
+	"google.golang.org/grpc/codes"
 
 	s2av2pb "github.com/google/s2a-go/internal/proto/v2/s2a_go_proto"
 )
@@ -38,7 +57,7 @@ func (s *remoteSigner) Sign(rand io.Reader, digest []byte, opts crypto.SignerOpt
 	if err != nil {
 		return nil, err
 	}
-	// Send request to S2Av2 to perform private key operation.
+
 	if err := s.cstream.Send(&s2av2pb.SessionReq{
 		ReqOneof: &s2av2pb.SessionReq_OffloadPrivateKeyOperationReq{
 			OffloadPrivateKeyOperationReq: req,
@@ -47,14 +66,13 @@ func (s *remoteSigner) Sign(rand io.Reader, digest []byte, opts crypto.SignerOpt
 		return nil, err
 	}
 
-	// Get the response containing config from S2Av2.
 	resp, err := s.cstream.Recv()
 	if err != nil {
 		return nil, err
 	}
 
 	if (resp.GetStatus() != nil) && (resp.GetStatus().Code != uint32(codes.OK)) {
-		return nil, fmt.Errorf("Failed to offload signing with private key to S2A: %d, %v", resp.GetStatus().Code, resp.GetStatus().Details)
+		return nil, fmt.Errorf("failed to offload signing with private key to S2A: %d, %v", resp.GetStatus().Code, resp.GetStatus().Details)
 	}
 
 	return resp.GetOffloadPrivateKeyOperationResp().GetOutBytes(), nil

@@ -1,16 +1,36 @@
+/*
+ *
+ * Copyright 2022 Google LLC
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ */
+
 // Package main establishes a connection with an Echo service.
 package main
 
 import (
 	"context"
 	"flag"
+	"log"
+	"time"
+
+	"github.com/google/s2a-go/internal/v2"
+	"google.golang.org/grpc"
+
 	pb "github.com/google/s2a-go/example/proto/echo_go_proto"
 	commonpbv1 "github.com/google/s2a-go/internal/proto/common_go_proto"
 	s2av2pb "github.com/google/s2a-go/internal/proto/v2/s2a_go_proto"
-	"github.com/google/s2a-go/internal/v2"
-	"google.golang.org/grpc"
-	"log"
-	"time"
 )
 
 const (
@@ -19,7 +39,7 @@ const (
 
 var (
 	serverAddr = flag.String("server_addr", "0.0.0.0:8080", "Echo service address.")
-	s2aAddr    = flag.String("s2a_addr", "0.0.0.0:61366", "S2A service address.")
+	s2aAddr    = flag.String("s2a_addr", "0.0.0.0:61365", "S2A service address.")
 )
 
 func runClient(serverAddr *string) {

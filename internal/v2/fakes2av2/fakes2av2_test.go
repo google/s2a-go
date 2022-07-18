@@ -1,3 +1,21 @@
+/*
+ *
+ * Copyright 2022 Google LLC
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ */
+
 package fakes2av2
 
 import (
@@ -8,16 +26,17 @@ import (
 	"crypto/tls"
 	"errors"
 	"fmt"
-	"github.com/google/go-cmp/cmp"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/credentials/insecure"
-	"google.golang.org/protobuf/testing/protocmp"
 	"log"
 	"net"
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/google/go-cmp/cmp"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/protobuf/testing/protocmp"
 
 	commonpb "github.com/google/s2a-go/internal/proto/v2/common_go_proto"
 	s2av2ctx "github.com/google/s2a-go/internal/proto/v2/s2a_context_go_proto"
@@ -33,7 +52,7 @@ func startFakeS2Av2Server(wg *sync.WaitGroup) (address string, stop func(), err 
 	listener, err := net.Listen("tcp", ":0")
 	address = listener.Addr().String()
 	if err != nil {
-		log.Fatalf("failed to listen on address %s: %v", listener.Addr().String(), err)
+		log.Fatalf("Failed to listen on address %s: %v", listener.Addr().String(), err)
 	}
 	s := grpc.NewServer()
 	log.Printf("Server: started gRPC Fake S2Av2 Server on address: %s", listener.Addr().String())
@@ -41,7 +60,7 @@ func startFakeS2Av2Server(wg *sync.WaitGroup) (address string, stop func(), err 
 	go func() {
 		wg.Done()
 		if err := s.Serve(listener); err != nil {
-			log.Printf("failed to serve: %v", err)
+			log.Printf("Failed to serve: %v", err)
 		}
 	}()
 	return address, func() { s.Stop() }, nil
@@ -54,7 +73,7 @@ func TestSetUpSession(t *testing.T) {
 	address, stop, err := startFakeS2Av2Server(&wg)
 	wg.Wait()
 	if err != nil {
-		log.Fatalf("failed to set up fake S2Av2 server.")
+		log.Fatalf("Failed to set up fake S2Av2 server.")
 	}
 
 	for _, tc := range []struct {
@@ -161,7 +180,7 @@ func TestSetUpSession(t *testing.T) {
 			expectedResponse: &s2av2pb.SessionResp{
 				Status: &s2av2pb.Status{
 					Code:    uint32(codes.InvalidArgument),
-					Details: "unknown ConnectionSide, req.GetGetTlsConfigurationReq().GetConnectionSide() returned CONNECTION_SIDE_UNSPECIFIED",
+					Details: "unknown ConnectionSide: CONNECTION_SIDE_UNSPECIFIED",
 				},
 			},
 		},
@@ -203,7 +222,7 @@ func TestSetUpSession(t *testing.T) {
 				RespOneof: &s2av2pb.SessionResp_ValidatePeerCertificateChainResp{
 					ValidatePeerCertificateChainResp: &s2av2pb.ValidatePeerCertificateChainResp{
 						ValidationResult:  s2av2pb.ValidatePeerCertificateChainResp_SUCCESS,
-						ValidationDetails: "Client Peer Verification succeeded",
+						ValidationDetails: "client peer verification succeeded",
 						Context:           &s2av2ctx.S2AContext{},
 					},
 				},
@@ -226,12 +245,12 @@ func TestSetUpSession(t *testing.T) {
 			expectedResponse: &s2av2pb.SessionResp{
 				Status: &s2av2pb.Status{
 					Code:    uint32(codes.InvalidArgument),
-					Details: "Client Peer Verification failed: client cert chain is empty",
+					Details: "client peer verification failed: client cert chain is empty",
 				},
 				RespOneof: &s2av2pb.SessionResp_ValidatePeerCertificateChainResp{
 					ValidatePeerCertificateChainResp: &s2av2pb.ValidatePeerCertificateChainResp{
 						ValidationResult:  s2av2pb.ValidatePeerCertificateChainResp_FAILURE,
-						ValidationDetails: "Client Peer Verification failed: client cert chain is empty",
+						ValidationDetails: "client peer verification failed: client cert chain is empty",
 						Context:           &s2av2ctx.S2AContext{},
 					},
 				},
@@ -259,7 +278,7 @@ func TestSetUpSession(t *testing.T) {
 				RespOneof: &s2av2pb.SessionResp_ValidatePeerCertificateChainResp{
 					ValidatePeerCertificateChainResp: &s2av2pb.ValidatePeerCertificateChainResp{
 						ValidationResult:  s2av2pb.ValidatePeerCertificateChainResp_SUCCESS,
-						ValidationDetails: "Server Peer Verification succeeded",
+						ValidationDetails: "server peer verification succeeded",
 						Context:           &s2av2ctx.S2AContext{},
 					},
 				},
@@ -325,18 +344,18 @@ func TestSetUpSessionPrivateKeyOperation(t *testing.T) {
 	address, stop, err := startFakeS2Av2Server(&wg)
 	wg.Wait()
 	if err != nil {
-		log.Fatalf("failed to set up fake S2Av2 server.")
+		log.Fatalf("Failed to set up fake S2Av2 server.")
 	}
 
 	// Setup for client and server offloadPrivateKeyOperation test.
-	clientTlsCert, err := tls.X509KeyPair(clientCert, clientKey)
+	clientTLSCert, err := tls.X509KeyPair(clientCert, clientKey)
 	if err != nil {
-		log.Fatalf("failed during test setup: %v", err)
+		log.Fatalf("Failed during test setup: %v", err)
 	}
 
-	serverTlsCert, err := tls.X509KeyPair(serverCert, serverKey)
+	serverTLSCert, err := tls.X509KeyPair(serverCert, serverKey)
 	if err != nil {
-		log.Fatalf("failed during test setup: %v", err)
+		log.Fatalf("Failed during test setup: %v", err)
 	}
 
 	testString := "Generate hash and sign this."
@@ -346,13 +365,13 @@ func TestSetUpSessionPrivateKeyOperation(t *testing.T) {
 	hsha256 := sha256.Sum256([]byte(testString))
 
 	var opts crypto.Hash = crypto.SHA256
-	signedWithClientKey, err := clientTlsCert.PrivateKey.(crypto.Signer).Sign(rand.Reader, hsha256[:], opts)
+	signedWithClientKey, err := clientTLSCert.PrivateKey.(crypto.Signer).Sign(rand.Reader, hsha256[:], opts)
 	if err != nil {
-		log.Fatalf("failed during test setup: %v", err)
+		log.Fatalf("Failed during test setup: %v", err)
 	}
-	signedWithServerKey, err := serverTlsCert.PrivateKey.(crypto.Signer).Sign(rand.Reader, hsha256[:], opts)
+	signedWithServerKey, err := serverTLSCert.PrivateKey.(crypto.Signer).Sign(rand.Reader, hsha256[:], opts)
 	if err != nil {
-		log.Fatalf("failed during test setup: %v", err)
+		log.Fatalf("Failed during test setup: %v", err)
 	}
 
 	for _, tc := range []struct {
@@ -475,11 +494,11 @@ func TestSetUpSessionPrivateKeyOperation(t *testing.T) {
 					},
 				},
 			}); err != nil {
-				t.Fatalf("setup failed: failed to send initial SessionReq for TLS config: %v", err)
+				t.Fatalf("Setup failed: failed to send initial SessionReq for TLS config: %v", err)
 			}
 
 			if _, err := cstream.Recv(); err != nil {
-				t.Fatalf("setup failed: failed to receive initial SessionResp for TLS config: %v", err)
+				t.Fatalf("Setup failed: failed to receive initial SessionResp for TLS config: %v", err)
 			}
 
 			// Send request.

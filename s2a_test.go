@@ -18,14 +18,16 @@
 
 package s2a
 
+// TODO: Please do a readbility review of this file.
 import (
 	"context"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"google.golang.org/protobuf/testing/protocmp"
+
 	s2apb "github.com/google/s2a-go/internal/proto/common_go_proto"
 	s2av2pb "github.com/google/s2a-go/internal/proto/v2/s2a_go_proto"
-	"google.golang.org/protobuf/testing/protocmp"
 )
 
 func TestNewClientCreds(t *testing.T) {
@@ -178,7 +180,7 @@ func TestNewClientCreds(t *testing.T) {
 			}
 			s2aCreds, ok := c.(*s2aTransportCreds)
 			if !ok {
-				t.Fatal("the created creds is not of type s2aTransportCreds")
+				t.Fatal("The created creds is not of type s2aTransportCreds")
 			}
 			if got, want := s2aCreds.minTLSVersion, tc.outMinTLSVersion; got != want {
 				t.Errorf("s2aCreds.minTLSVersion = %v, want %v", got, want)
@@ -327,7 +329,7 @@ func TestNewServerCreds(t *testing.T) {
 			}
 			s2aCreds, ok := c.(*s2aTransportCreds)
 			if !ok {
-				t.Fatal("the created creds is not of type s2aTransportCreds")
+				t.Fatal("The created creds is not of type s2aTransportCreds")
 			}
 			if got, want := s2aCreds.minTLSVersion, tc.outMinTLSVersion; got != want {
 				t.Errorf("s2aCreds.minTLSVersion = %v, want %v", got, want)
@@ -394,11 +396,11 @@ func TestCloneClient(t *testing.T) {
 	cc := c.Clone()
 	s2aCreds, ok := c.(*s2aTransportCreds)
 	if !ok {
-		t.Fatal("the created creds is not of type s2aTransportCreds")
+		t.Fatal("The created creds is not of type s2aTransportCreds")
 	}
 	s2aCloneCreds, ok := cc.(*s2aTransportCreds)
 	if !ok {
-		t.Fatal("the created cloned creds is not of type s2aTransportCreds")
+		t.Fatal("The created cloned creds is not of type s2aTransportCreds")
 	}
 	if got, want := cmp.Equal(s2aCreds, s2aCloneCreds, protocmp.Transform(), cmp.AllowUnexported(s2aTransportCreds{})), true; got != want {
 		t.Errorf("cmp.Equal(%v, %v) = %v, want %v", s2aCreds, s2aCloneCreds, got, want)
@@ -428,11 +430,11 @@ func TestCloneServer(t *testing.T) {
 	cc := c.Clone()
 	s2aCreds, ok := c.(*s2aTransportCreds)
 	if !ok {
-		t.Fatal("the created creds is not of type s2aTransportCreds")
+		t.Fatal("The created creds is not of type s2aTransportCreds")
 	}
 	s2aCloneCreds, ok := cc.(*s2aTransportCreds)
 	if !ok {
-		t.Fatal("the created cloned creds is not of type s2aTransportCreds")
+		t.Fatal("The created cloned creds is not of type s2aTransportCreds")
 	}
 	if got, want := cmp.Equal(s2aCreds, s2aCloneCreds, protocmp.Transform(), cmp.AllowUnexported(s2aTransportCreds{})), true; got != want {
 		t.Errorf("cmp.Equal(%v, %v) = %v, want %v", s2aCreds, s2aCloneCreds, got, want)
