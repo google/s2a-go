@@ -18,7 +18,6 @@
 
 package s2a
 
-// TODO: Please do a readbility review of this file.
 import (
 	"errors"
 	"sync"
@@ -69,10 +68,11 @@ func NewUID(name string) Identity {
 // certificate chain.
 type VerificationModeType int
 
+// Three types of verification modes.
 const (
-	Unspecified     = iota // Unspecified verification mode.
-	ConnectToGoogle        // Connect to Google verification mode.
-	Spiffe                 // Spiffe verification mode.
+	Unspecified = iota
+	ConnectToGoogle
+	Spiffe
 )
 
 // ClientOptions contains the client-side options used to establish a secure
