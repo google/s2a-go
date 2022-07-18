@@ -279,9 +279,9 @@ func (c *s2aTransportCreds) OverrideServerName(serverNameOverride string) error 
 
 func getVerificationMode(verificationMode VerificationModeType) s2av2pb.ValidatePeerCertificateChainReq_VerificationMode {
 	switch verificationMode {
-	case CONNECT_TO_GOOGLE:
+	case ConnectToGoogle:
 		return s2av2pb.ValidatePeerCertificateChainReq_CONNECT_TO_GOOGLE
-	case SPIFFE:
+	case Spiffe:
 		return s2av2pb.ValidatePeerCertificateChainReq_SPIFFE
 	default:
 		return s2av2pb.ValidatePeerCertificateChainReq_UNSPECIFIED

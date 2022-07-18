@@ -50,8 +50,8 @@ var (
 	serverKey []byte
 )
 
-// GetTlsConfigurationForClient returns a tls.Config instance for use by a client application.
-func GetTlsConfigurationForClient(serverHostname string, cstream s2av2pb.S2AService_SetUpSessionClient, tokenManager tokenmanager.AccessTokenManager, localIdentity *commonpbv1.Identity, verificationMode s2av2pb.ValidatePeerCertificateChainReq_VerificationMode) (*tls.Config, error) {
+// GetTLSConfigurationForClient returns a tls.Config instance for use by a client application.
+func GetTLSConfigurationForClient(serverHostname string, cstream s2av2pb.S2AService_SetUpSessionClient, tokenManager tokenmanager.AccessTokenManager, localIdentity *commonpbv1.Identity, verificationMode s2av2pb.ValidatePeerCertificateChainReq_VerificationMode) (*tls.Config, error) {
 	authMechanisms := getAuthMechanisms(tokenManager, []*commonpbv1.Identity{localIdentity})
 
 	// Send request to S2Av2 for config.
@@ -122,8 +122,8 @@ func GetTlsConfigurationForClient(serverHostname string, cstream s2av2pb.S2AServ
 	}, nil
 }
 
-// GetTlsConfigurationForServer returns a tls.Config instance for use by a server application.
-func GetTlsConfigurationForServer(cstream s2av2pb.S2AService_SetUpSessionClient, tokenManager tokenmanager.AccessTokenManager, localIdentities []*commonpbv1.Identity, verificationMode s2av2pb.ValidatePeerCertificateChainReq_VerificationMode) (*tls.Config, error) {
+// GetTLSConfigurationForServer returns a tls.Config instance for use by a server application.
+func GetTLSConfigurationForServer(cstream s2av2pb.S2AService_SetUpSessionClient, tokenManager tokenmanager.AccessTokenManager, localIdentities []*commonpbv1.Identity, verificationMode s2av2pb.ValidatePeerCertificateChainReq_VerificationMode) (*tls.Config, error) {
 	return &tls.Config{
 		GetConfigForClient: ClientConfig(tokenManager, localIdentities, verificationMode, cstream),
 	}, nil

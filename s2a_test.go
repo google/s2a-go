@@ -477,17 +477,17 @@ func TestGetVerificationMode(t *testing.T) {
 	}{
 		{
 			description:         "connect to google",
-			verificationMode:    CONNECT_TO_GOOGLE,
+			verificationMode:    ConnectToGoogle,
 			expVerificationMode: s2av2pb.ValidatePeerCertificateChainReq_CONNECT_TO_GOOGLE,
 		},
 		{
 			description:         "spiffe",
-			verificationMode:    SPIFFE,
+			verificationMode:    Spiffe,
 			expVerificationMode: s2av2pb.ValidatePeerCertificateChainReq_SPIFFE,
 		},
 		{
 			description:         "unspecified",
-			verificationMode:    UNSPECIFIED,
+			verificationMode:    Unspecified,
 			expVerificationMode: s2av2pb.ValidatePeerCertificateChainReq_UNSPECIFIED,
 		},
 	} {
