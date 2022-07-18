@@ -18,7 +18,6 @@
 
 package s2a
 
-// TODO: Please do a readbility review of this file.
 import (
 	"testing"
 
