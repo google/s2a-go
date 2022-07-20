@@ -134,6 +134,9 @@ func (s *Server) findConnectionSide(req *s2av2pb.SessionReq) error {
 }
 
 func (s *Server) hasValidToken(authMechanisms []*s2av2pb.AuthenticationMechanism) error {
+	if len(authMechanisms) == 0 {
+		return nil
+	}
 	for _, v := range authMechanisms {
 		token := v.GetToken()
 		if token == s.ExpectedToken {

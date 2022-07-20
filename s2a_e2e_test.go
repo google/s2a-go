@@ -281,6 +281,25 @@ func TestV2EndToEndUsingTokens(t *testing.T) {
 	runClient(ctx, t, clientS2AAddress, serverAddr, true)
 }
 
+func TestV2EndToEndEmptyToken(t *testing.T) {
+	os.Unsetenv(accessTokenEnvVariable)
+
+	// Start the handshaker servers for the client and server.
+	serverS2AAddress := startFakeS2A(t, true, testV2AccessToken)
+	grpclog.Infof("Fake S2A for server running at address: %v", serverS2AAddress)
+	clientS2AAddress := startFakeS2A(t, true, testV2AccessToken)
+	grpclog.Infof("Fake S2A for client running at address: %v", clientS2AAddress)
+
+	// Start the server.
+	serverAddr := startServer(t, serverS2AAddress, true)
+	grpclog.Infof("Server running at address: %v", serverAddr)
+
+	// Finally, start up the client.
+	ctx, cancel := context.WithTimeout(context.Background(), defaultE2ETestTimeout)
+	defer cancel()
+	runClient(ctx, t, clientS2AAddress, serverAddr, true)
+}
+
 func TestV1EndToEndUsingFakeS2AOnUDS(t *testing.T) {
 	os.Setenv(accessTokenEnvVariable, "")
 

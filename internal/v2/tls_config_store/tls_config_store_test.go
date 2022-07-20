@@ -132,6 +132,7 @@ func TestTLSConfigStoreClient(t *testing.T) {
 	}
 	for _, tc := range []struct {
 		description        string
+		tokenManager       tokenmanager.AccessTokenManager
 		Certificates       []tls.Certificate
 		ServerName         string
 		InsecureSkipVerify bool
@@ -140,7 +141,18 @@ func TestTLSConfigStoreClient(t *testing.T) {
 		MaxVersion         uint16
 	}{
 		{
-			description:        "static",
+			description:        "static - nil tokenManager",
+			tokenManager:       nil,
+			Certificates:       []tls.Certificate{cert},
+			ServerName:         "host",
+			InsecureSkipVerify: true,
+			ClientSessionCache: nil,
+			MinVersion:         tls.VersionTLS13,
+			MaxVersion:         tls.VersionTLS13,
+		},
+		{
+			description:        "static - non-nil tokenManager",
+			tokenManager:       accessTokenManager,
 			Certificates:       []tls.Certificate{cert},
 			ServerName:         "host",
 			InsecureSkipVerify: true,
@@ -173,7 +185,7 @@ func TestTLSConfigStoreClient(t *testing.T) {
 				t.Fatalf("Client: failed to setup bidirectional streaming RPC session: %v", err)
 			}
 			log.Printf("Client: set up bidirectional streaming RPC session.")
-			config, err := GetTLSConfigurationForClient(tc.ServerName, cstream, accessTokenManager, nil, s2av2pb.ValidatePeerCertificateChainReq_CONNECT_TO_GOOGLE)
+			config, err := GetTLSConfigurationForClient(tc.ServerName, cstream, tc.tokenManager, nil, s2av2pb.ValidatePeerCertificateChainReq_CONNECT_TO_GOOGLE)
 			if err != nil {
 				t.Errorf("GetTLSConfigurationForClient failed: %v", err)
 			}
@@ -221,13 +233,23 @@ func TestTLSConfigStoreServer(t *testing.T) {
 	identities = append(identities, nil)
 	for _, tc := range []struct {
 		description  string
+		tokenManager tokenmanager.AccessTokenManager
 		Certificates []tls.Certificate
 		ClientAuth   tls.ClientAuthType
 		MinVersion   uint16
 		MaxVersion   uint16
 	}{
 		{
-			description:  "static",
+			description:  "static - nil tokenManager",
+			tokenManager: nil,
+			Certificates: []tls.Certificate{cert},
+			ClientAuth:   tls.RequireAnyClientCert,
+			MinVersion:   tls.VersionTLS13,
+			MaxVersion:   tls.VersionTLS13,
+		},
+		{
+			description:  "static - non-nil tokenManager",
+			tokenManager: accessTokenManager,
 			Certificates: []tls.Certificate{cert},
 			ClientAuth:   tls.RequireAnyClientCert,
 			MinVersion:   tls.VersionTLS13,
@@ -258,7 +280,7 @@ func TestTLSConfigStoreServer(t *testing.T) {
 				t.Fatalf("Client: failed to setup bidirectional streaming RPC session: %v", err)
 			}
 			log.Printf("Client: set up bidirectional streaming RPC session.")
-			config, err := GetTLSConfigurationForServer(cstream, accessTokenManager, identities, s2av2pb.ValidatePeerCertificateChainReq_CONNECT_TO_GOOGLE)
+			config, err := GetTLSConfigurationForServer(cstream, tc.tokenManager, identities, s2av2pb.ValidatePeerCertificateChainReq_CONNECT_TO_GOOGLE)
 			if err != nil {
 				t.Errorf("GetTLSConfigurationForClient failed: %v", err)
 			}

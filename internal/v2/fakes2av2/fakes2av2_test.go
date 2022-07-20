@@ -201,6 +201,44 @@ func TestSetUpSession(t *testing.T) {
 			expErr: errors.New("rpc error: code = Unknown desc = SessionReq has no AuthenticationMechanism with a valid token"),
 		},
 		{
+			description: "Get server TLS config -- empty authmechanisms (S2A_ACCESS_TOKEN env var not set)",
+			request: &s2av2pb.SessionReq{
+				AuthenticationMechanisms: []*s2av2pb.AuthenticationMechanism{},
+				ReqOneof: &s2av2pb.SessionReq_GetTlsConfigurationReq{
+					GetTlsConfigurationReq: &s2av2pb.GetTlsConfigurationReq{
+						ConnectionSide: commonpb.ConnectionSide_CONNECTION_SIDE_SERVER,
+					},
+				},
+			},
+			expectedResponse: &s2av2pb.SessionResp{
+				Status: &s2av2pb.Status{
+					Code: uint32(codes.OK),
+				},
+				RespOneof: &s2av2pb.SessionResp_GetTlsConfigurationResp{
+					GetTlsConfigurationResp: &s2av2pb.GetTlsConfigurationResp{
+						TlsConfiguration: &s2av2pb.GetTlsConfigurationResp_ServerTlsConfiguration_{
+							ServerTlsConfiguration: &s2av2pb.GetTlsConfigurationResp_ServerTlsConfiguration{
+								CertificateChain: []string{
+									string(serverCert),
+								},
+								MinTlsVersion:         commonpb.TLSVersion_TLS_VERSION_1_3,
+								MaxTlsVersion:         commonpb.TLSVersion_TLS_VERSION_1_3,
+								HandshakeCiphersuites: []commonpb.HandshakeCiphersuite{},
+								RecordCiphersuites: []commonpb.RecordCiphersuite{
+									commonpb.RecordCiphersuite_RECORD_CIPHERSUITE_AES_128_GCM_SHA256,
+									commonpb.RecordCiphersuite_RECORD_CIPHERSUITE_AES_256_GCM_SHA384,
+									commonpb.RecordCiphersuite_RECORD_CIPHERSUITE_CHACHA20_POLY1305_SHA256,
+								},
+								TlsResumptionEnabled:     false,
+								RequestClientCertificate: s2av2pb.GetTlsConfigurationResp_ServerTlsConfiguration_REQUEST_AND_REQUIRE_CLIENT_CERTIFICATE_AND_VERIFY,
+								MaxOverheadOfTicketAead:  0,
+							},
+						},
+					},
+				},
+			},
+		},
+		{
 			description: "Client Peer Verification",
 			request: &s2av2pb.SessionReq{
 				ReqOneof: &s2av2pb.SessionReq_ValidatePeerCertificateChainReq{
