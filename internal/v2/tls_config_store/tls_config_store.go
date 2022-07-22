@@ -54,6 +54,9 @@ var (
 func GetTLSConfigurationForClient(serverHostname string, cstream s2av2pb.S2AService_SetUpSessionClient, tokenManager tokenmanager.AccessTokenManager, localIdentity *commonpbv1.Identity, verificationMode s2av2pb.ValidatePeerCertificateChainReq_VerificationMode) (*tls.Config, error) {
 	authMechanisms := getAuthMechanisms(tokenManager, []*commonpbv1.Identity{localIdentity})
 
+	if grpclog.V(1) {
+		grpclog.Infof("Sending request to S2Av2 for client TLS config.")
+	}
 	// Send request to S2Av2 for config.
 	if err := cstream.Send(&s2av2pb.SessionReq{
 		LocalIdentity:            localIdentity,
@@ -64,12 +67,14 @@ func GetTLSConfigurationForClient(serverHostname string, cstream s2av2pb.S2AServ
 			},
 		},
 	}); err != nil {
+		grpclog.Infof("Failed to send request to S2Av2 for client TLS config")
 		return nil, err
 	}
 
 	// Get the response containing config from S2Av2.
 	resp, err := cstream.Recv()
 	if err != nil {
+		grpclog.Infof("Failed to receive client TLS config response from S2Av2.")
 		return nil, err
 	}
 

@@ -27,6 +27,7 @@ import (
 	"io"
 
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/grpclog"
 
 	s2av2pb "github.com/google/s2a-go/internal/proto/v2/s2a_go_proto"
 )
@@ -57,17 +58,21 @@ func (s *remoteSigner) Sign(rand io.Reader, digest []byte, opts crypto.SignerOpt
 	if err != nil {
 		return nil, err
 	}
-
+	if grpclog.V(1) {
+		grpclog.Infof("Sending request to S2Av2 for signing operation.")
+	}
 	if err := s.cstream.Send(&s2av2pb.SessionReq{
 		ReqOneof: &s2av2pb.SessionReq_OffloadPrivateKeyOperationReq{
 			OffloadPrivateKeyOperationReq: req,
 		},
 	}); err != nil {
+		grpclog.Infof("Failed to send request to S2Av2 for signing operation.")
 		return nil, err
 	}
 
 	resp, err := s.cstream.Recv()
 	if err != nil {
+		grpclog.Infof("Failed to receive signing operation response from S2Av2.")
 		return nil, err
 	}
 
