@@ -33,6 +33,7 @@ import (
 	"github.com/google/s2a-go/internal/v2/tls_config_store"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
+	"google.golang.org/grpc/grpclog"
 
 	commonpbv1 "github.com/google/s2a-go/internal/proto/common_go_proto"
 	s2av2pb "github.com/google/s2a-go/internal/proto/v2/s2a_go_proto"
@@ -76,6 +77,9 @@ func NewClientCreds(s2av2Address string, localIdentity *commonpbv1.Identity, ver
 	} else {
 		creds.tokenManager = &accessTokenManager
 	}
+	if grpclog.V(1) {
+		grpclog.Info("Created client S2Av2 transport credentials.")
+	}
 	return creds, nil
 }
 
@@ -98,6 +102,9 @@ func NewServerCreds(s2av2Address string, localIdentities []*commonpbv1.Identity,
 	} else {
 		creds.tokenManager = &accessTokenManager
 	}
+	if grpclog.V(1) {
+		grpclog.Info("Created server S2Av2 transport credentials.")
+	}
 	return creds, nil
 }
 
@@ -115,7 +122,11 @@ func (c *s2av2TransportCreds) ClientHandshake(ctx context.Context, serverAuthori
 	defer cancel()
 	cstream, err := c.createStream(ctx)
 	if err != nil {
+		grpclog.Infof("Failed to connect to S2Av2: %v", err)
 		return nil, nil, err
+	}
+	if grpclog.V(1) {
+		grpclog.Infof("Connected to S2Av2.")
 	}
 	var config *tls.Config
 
@@ -129,13 +140,18 @@ func (c *s2av2TransportCreds) ClientHandshake(ctx context.Context, serverAuthori
 	if c.serverName == "" {
 		config, err = tlsconfigstore.GetTLSConfigurationForClient(serverName, cstream, tokenManager, c.localIdentity, c.verificationMode)
 		if err != nil {
+			grpclog.Info("Failed to get client TLS config from S2Av2: %v", err)
 			return nil, nil, err
 		}
 	} else {
 		config, err = tlsconfigstore.GetTLSConfigurationForClient(c.serverName, cstream, tokenManager, c.localIdentity, c.verificationMode)
 		if err != nil {
+			grpclog.Info("Failed to get client TLS config from S2Av2: %v", err)
 			return nil, nil, err
 		}
+	}
+	if grpclog.V(1) {
+		grpclog.Infof("Got client TLS config from S2Av2.")
 	}
 	creds := credentials.NewTLS(config)
 
@@ -151,7 +167,11 @@ func (c *s2av2TransportCreds) ServerHandshake(rawConn net.Conn) (net.Conn, crede
 	defer cancel()
 	cstream, err := c.createStream(ctx)
 	if err != nil {
+		grpclog.Infof("Failed to connect to S2Av2: %v", err)
 		return nil, nil, err
+	}
+	if grpclog.V(1) {
+		grpclog.Infof("Connected to S2Av2.")
 	}
 
 	var tokenManager tokenmanager.AccessTokenManager
@@ -163,7 +183,11 @@ func (c *s2av2TransportCreds) ServerHandshake(rawConn net.Conn) (net.Conn, crede
 
 	config, err := tlsconfigstore.GetTLSConfigurationForServer(cstream, tokenManager, c.localIdentities, c.verificationMode)
 	if err != nil {
+		grpclog.Infof("Failed to get server TLS config from S2Av2: %v", err)
 		return nil, nil, err
+	}
+	if grpclog.V(1) {
+		grpclog.Infof("Got server TLS config from S2Av2.")
 	}
 	creds := credentials.NewTLS(config)
 	return creds.ServerHandshake(rawConn)

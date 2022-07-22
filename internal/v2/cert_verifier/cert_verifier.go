@@ -24,6 +24,7 @@ import (
 	"fmt"
 
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/grpclog"
 
 	s2av2pb "github.com/google/s2a-go/internal/proto/v2/s2a_go_proto"
 )
@@ -33,6 +34,9 @@ import (
 func VerifyClientCertificateChain(verificationMode s2av2pb.ValidatePeerCertificateChainReq_VerificationMode, cstream s2av2pb.S2AService_SetUpSessionClient) func(rawCerts [][]byte, verifiedChains [][]*x509.Certificate) error {
 	return func(rawCerts [][]byte, verifiedChains [][]*x509.Certificate) error {
 		// Offload verification to S2Av2.
+		if grpclog.V(1) {
+			grpclog.Infof("Sending request to S2Av2 for client peer cert chain validation.")
+		}
 		if err := cstream.Send(&s2av2pb.SessionReq{
 			ReqOneof: &s2av2pb.SessionReq_ValidatePeerCertificateChainReq{
 				ValidatePeerCertificateChainReq: &s2av2pb.ValidatePeerCertificateChainReq{
@@ -45,12 +49,14 @@ func VerifyClientCertificateChain(verificationMode s2av2pb.ValidatePeerCertifica
 				},
 			},
 		}); err != nil {
+			grpclog.Infof("Failed to send request to S2Av2 for client peer cert chain validation.")
 			return err
 		}
 
 		// Get the response from S2Av2.
 		resp, err := cstream.Recv()
 		if err != nil {
+			grpclog.Infof("Failed to receive client peer cert chain validation response from S2Av2.")
 			return err
 		}
 
@@ -68,6 +74,7 @@ func VerifyClientCertificateChain(verificationMode s2av2pb.ValidatePeerCertifica
 func VerifyServerCertificateChain(hostname string, verificationMode s2av2pb.ValidatePeerCertificateChainReq_VerificationMode, cstream s2av2pb.S2AService_SetUpSessionClient) func(rawCerts [][]byte, verifiedChains [][]*x509.Certificate) error {
 	return func(rawCerts [][]byte, verifiedChains [][]*x509.Certificate) error {
 		// Offload verification to S2Av2.
+		grpclog.Infof("Sending request to S2Av2 for client peer cert chain validation.")
 		if err := cstream.Send(&s2av2pb.SessionReq{
 			ReqOneof: &s2av2pb.SessionReq_ValidatePeerCertificateChainReq{
 				ValidatePeerCertificateChainReq: &s2av2pb.ValidatePeerCertificateChainReq{
@@ -81,12 +88,14 @@ func VerifyServerCertificateChain(hostname string, verificationMode s2av2pb.Vali
 				},
 			},
 		}); err != nil {
+			grpclog.Infof("Failed to send request to S2Av2 for client peer cert chain validation.")
 			return err
 		}
 
 		// Get the response from S2Av2.
 		resp, err := cstream.Recv()
 		if err != nil {
+			grpclog.Infof("Failed to receive client peer cert chain validation response from S2Av2.")
 			return err
 		}
 
