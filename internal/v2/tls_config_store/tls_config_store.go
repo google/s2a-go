@@ -50,6 +50,11 @@ var (
 	serverKey []byte
 )
 
+const (
+	// HTTP/2
+	h2 = "h2"
+)
+
 // GetTLSConfigurationForClient returns a tls.Config instance for use by a client application.
 func GetTLSConfigurationForClient(serverHostname string, cstream s2av2pb.S2AService_SetUpSessionClient, tokenManager tokenmanager.AccessTokenManager, localIdentity *commonpbv1.Identity, verificationMode s2av2pb.ValidatePeerCertificateChainReq_VerificationMode) (*tls.Config, error) {
 	authMechanisms := getAuthMechanisms(tokenManager, []*commonpbv1.Identity{localIdentity})
@@ -124,6 +129,7 @@ func GetTLSConfigurationForClient(serverHostname string, cstream s2av2pb.S2AServ
 		ClientSessionCache:    nil,
 		MinVersion:            minVersion,
 		MaxVersion:            maxVersion,
+		NextProtos:            []string{h2},
 	}, nil
 }
 
@@ -189,6 +195,7 @@ func ClientConfig(tokenManager tokenmanager.AccessTokenManager, localIdentities 
 			ClientAuth:            clientAuth,
 			MinVersion:            minVersion,
 			MaxVersion:            maxVersion,
+			NextProtos:            []string{h2},
 		}, nil
 	}
 }
