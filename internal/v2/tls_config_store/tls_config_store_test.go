@@ -139,6 +139,7 @@ func TestTLSConfigStoreClient(t *testing.T) {
 		ClientSessionCache tls.ClientSessionCache
 		MinVersion         uint16
 		MaxVersion         uint16
+		NextProtos         []string
 	}{
 		{
 			description:        "static - nil tokenManager",
@@ -149,6 +150,7 @@ func TestTLSConfigStoreClient(t *testing.T) {
 			ClientSessionCache: nil,
 			MinVersion:         tls.VersionTLS13,
 			MaxVersion:         tls.VersionTLS13,
+			NextProtos:         []string{"h2"},
 		},
 		{
 			description:        "static - non-nil tokenManager",
@@ -159,6 +161,7 @@ func TestTLSConfigStoreClient(t *testing.T) {
 			ClientSessionCache: nil,
 			MinVersion:         tls.VersionTLS13,
 			MaxVersion:         tls.VersionTLS13,
+			NextProtos:         []string{"h2"},
 		},
 	} {
 		t.Run(tc.description, func(t *testing.T) {
@@ -204,6 +207,9 @@ func TestTLSConfigStoreClient(t *testing.T) {
 			if got, want := config.MaxVersion, tc.MaxVersion; got != want {
 				t.Errorf("config.MaxVersion = %v, want %v", got, want)
 			}
+			if !compareNextProtos(config.NextProtos, tc.NextProtos) {
+				t.Errorf("config.NextProtos = %v, want %v", config.NextProtos, tc.NextProtos)
+			}
 		})
 	}
 	stop()
@@ -238,6 +244,7 @@ func TestTLSConfigStoreServer(t *testing.T) {
 		ClientAuth   tls.ClientAuthType
 		MinVersion   uint16
 		MaxVersion   uint16
+		NextProtos   []string
 	}{
 		{
 			description:  "static - nil tokenManager",
@@ -246,6 +253,7 @@ func TestTLSConfigStoreServer(t *testing.T) {
 			ClientAuth:   tls.RequireAnyClientCert,
 			MinVersion:   tls.VersionTLS13,
 			MaxVersion:   tls.VersionTLS13,
+			NextProtos:   []string{"h2"},
 		},
 		{
 			description:  "static - non-nil tokenManager",
@@ -254,6 +262,7 @@ func TestTLSConfigStoreServer(t *testing.T) {
 			ClientAuth:   tls.RequireAnyClientCert,
 			MinVersion:   tls.VersionTLS13,
 			MaxVersion:   tls.VersionTLS13,
+			NextProtos:   []string{"h2"},
 		},
 	} {
 		t.Run(tc.description, func(t *testing.T) {
@@ -302,6 +311,9 @@ func TestTLSConfigStoreServer(t *testing.T) {
 			}
 			if got, want := config.MaxVersion, tc.MaxVersion; got != want {
 				t.Errorf("config.MaxVersion = %v, want %v", got, want)
+			}
+			if !compareNextProtos(config.NextProtos, tc.NextProtos) {
+				t.Errorf("config.NextProtos = %v, want %v", config.NextProtos, tc.NextProtos)
 			}
 		})
 	}
@@ -623,6 +635,7 @@ func TestGetClientConfig(t *testing.T) {
 		ClientAuth   tls.ClientAuthType
 		MinVersion   uint16
 		MaxVersion   uint16
+		NextProtos   []string
 	}{
 		{
 			description:  "static",
@@ -630,6 +643,7 @@ func TestGetClientConfig(t *testing.T) {
 			ClientAuth:   tls.RequireAnyClientCert,
 			MinVersion:   tls.VersionTLS13,
 			MaxVersion:   tls.VersionTLS13,
+			NextProtos:   []string{"h2"},
 		},
 	} {
 		t.Run(tc.description, func(t *testing.T) {
@@ -674,6 +688,9 @@ func TestGetClientConfig(t *testing.T) {
 			}
 			if got, want := config.MaxVersion, tc.MaxVersion; got != want {
 				t.Errorf("config.MaxVersion = %v, want %v", got, want)
+			}
+			if !compareNextProtos(config.NextProtos, tc.NextProtos) {
+				t.Errorf("config.NextProtos = %v, want %v", config.NextProtos, tc.NextProtos)
 			}
 		})
 	}
@@ -744,4 +761,16 @@ func makeMapOfTLSVersions() map[commonpb.TLSVersion]uint16 {
 	m[commonpb.TLSVersion_TLS_VERSION_1_2] = tls.VersionTLS12
 	m[commonpb.TLSVersion_TLS_VERSION_1_3] = tls.VersionTLS13
 	return m
+}
+
+func compareNextProtos(a, b []string) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for i, v := range a {
+		if v != b[i] {
+			return false
+		}
+	}
+	return true
 }
