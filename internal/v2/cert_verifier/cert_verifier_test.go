@@ -92,7 +92,7 @@ func TestVerifyClientCertChain(t *testing.T) {
 		{
 			description: "empty chain",
 			rawCerts:    nil,
-			expectedErr: errors.New("failed to offload client cert verification to S2A: 3, client peer verification failed: client cert chain is empty"),
+			expectedErr: errors.New("client cert verification failed: client peer verification failed: client cert chain is empty"),
 		},
 		{
 			description: "chain of length 1",
@@ -176,7 +176,7 @@ func TestVerifyServerCertChain(t *testing.T) {
 			description: "empty chain",
 			hostname:    "host",
 			rawCerts:    nil,
-			expectedErr: errors.New("failed to offload client cert verification to S2A: 3, server peer verification failed: server cert chain is empty"),
+			expectedErr: errors.New("server cert verification failed: server peer verification failed: server cert chain is empty"),
 		},
 		{
 			description: "chain of length 1",

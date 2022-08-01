@@ -65,6 +65,11 @@ func VerifyClientCertificateChain(verificationMode s2av2pb.ValidatePeerCertifica
 			return fmt.Errorf("failed to offload client cert verification to S2A: %d, %v", resp.GetStatus().Code, resp.GetStatus().Details)
 
 		}
+
+		if resp.GetValidatePeerCertificateChainResp().ValidationResult != s2av2pb.ValidatePeerCertificateChainResp_SUCCESS {
+			return fmt.Errorf("client cert verification failed: %v", resp.GetValidatePeerCertificateChainResp().ValidationDetails)
+		}
+
 		return nil
 	}
 }
@@ -88,21 +93,26 @@ func VerifyServerCertificateChain(hostname string, verificationMode s2av2pb.Vali
 				},
 			},
 		}); err != nil {
-			grpclog.Infof("Failed to send request to S2Av2 for client peer cert chain validation.")
+			grpclog.Infof("Failed to send request to S2Av2 for server peer cert chain validation.")
 			return err
 		}
 
 		// Get the response from S2Av2.
 		resp, err := cstream.Recv()
 		if err != nil {
-			grpclog.Infof("Failed to receive client peer cert chain validation response from S2Av2.")
+			grpclog.Infof("Failed to receive server peer cert chain validation response from S2Av2.")
 			return err
 		}
 
 		// Parse the response.
 		if (resp.GetStatus() != nil) && (resp.GetStatus().Code != uint32(codes.OK)) {
-			return fmt.Errorf("failed to offload client cert verification to S2A: %d, %v", resp.GetStatus().Code, resp.GetStatus().Details)
+			return fmt.Errorf("failed to offload server cert verification to S2A: %d, %v", resp.GetStatus().Code, resp.GetStatus().Details)
 		}
+
+		if resp.GetValidatePeerCertificateChainResp().ValidationResult != s2av2pb.ValidatePeerCertificateChainResp_SUCCESS {
+			return fmt.Errorf("server cert verification failed: %v", resp.GetValidatePeerCertificateChainResp().ValidationDetails)
+		}
+
 		return nil
 	}
 }

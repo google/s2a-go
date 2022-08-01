@@ -282,8 +282,8 @@ func TestSetUpSession(t *testing.T) {
 			},
 			expectedResponse: &s2av2pb.SessionResp{
 				Status: &s2av2pb.Status{
-					Code:    uint32(codes.InvalidArgument),
-					Details: "client peer verification failed: client cert chain is empty",
+					Code:    uint32(codes.OK),
+					Details: "",
 				},
 				RespOneof: &s2av2pb.SessionResp_ValidatePeerCertificateChainResp{
 					ValidatePeerCertificateChainResp: &s2av2pb.ValidatePeerCertificateChainResp{
