@@ -79,7 +79,9 @@ func VerifyClientCertificateChain(verificationMode s2av2pb.ValidatePeerCertifica
 func VerifyServerCertificateChain(hostname string, verificationMode s2av2pb.ValidatePeerCertificateChainReq_VerificationMode, cstream s2av2pb.S2AService_SetUpSessionClient) func(rawCerts [][]byte, verifiedChains [][]*x509.Certificate) error {
 	return func(rawCerts [][]byte, verifiedChains [][]*x509.Certificate) error {
 		// Offload verification to S2Av2.
-		grpclog.Infof("Sending request to S2Av2 for client peer cert chain validation.")
+		if grpclog.V(1) {
+			grpclog.Infof("Sending request to S2Av2 for server peer cert chain validation.")
+		}
 		if err := cstream.Send(&s2av2pb.SessionReq{
 			ReqOneof: &s2av2pb.SessionReq_ValidatePeerCertificateChainReq{
 				ValidatePeerCertificateChainReq: &s2av2pb.ValidatePeerCertificateChainReq{
