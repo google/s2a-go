@@ -212,6 +212,7 @@ func validatePeerCertificateChain(req *s2av2pb.ValidatePeerCertificateChainReq) 
 	}
 }
 
+// TODO(rmehta19): Update this to return ciphersuites in Client/Server TlsConfiguration.
 func getTLSConfiguration(req *s2av2pb.GetTlsConfigurationReq) (*s2av2pb.SessionResp, error) {
 	if req.GetConnectionSide() == commonpb.ConnectionSide_CONNECTION_SIDE_CLIENT {
 		return &s2av2pb.SessionResp{

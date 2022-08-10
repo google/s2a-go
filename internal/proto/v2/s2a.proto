@@ -73,6 +73,7 @@ message GetTlsConfigurationReq {
 }
 
 message GetTlsConfigurationResp {
+  // Next ID: 7
   message ClientTlsConfiguration {
     // The certificate chain that the client MUST use for the TLS handshake.
     // It's a list of PEM-encoded certificates, ordered from leaf to root,
@@ -89,22 +90,34 @@ message GetTlsConfigurationResp {
     // maximum version of the client's TLS library.
     TLSVersion max_tls_version = 3;
 
+
+    // DEPRECATED: Prefer the ciphersuites field instead.
+    //
     // The list of ciphersuites used for TLS handshake that the client MUST
     // negotiate in the TLS handshake.
     //
     // If the list is empty, then the client SHOULD negotiate the TLS handshake
     // using the default ciphersuites of the client's TLS stack.
+    // TODO(matthewstevenson88): Mark this field as reserved when no longer in use.
     repeated HandshakeCiphersuite handshake_ciphersuites = 4;
 
+    // DEPRECATED: Prefer the ciphersuites field instead.
+    //
     // The list of ciphersuites used for record protocol that the client MUST
     // negotiate in the TLS handshake.
     //
     // If the list is empty, then the client SHOULD negotiate the TLS handshake
     // using the default ciphersuites of the client's TLS stack.
+    // TODO(matthewstevenson88): Mark this field as reserved when no longer in use.
     repeated RecordCiphersuite record_ciphersuites = 5;
+
+    // The ordered list of TLS 1.0-1.2 ciphersuites that the client MAY offer to
+    // negotiate in the TLS handshake.
+    repeated Ciphersuite ciphersuites = 6;
   }
 
   message ServerTlsConfiguration {
+    // Next ID: 11
     enum RequestClientCertificate {
       UNSPECIFIED = 0;
       DONT_REQUEST_CLIENT_CERTIFICATE = 1;
@@ -129,19 +142,29 @@ message GetTlsConfigurationResp {
     // maximum version of the server's TLS library.
     TLSVersion max_tls_version = 3;
 
+    // DEPRECATED: Prefer the ciphersuites field instead.
+    //
     // The list of ciphersuites used for TLS handshake that the server MUST
     // negotiate in the TLS handshake.
     //
     // If the list is empty, then the server SHOULD negotiate the TLS handshake
     // using the default ciphersuites of the server's TLS stack.
+    // TODO(matthewstevenson88): Mark this field as reserved when no longer in use.
     repeated HandshakeCiphersuite handshake_ciphersuites = 4;
 
+    // DEPRECATED: Prefer the ciphersuites field instead.
+    //
     // The list of ciphersuites used for record protocol that the server MUST
     // negotiate in the TLS handshake.
     //
     // If the list is empty, then the server SHOULD negotiate the TLS handshake
     // using the default ciphersuites of the server's TLS stack.
+    // TODO(matthewstevenson88): Mark this field as reserved when no longer in use.
     repeated RecordCiphersuite record_ciphersuites = 5;
+
+    // The ordered list of TLS 1.0-1.2 ciphersuites that the server MAY offer to
+    // negotiate in the TLS handshake.
+    repeated Ciphersuite ciphersuites = 10;
 
     // Whether to enable TLS resumption.
     bool tls_resumption_enabled = 6;
