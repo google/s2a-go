@@ -754,6 +754,96 @@ func TestGetTLSClientAuthType(t *testing.T) {
 	}
 }
 
+func TestGetTLSCipherSuite(t *testing.T) {
+	for _, tc := range []struct {
+		description string
+		inp         commonpb.Ciphersuite
+		expOut      uint16
+	}{
+		{
+			description: "ECDSA with AES 128 GCM SHA256",
+			inp:         commonpb.Ciphersuite_CIPHERSUITE_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
+			expOut:      tls.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
+		},
+		{
+			description: "ECDSA with AES 256 GCM SHA384",
+			inp:         commonpb.Ciphersuite_CIPHERSUITE_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
+			expOut:      tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
+		},
+		{
+			description: "ECDSA with CHACHA20 Poly 1305 SHA256",
+			inp:         commonpb.Ciphersuite_CIPHERSUITE_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256,
+			expOut:      tls.TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256,
+		},
+		{
+			description: "RSA with AES 128 GCM SHA256",
+			inp:         commonpb.Ciphersuite_CIPHERSUITE_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
+			expOut:      tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
+		},
+		{
+			description: "RSA with AES 256 GCM SHA384",
+			inp:         commonpb.Ciphersuite_CIPHERSUITE_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
+			expOut:      tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
+		},
+		{
+			description: "RSA with CHACHA20 Poly1305 SHA256",
+			inp:         commonpb.Ciphersuite_CIPHERSUITE_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256,
+			expOut:      tls.TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256,
+		},
+		{
+			description: "unspecified",
+			inp:         commonpb.Ciphersuite_CIPHERSUITE_UNSPECIFIED,
+			expOut:      0xffff,
+		},
+	} {
+		t.Run(tc.description, func(t *testing.T) {
+			if got, want := getTLSCipherSuite(tc.inp), tc.expOut; got != want {
+				t.Errorf("getTLSCipherSuite(%v) returned %v, want %v", tc.inp, got, want)
+			}
+		})
+	}
+}
+
+func TestGetCipherSuites(t *testing.T) {
+	for _, tc := range []struct {
+		description string
+		inp         []commonpb.Ciphersuite
+		expOut      []uint16
+	}{
+		{
+			description: "empty input",
+			inp:         []commonpb.Ciphersuite{},
+			expOut:      []uint16{},
+		},
+		{
+			description: "non - empty input array of size 1",
+			inp:         []commonpb.Ciphersuite{commonpb.Ciphersuite_CIPHERSUITE_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256},
+			expOut:      []uint16{tls.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256},
+		},
+		{
+			description: "non - empty input array of size 2",
+			inp:         []commonpb.Ciphersuite{commonpb.Ciphersuite_CIPHERSUITE_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256, commonpb.Ciphersuite_CIPHERSUITE_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384},
+			expOut:      []uint16{tls.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256, tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384},
+		},
+		{
+			description: "unspecified array of size 1",
+			inp:         []commonpb.Ciphersuite{commonpb.Ciphersuite_CIPHERSUITE_UNSPECIFIED},
+			expOut:      []uint16{},
+		},
+		{
+			description: "unspecified array of size 2",
+			inp:         []commonpb.Ciphersuite{commonpb.Ciphersuite_CIPHERSUITE_UNSPECIFIED, commonpb.Ciphersuite_CIPHERSUITE_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256},
+			expOut:      []uint16{tls.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256},
+		},
+	} {
+		t.Run(tc.description, func(t *testing.T) {
+			if got, want := getCipherSuites(tc.inp), tc.expOut; !compareCipherSuites(got, want) {
+				t.Errorf("getCipherSuites(%+v) returned %+v, want %+v", tc.inp, got, want)
+			}
+		})
+	}
+}
+
 func makeMapOfTLSVersions() map[commonpb.TLSVersion]uint16 {
 	m := make(map[commonpb.TLSVersion]uint16)
 	m[commonpb.TLSVersion_TLS_VERSION_1_0] = tls.VersionTLS10
@@ -764,6 +854,18 @@ func makeMapOfTLSVersions() map[commonpb.TLSVersion]uint16 {
 }
 
 func compareNextProtos(a, b []string) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for i, v := range a {
+		if v != b[i] {
+			return false
+		}
+	}
+	return true
+}
+
+func compareCipherSuites(a, b []uint16) bool {
 	if len(a) != len(b) {
 		return false
 	}

@@ -120,8 +120,6 @@ func GetTLSConfigurationForClient(serverHostname string, cstream s2av2pb.S2AServ
 
 	// Create mTLS credentials for client.
 	return &tls.Config{
-		// TODO(rmehta19): Make use of tlsConfig.HandshakeCiphersuites /
-		// RecordCiphersuites.
 		Certificates:          []tls.Certificate{cert},
 		VerifyPeerCertificate: certverifier.VerifyServerCertificateChain(serverHostname, verificationMode, cstream),
 		ServerName:            serverHostname,
@@ -186,17 +184,49 @@ func ClientConfig(tokenManager tokenmanager.AccessTokenManager, localIdentities 
 
 		clientAuth := getTLSClientAuthType(tlsConfig)
 
+		var cipherSuites []uint16
+		cipherSuites = getCipherSuites(tlsConfig.Ciphersuites)
+
 		// Create mTLS credentials for server.
 		return &tls.Config{
-			// TODO(rmehta19): Make use of tlsConfig.HandshakeCiphersuites /
-			// RecordCiphersuites / TlsResumptionEnabled / MaxOverheadOfTicketAead.
 			Certificates:          []tls.Certificate{cert},
 			VerifyPeerCertificate: certverifier.VerifyClientCertificateChain(verificationMode, cstream),
 			ClientAuth:            clientAuth,
+			CipherSuites:          cipherSuites,
 			MinVersion:            minVersion,
 			MaxVersion:            maxVersion,
 			NextProtos:            []string{h2},
 		}, nil
+	}
+}
+
+func getCipherSuites(tlsConfigCipherSuites []commonpb.Ciphersuite) []uint16 {
+	var tlsGoCipherSuites []uint16
+	for _, v := range tlsConfigCipherSuites {
+		s := getTLSCipherSuite(v)
+		if s != 0xffff {
+			tlsGoCipherSuites = append(tlsGoCipherSuites, s)
+		}
+	}
+	return tlsGoCipherSuites
+}
+
+func getTLSCipherSuite(tlsCipherSuite commonpb.Ciphersuite) uint16 {
+	switch tlsCipherSuite {
+	case commonpb.Ciphersuite_CIPHERSUITE_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256:
+		return tls.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256
+	case commonpb.Ciphersuite_CIPHERSUITE_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384:
+		return tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384
+	case commonpb.Ciphersuite_CIPHERSUITE_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256:
+		return tls.TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256
+	case commonpb.Ciphersuite_CIPHERSUITE_ECDHE_RSA_WITH_AES_128_GCM_SHA256:
+		return tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256
+	case commonpb.Ciphersuite_CIPHERSUITE_ECDHE_RSA_WITH_AES_256_GCM_SHA384:
+		return tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
+	case commonpb.Ciphersuite_CIPHERSUITE_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256:
+		return tls.TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256
+	default:
+		return 0xffff
 	}
 }
 
