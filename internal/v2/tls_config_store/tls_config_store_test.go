@@ -131,37 +131,40 @@ func TestTLSConfigStoreClient(t *testing.T) {
 		accessToken:        "TestTlsConfigStoreClient_token",
 	}
 	for _, tc := range []struct {
-		description        string
-		tokenManager       tokenmanager.AccessTokenManager
-		Certificates       []tls.Certificate
-		ServerName         string
-		InsecureSkipVerify bool
-		ClientSessionCache tls.ClientSessionCache
-		MinVersion         uint16
-		MaxVersion         uint16
-		NextProtos         []string
+		description            string
+		tokenManager           tokenmanager.AccessTokenManager
+		Certificates           []tls.Certificate
+		ServerName             string
+		InsecureSkipVerify     bool
+		SessionTicketsDisabled bool
+		ClientSessionCache     tls.ClientSessionCache
+		MinVersion             uint16
+		MaxVersion             uint16
+		NextProtos             []string
 	}{
 		{
-			description:        "static - nil tokenManager",
-			tokenManager:       nil,
-			Certificates:       []tls.Certificate{cert},
-			ServerName:         "host",
-			InsecureSkipVerify: true,
-			ClientSessionCache: nil,
-			MinVersion:         tls.VersionTLS13,
-			MaxVersion:         tls.VersionTLS13,
-			NextProtos:         []string{"h2"},
+			description:            "static - nil tokenManager",
+			tokenManager:           nil,
+			Certificates:           []tls.Certificate{cert},
+			ServerName:             "host",
+			InsecureSkipVerify:     true,
+			SessionTicketsDisabled: true,
+			ClientSessionCache:     nil,
+			MinVersion:             tls.VersionTLS13,
+			MaxVersion:             tls.VersionTLS13,
+			NextProtos:             []string{"h2"},
 		},
 		{
-			description:        "static - non-nil tokenManager",
-			tokenManager:       accessTokenManager,
-			Certificates:       []tls.Certificate{cert},
-			ServerName:         "host",
-			InsecureSkipVerify: true,
-			ClientSessionCache: nil,
-			MinVersion:         tls.VersionTLS13,
-			MaxVersion:         tls.VersionTLS13,
-			NextProtos:         []string{"h2"},
+			description:            "static - non-nil tokenManager",
+			tokenManager:           accessTokenManager,
+			Certificates:           []tls.Certificate{cert},
+			ServerName:             "host",
+			InsecureSkipVerify:     true,
+			SessionTicketsDisabled: true,
+			ClientSessionCache:     nil,
+			MinVersion:             tls.VersionTLS13,
+			MaxVersion:             tls.VersionTLS13,
+			NextProtos:             []string{"h2"},
 		},
 	} {
 		t.Run(tc.description, func(t *testing.T) {
@@ -197,6 +200,9 @@ func TestTLSConfigStoreClient(t *testing.T) {
 			}
 			if got, want := config.InsecureSkipVerify, tc.InsecureSkipVerify; got != want {
 				t.Errorf("config.InsecureSkipVerify = %v, want %v", got, want)
+			}
+			if got, want := config.SessionTicketsDisabled, tc.SessionTicketsDisabled; got != want {
+				t.Errorf("config.SessionTicketsDisabled = %v, want %v", got, want)
 			}
 			if got, want := config.ClientSessionCache, tc.ClientSessionCache; got != want {
 				t.Errorf("config.ClientSessionCache = %v, want %v", got, want)
@@ -238,31 +244,34 @@ func TestTLSConfigStoreServer(t *testing.T) {
 	var identities []*commonpbv1.Identity
 	identities = append(identities, nil)
 	for _, tc := range []struct {
-		description  string
-		tokenManager tokenmanager.AccessTokenManager
-		Certificates []tls.Certificate
-		ClientAuth   tls.ClientAuthType
-		MinVersion   uint16
-		MaxVersion   uint16
-		NextProtos   []string
+		description            string
+		tokenManager           tokenmanager.AccessTokenManager
+		Certificates           []tls.Certificate
+		SessionTicketsDisabled bool
+		ClientAuth             tls.ClientAuthType
+		MinVersion             uint16
+		MaxVersion             uint16
+		NextProtos             []string
 	}{
 		{
-			description:  "static - nil tokenManager",
-			tokenManager: nil,
-			Certificates: []tls.Certificate{cert},
-			ClientAuth:   tls.RequireAnyClientCert,
-			MinVersion:   tls.VersionTLS13,
-			MaxVersion:   tls.VersionTLS13,
-			NextProtos:   []string{"h2"},
+			description:            "static - nil tokenManager",
+			tokenManager:           nil,
+			Certificates:           []tls.Certificate{cert},
+			SessionTicketsDisabled: true,
+			ClientAuth:             tls.RequireAnyClientCert,
+			MinVersion:             tls.VersionTLS13,
+			MaxVersion:             tls.VersionTLS13,
+			NextProtos:             []string{"h2"},
 		},
 		{
-			description:  "static - non-nil tokenManager",
-			tokenManager: accessTokenManager,
-			Certificates: []tls.Certificate{cert},
-			ClientAuth:   tls.RequireAnyClientCert,
-			MinVersion:   tls.VersionTLS13,
-			MaxVersion:   tls.VersionTLS13,
-			NextProtos:   []string{"h2"},
+			description:            "static - non-nil tokenManager",
+			tokenManager:           accessTokenManager,
+			Certificates:           []tls.Certificate{cert},
+			SessionTicketsDisabled: true,
+			ClientAuth:             tls.RequireAnyClientCert,
+			MinVersion:             tls.VersionTLS13,
+			MaxVersion:             tls.VersionTLS13,
+			NextProtos:             []string{"h2"},
 		},
 	} {
 		t.Run(tc.description, func(t *testing.T) {
@@ -302,6 +311,9 @@ func TestTLSConfigStoreServer(t *testing.T) {
 			}
 			if got, want := config.Certificates[0].Certificate[0], tc.Certificates[0].Certificate[0]; !bytes.Equal(got, want) {
 				t.Errorf("config.Certificates[0].Certificate[0] = %v, want %v", got, want)
+			}
+			if got, want := config.SessionTicketsDisabled, tc.SessionTicketsDisabled; got != want {
+				t.Errorf("config.SessionTicketsDisabled = %v, want %v", got, want)
 			}
 			if got, want := config.ClientAuth, tc.ClientAuth; got != want {
 				t.Errorf("config.ClientAuth = %v, want %v", got, want)
@@ -630,20 +642,22 @@ func TestGetClientConfig(t *testing.T) {
 	var identities []*commonpbv1.Identity
 	identities = append(identities, nil)
 	for _, tc := range []struct {
-		description  string
-		Certificates []tls.Certificate
-		ClientAuth   tls.ClientAuthType
-		MinVersion   uint16
-		MaxVersion   uint16
-		NextProtos   []string
+		description            string
+		Certificates           []tls.Certificate
+		SessionTicketsDisabled bool
+		ClientAuth             tls.ClientAuthType
+		MinVersion             uint16
+		MaxVersion             uint16
+		NextProtos             []string
 	}{
 		{
-			description:  "static",
-			Certificates: []tls.Certificate{cert},
-			ClientAuth:   tls.RequireAnyClientCert,
-			MinVersion:   tls.VersionTLS13,
-			MaxVersion:   tls.VersionTLS13,
-			NextProtos:   []string{"h2"},
+			description:            "static",
+			Certificates:           []tls.Certificate{cert},
+			SessionTicketsDisabled: true,
+			ClientAuth:             tls.RequireAnyClientCert,
+			MinVersion:             tls.VersionTLS13,
+			MaxVersion:             tls.VersionTLS13,
+			NextProtos:             []string{"h2"},
 		},
 	} {
 		t.Run(tc.description, func(t *testing.T) {
@@ -679,6 +693,9 @@ func TestGetClientConfig(t *testing.T) {
 			}
 			if got, want := config.Certificates[0].Certificate[0], tc.Certificates[0].Certificate[0]; !bytes.Equal(got, want) {
 				t.Errorf("config.Certificates[0].Certificate[0] = %v, want %v", got, want)
+			}
+			if got, want := config.SessionTicketsDisabled, tc.SessionTicketsDisabled; got != want {
+				t.Errorf("config.SessionTicketsDisabled = %v, want %v", got, want)
 			}
 			if got, want := config.ClientAuth, tc.ClientAuth; got != want {
 				t.Errorf("config.ClientAuth = %v, want %v", got, want)
