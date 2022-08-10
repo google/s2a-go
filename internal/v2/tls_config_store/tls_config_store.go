@@ -120,14 +120,15 @@ func GetTLSConfigurationForClient(serverHostname string, cstream s2av2pb.S2AServ
 
 	// Create mTLS credentials for client.
 	return &tls.Config{
-		Certificates:          []tls.Certificate{cert},
-		VerifyPeerCertificate: certverifier.VerifyServerCertificateChain(serverHostname, verificationMode, cstream),
-		ServerName:            serverHostname,
-		InsecureSkipVerify:    true,
-		ClientSessionCache:    nil,
-		MinVersion:            minVersion,
-		MaxVersion:            maxVersion,
-		NextProtos:            []string{h2},
+		Certificates:           []tls.Certificate{cert},
+		VerifyPeerCertificate:  certverifier.VerifyServerCertificateChain(serverHostname, verificationMode, cstream),
+		ServerName:             serverHostname,
+		InsecureSkipVerify:     true,
+		ClientSessionCache:     nil,
+		SessionTicketsDisabled: true,
+		MinVersion:             minVersion,
+		MaxVersion:             maxVersion,
+		NextProtos:             []string{h2},
 	}, nil
 }
 
@@ -189,13 +190,14 @@ func ClientConfig(tokenManager tokenmanager.AccessTokenManager, localIdentities 
 
 		// Create mTLS credentials for server.
 		return &tls.Config{
-			Certificates:          []tls.Certificate{cert},
-			VerifyPeerCertificate: certverifier.VerifyClientCertificateChain(verificationMode, cstream),
-			ClientAuth:            clientAuth,
-			CipherSuites:          cipherSuites,
-			MinVersion:            minVersion,
-			MaxVersion:            maxVersion,
-			NextProtos:            []string{h2},
+			Certificates:           []tls.Certificate{cert},
+			VerifyPeerCertificate:  certverifier.VerifyClientCertificateChain(verificationMode, cstream),
+			ClientAuth:             clientAuth,
+			CipherSuites:           cipherSuites,
+			SessionTicketsDisabled: true,
+			MinVersion:             minVersion,
+			MaxVersion:             maxVersion,
+			NextProtos:             []string{h2},
 		}, nil
 	}
 }
