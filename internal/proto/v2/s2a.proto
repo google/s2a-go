@@ -75,6 +75,8 @@ message GetTlsConfigurationReq {
 message GetTlsConfigurationResp {
   // Next ID: 7
   message ClientTlsConfiguration {
+    reserved 4, 5;
+
     // The certificate chain that the client MUST use for the TLS handshake.
     // It's a list of PEM-encoded certificates, ordered from leaf to root,
     // excluding the root.
@@ -90,34 +92,15 @@ message GetTlsConfigurationResp {
     // maximum version of the client's TLS library.
     TLSVersion max_tls_version = 3;
 
-
-    // DEPRECATED: Prefer the ciphersuites field instead.
-    //
-    // The list of ciphersuites used for TLS handshake that the client MUST
-    // negotiate in the TLS handshake.
-    //
-    // If the list is empty, then the client SHOULD negotiate the TLS handshake
-    // using the default ciphersuites of the client's TLS stack.
-    // TODO(matthewstevenson88): Mark this field as reserved when no longer in use.
-    repeated HandshakeCiphersuite handshake_ciphersuites = 4;
-
-    // DEPRECATED: Prefer the ciphersuites field instead.
-    //
-    // The list of ciphersuites used for record protocol that the client MUST
-    // negotiate in the TLS handshake.
-    //
-    // If the list is empty, then the client SHOULD negotiate the TLS handshake
-    // using the default ciphersuites of the client's TLS stack.
-    // TODO(matthewstevenson88): Mark this field as reserved when no longer in use.
-    repeated RecordCiphersuite record_ciphersuites = 5;
-
     // The ordered list of TLS 1.0-1.2 ciphersuites that the client MAY offer to
     // negotiate in the TLS handshake.
     repeated Ciphersuite ciphersuites = 6;
   }
 
+  // Next ID: 11
   message ServerTlsConfiguration {
-    // Next ID: 11
+    reserved 4, 5;
+
     enum RequestClientCertificate {
       UNSPECIFIED = 0;
       DONT_REQUEST_CLIENT_CERTIFICATE = 1;
@@ -141,26 +124,6 @@ message GetTlsConfigurationResp {
     // handshake. If this field is not provided, the server MUST use the default
     // maximum version of the server's TLS library.
     TLSVersion max_tls_version = 3;
-
-    // DEPRECATED: Prefer the ciphersuites field instead.
-    //
-    // The list of ciphersuites used for TLS handshake that the server MUST
-    // negotiate in the TLS handshake.
-    //
-    // If the list is empty, then the server SHOULD negotiate the TLS handshake
-    // using the default ciphersuites of the server's TLS stack.
-    // TODO(matthewstevenson88): Mark this field as reserved when no longer in use.
-    repeated HandshakeCiphersuite handshake_ciphersuites = 4;
-
-    // DEPRECATED: Prefer the ciphersuites field instead.
-    //
-    // The list of ciphersuites used for record protocol that the server MUST
-    // negotiate in the TLS handshake.
-    //
-    // If the list is empty, then the server SHOULD negotiate the TLS handshake
-    // using the default ciphersuites of the server's TLS stack.
-    // TODO(matthewstevenson88): Mark this field as reserved when no longer in use.
-    repeated RecordCiphersuite record_ciphersuites = 5;
 
     // The ordered list of TLS 1.0-1.2 ciphersuites that the server MAY offer to
     // negotiate in the TLS handshake.
@@ -188,7 +151,17 @@ message GetTlsConfigurationResp {
 message OffloadPrivateKeyOperationReq {
   enum PrivateKeyOperation {
     UNSPECIFIED = 0;
+    // When performing a TLS 1.2 or 1.3 handshake, the (partial) transcript of
+    // the TLS handshake must be signed to prove possession of the private key.
+    //
+    // See https://www.rfc-editor.org/rfc/rfc8446.html#section-4.4.3.
     SIGN = 1;
+    // When performing a TLS 1.2 handshake using an RSA algorithm, the key
+    // exchange algorithm involves the client generating a premaster secret,
+    // encrypting it using the server's public key, and sending this encrypted
+    // blob to the server in a ClientKeyExchange message.
+    //
+    // See https://www.rfc-editor.org/rfc/rfc4346#section-7.4.7.1.
     DECRYPT = 2;
   }
 
@@ -318,6 +291,9 @@ message SessionReq {
 
     // Signs or decrypts the input bytes using a private key corresponding to
     // the local identity in the request.
+    //
+    // WARNING: More than one OffloadPrivateKeyOperationReq may be sent to the
+    // S2Av2 by a server during a TLS 1.2 handshake.
     OffloadPrivateKeyOperationReq offload_private_key_operation_req = 4;
 
     // Encrypts or decrypts the input bytes using a resumption key corresponding
