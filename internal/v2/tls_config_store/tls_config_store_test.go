@@ -107,8 +107,6 @@ func startFakeS2Av2Server(wg *sync.WaitGroup, expToken string) (stop func(), add
 	return func() { s.Stop() }, address, nil
 }
 
-// TODO(rmehta19): In Client and Server test, verify contents of config.RootCAs once x509.CertPool.Equal function is officially released : https://cs.opensource.google/go/go/+/4aacb7ff0f103d95a724a91736823f44aa599634 .
-
 // TestTLSConfigStoreClient runs unit tests for GetTLSConfigurationForClient.
 func TestTLSConfigStoreClient(t *testing.T) {
 	// Setup for static client test.
@@ -565,12 +563,6 @@ func TestGetServerConfigFromS2Av2(t *testing.T) {
 				},
 				MinTlsVersion:         commonpb.TLSVersion_TLS_VERSION_1_3,
 				MaxTlsVersion:         commonpb.TLSVersion_TLS_VERSION_1_3,
-				HandshakeCiphersuites: []commonpb.HandshakeCiphersuite{},
-				RecordCiphersuites: []commonpb.RecordCiphersuite{
-					commonpb.RecordCiphersuite_RECORD_CIPHERSUITE_AES_128_GCM_SHA256,
-					commonpb.RecordCiphersuite_RECORD_CIPHERSUITE_AES_256_GCM_SHA384,
-					commonpb.RecordCiphersuite_RECORD_CIPHERSUITE_CHACHA20_POLY1305_SHA256,
-				},
 				TlsResumptionEnabled:     false,
 				RequestClientCertificate: s2av2pb.GetTlsConfigurationResp_ServerTlsConfiguration_REQUEST_AND_REQUIRE_CLIENT_CERTIFICATE_AND_VERIFY,
 				MaxOverheadOfTicketAead:  0,

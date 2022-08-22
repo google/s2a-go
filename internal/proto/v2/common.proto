@@ -18,28 +18,6 @@ package s2a.proto.v2;
 
 option go_package = "github.com/google/s2a/internal/proto/v2/common_go_proto";
 
-// DEPRECATED: The ciphersuites for the TLS handshake supported by S2A. Note
-// that handshake ciphersuites are NOT configurable in TLS 1.3.
-// TODO(matthewstevenson88): Delete this enum when it is no longer in use.
-enum HandshakeCiphersuite {
-  HANDSHAKE_CIPHERSUITE_UNSPECIFIED = 0;
-  HANDSHAKE_CIPHERSUITE_ECDHE = 1;
-}
-
-// DEPRECATED: The ciphersuites for the record protocol supported by S2A. The
-// name determines the confidentiality, and authentication ciphers as well as
-// the hash algorithm used for PRF in TLS 1.2 or HKDF in TLS 1.3. Thus, the
-// components of the name are:
-//  - AEAD -- for encryption and authentication, e.g., AES_128_GCM.
-//  - Hash algorithm -- used in PRF or HKDF, e.g., SHA256.
-// TODO(matthewstevenson88): Delete this enum when it is no longer in use.
-enum RecordCiphersuite {
-  RECORD_CIPHERSUITE_UNSPECIFIED = 0;
-  RECORD_CIPHERSUITE_AES_128_GCM_SHA256 = 1;
-  RECORD_CIPHERSUITE_AES_256_GCM_SHA384 = 2;
-  RECORD_CIPHERSUITE_CHACHA20_POLY1305_SHA256 = 3;
-}
-
 // The TLS 1.0-1.2 ciphersuites that the application can negotiate when using
 // S2A.
 enum Ciphersuite {
