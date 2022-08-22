@@ -561,8 +561,8 @@ func TestGetServerConfigFromS2Av2(t *testing.T) {
 				CertificateChain: []string{
 					string(serverCertpem),
 				},
-				MinTlsVersion:         commonpb.TLSVersion_TLS_VERSION_1_3,
-				MaxTlsVersion:         commonpb.TLSVersion_TLS_VERSION_1_3,
+				MinTlsVersion:            commonpb.TLSVersion_TLS_VERSION_1_3,
+				MaxTlsVersion:            commonpb.TLSVersion_TLS_VERSION_1_3,
 				TlsResumptionEnabled:     false,
 				RequestClientCertificate: s2av2pb.GetTlsConfigurationResp_ServerTlsConfiguration_REQUEST_AND_REQUIRE_CLIENT_CERTIFICATE_AND_VERIFY,
 				MaxOverheadOfTicketAead:  0,

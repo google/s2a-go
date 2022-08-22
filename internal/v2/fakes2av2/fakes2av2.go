@@ -226,12 +226,12 @@ func getTLSConfiguration(req *s2av2pb.GetTlsConfigurationReq) (*s2av2pb.SessionR
 							CertificateChain: []string{
 								string(clientCert),
 							},
-							MinTlsVersion:         commonpb.TLSVersion_TLS_VERSION_1_3,
-							MaxTlsVersion:         commonpb.TLSVersion_TLS_VERSION_1_3,
+							MinTlsVersion: commonpb.TLSVersion_TLS_VERSION_1_3,
+							MaxTlsVersion: commonpb.TLSVersion_TLS_VERSION_1_3,
 						},
-						},
+					},
+				},
 			},
-		},
 		}, nil
 	} else if req.GetConnectionSide() == commonpb.ConnectionSide_CONNECTION_SIDE_SERVER {
 		return &s2av2pb.SessionResp{
@@ -245,8 +245,8 @@ func getTLSConfiguration(req *s2av2pb.GetTlsConfigurationReq) (*s2av2pb.SessionR
 							CertificateChain: []string{
 								string(serverCert),
 							},
-							MinTlsVersion:         commonpb.TLSVersion_TLS_VERSION_1_3,
-							MaxTlsVersion:         commonpb.TLSVersion_TLS_VERSION_1_3,
+							MinTlsVersion:            commonpb.TLSVersion_TLS_VERSION_1_3,
+							MaxTlsVersion:            commonpb.TLSVersion_TLS_VERSION_1_3,
 							TlsResumptionEnabled:     false,
 							RequestClientCertificate: s2av2pb.GetTlsConfigurationResp_ServerTlsConfiguration_REQUEST_AND_REQUIRE_CLIENT_CERTIFICATE_AND_VERIFY,
 							MaxOverheadOfTicketAead:  0,
