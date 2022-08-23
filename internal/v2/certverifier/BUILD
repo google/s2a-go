@@ -19,30 +19,29 @@ package(
   default_visibility = ["//internal/v2:__subpackages__"],
 )
 
+
 go_library(
-  name = "remote_signer",
-  srcs = ["remote_signer.go"],
-  importpath = "github.com/google/s2a-go/internal/v2/remote_signer",
+  name = "certverifier",
+  srcs = ["certverifier.go"],
+  importpath = "github.com/google/s2a-go/internal/v2/certverifier",
   deps = [
+    "//internal/proto/v2/s2a_go_proto:s2a_go_proto",
     "@org_golang_google_grpc//codes:go_default_library",
     "@org_golang_google_grpc//grpclog:go_default_library",
-    "//internal/proto/v2/common_go_proto:common_go_proto",
-    "//internal/proto/v2/s2a_go_proto:s2a_go_proto",
   ],
 )
 
 go_test(
-  name = "remote_signer_test",
-  srcs = ["remote_signer_test.go"],
-  embed = [":remote_signer"],
+  name = "certverifier_test",
+  srcs = ["certverifier_test.go"],
+  embed = [":certverifier"],
   embedsrcs = [
-    "//internal/v2/remote_signer/example_cert_key:export_testdata", # keep
+    "//internal/v2/certverifier/example_cert_key:export_testdata", # keep
   ],
   deps = [
+    "//internal/proto/v2/s2a_go_proto:s2a_go_proto",
     "//internal/v2/fakes2av2",
-    "@org_golang_google_grpc//credentials/insecure:go_default_library",
     "@org_golang_google_grpc//:go_default_library",
-    "@org_golang_google_protobuf//testing/protocmp:go_default_library",
-    "@com_github_google_go_cmp//cmp:go_default_library",
+    "@org_golang_google_grpc//credentials/insecure:go_default_library",
   ],
 )

@@ -27,27 +27,14 @@ import (
 	"fmt"
 
 	"github.com/google/s2a-go/internal/tokenmanager"
-	"github.com/google/s2a-go/internal/v2/cert_verifier"
-	"github.com/google/s2a-go/internal/v2/remote_signer"
+	"github.com/google/s2a-go/internal/v2/certverifier"
+	"github.com/google/s2a-go/internal/v2/remotesigner"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/grpclog"
-
-	_ "embed"
 
 	commonpbv1 "github.com/google/s2a-go/internal/proto/common_go_proto"
 	commonpb "github.com/google/s2a-go/internal/proto/v2/common_go_proto"
 	s2av2pb "github.com/google/s2a-go/internal/proto/v2/s2a_go_proto"
-)
-
-var (
-	//go:embed example_cert_key/client_cert.pem
-	clientCert []byte
-	//go:embed example_cert_key/server_cert.pem
-	serverCert []byte
-	//go:embed example_cert_key/client_key.pem
-	clientKey []byte
-	//go:embed example_cert_key/server_key.pem
-	serverKey []byte
 )
 
 const (
@@ -123,7 +110,7 @@ func GetTLSConfigurationForClient(serverHostname string, cstream s2av2pb.S2AServ
 		Certificates:           []tls.Certificate{cert},
 		VerifyPeerCertificate:  certverifier.VerifyServerCertificateChain(serverHostname, verificationMode, cstream),
 		ServerName:             serverHostname,
-		InsecureSkipVerify:     true,
+		InsecureSkipVerify:     true, // NOLINT
 		ClientSessionCache:     nil,
 		SessionTicketsDisabled: true,
 		MinVersion:             minVersion,

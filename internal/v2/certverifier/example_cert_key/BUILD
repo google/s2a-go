@@ -13,11 +13,11 @@
 # limitations under the License.
 
 # Description:
-# Test certs and keys for testing the tls config store.
+# Test certs and keys for testing the cert verifier.
 
 
 package(
-    default_visibility = ["//internal/v2/tls_config_store:__pkg__"],
+    default_visibility = ["//internal/v2/certverifier:__pkg__"],
 )
 
 licenses(["notice"])
@@ -27,5 +27,7 @@ filegroup(
     srcs =
       glob([
         "*.pem",
+        "*.der",
       ]),
 )
+
