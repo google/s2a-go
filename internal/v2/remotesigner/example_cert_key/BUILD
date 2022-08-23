@@ -17,7 +17,7 @@
 
 
 package(
-    default_visibility = ["//internal/v2/remote_signer:__pkg__"],
+    default_visibility = ["//internal/v2/remotesigner:__pkg__"],
 )
 
 licenses(["notice"])

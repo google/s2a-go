@@ -21,30 +21,30 @@ package(
 # TODO(rmehta19) : Investigate how to use embedsrcs with data in a top level directory. If possible, move example_cert_key under s2a-go/internal/v2
 
 go_library(
-  name = "tls_config_store",
-  srcs = ["tls_config_store.go"],
-  importpath = "github.com/google/s2a-go/internal/v2/tls_config_store",
+  name = "tlsconfigstore",
+  srcs = ["tlsconfigstore.go"],
+  importpath = "github.com/google/s2a-go/internal/v2/tlsconfigstore",
   embedsrcs = [
-    "//internal/v2/tls_config_store/example_cert_key:export_testdata", # keep
+    "//internal/v2/tlsconfigstore/example_cert_key:export_testdata", # keep
   ],
   deps = [
     "//internal/proto/common_go_proto:common_go_proto",
     "//internal/proto/v2/common_go_proto:common_go_proto",
     "//internal/proto/v2/s2a_go_proto:s2a_go_proto",
     "//internal/tokenmanager",
-    "//internal/v2/cert_verifier",
-    "//internal/v2/remote_signer",
+    "//internal/v2/certverifier:certverifier",
+    "//internal/v2/remotesigner:remotesigner",
     "@org_golang_google_grpc//codes:go_default_library",
     "@org_golang_google_grpc//grpclog:go_default_library",
   ],
 )
 
 go_test(
-  name = "tls_config_store_test",
-  srcs = ["tls_config_store_test.go"],
-  embed = [":tls_config_store"],
+  name = "tlsconfigstore_test",
+  srcs = ["tlsconfigstore_test.go"],
+  embed = [":tlsconfigstore"],
   embedsrcs = [
-    "//internal/v2/tls_config_store/example_cert_key:export_testdata", # keep
+    "//internal/v2/tlsconfigstore/example_cert_key:export_testdata", # keep
   ],
   deps = [
     "//internal/proto/common_go_proto:common_go_proto",
