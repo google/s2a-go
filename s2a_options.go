@@ -128,7 +128,7 @@ func DefaultClientOptions(s2aAddress string) *ClientOptions {
 	return &ClientOptions{
 		S2AAddress:       s2aAddress,
 		VerificationMode: ConnectToGoogle,
-		EnableV2: true,
+		EnableV2:         true,
 	}
 }
 
@@ -155,7 +155,7 @@ func DefaultServerOptions(s2aAddress string) *ServerOptions {
 	return &ServerOptions{
 		S2AAddress:       s2aAddress,
 		VerificationMode: ConnectToGoogle,
-		EnableV2: true,
+		EnableV2:         true,
 	}
 }
 
