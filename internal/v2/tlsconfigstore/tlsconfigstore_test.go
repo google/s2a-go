@@ -145,7 +145,7 @@ func TestTLSConfigStoreClient(t *testing.T) {
 			tokenManager:           nil,
 			Certificates:           []tls.Certificate{cert},
 			ServerName:             "host",
-			InsecureSkipVerify:     true,
+			InsecureSkipVerify:     true, // NOLINT
 			SessionTicketsDisabled: true,
 			ClientSessionCache:     nil,
 			MinVersion:             tls.VersionTLS13,
@@ -157,7 +157,7 @@ func TestTLSConfigStoreClient(t *testing.T) {
 			tokenManager:           accessTokenManager,
 			Certificates:           []tls.Certificate{cert},
 			ServerName:             "host",
-			InsecureSkipVerify:     true,
+			InsecureSkipVerify:     true, // NOLINT
 			SessionTicketsDisabled: true,
 			ClientSessionCache:     nil,
 			MinVersion:             tls.VersionTLS13,

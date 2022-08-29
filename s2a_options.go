@@ -114,6 +114,8 @@ type ClientOptions struct {
 	//     ensureProcessSessionTickets.Wait()
 	//   }
 	EnsureProcessSessionTickets *sync.WaitGroup
+	// DEPRECATED: Should always be set to true.
+	//
 	// If true, enables the use of S2Av2.
 	EnableV2 bool
 	// VerificationMode specifies the mode that S2A must use to verify the
@@ -126,6 +128,7 @@ func DefaultClientOptions(s2aAddress string) *ClientOptions {
 	return &ClientOptions{
 		S2AAddress:       s2aAddress,
 		VerificationMode: ConnectToGoogle,
+		EnableV2:         true,
 	}
 }
 
@@ -138,6 +141,8 @@ type ServerOptions struct {
 	LocalIdentities []Identity
 	// S2AAddress is the address of the S2A.
 	S2AAddress string
+	// DEPRECATED: Should always be set to true.
+	//
 	// If true, enables the use of S2Av2.
 	EnableV2 bool
 	// VerificationMode specifies the mode that S2A must use to verify the
@@ -150,6 +155,7 @@ func DefaultServerOptions(s2aAddress string) *ServerOptions {
 	return &ServerOptions{
 		S2AAddress:       s2aAddress,
 		VerificationMode: ConnectToGoogle,
+		EnableV2:         true,
 	}
 }
 
