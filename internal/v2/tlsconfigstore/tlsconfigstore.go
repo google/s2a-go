@@ -95,9 +95,11 @@ func GetTLSConfigurationForClient(serverHostname string, cstream s2av2pb.S2AServ
 		}
 	}
 
-	cert.PrivateKey = remotesigner.New(cert.Leaf, cstream)
-	if cert.PrivateKey == nil {
-		return nil, errors.New("failed to retrieve Private Key from Remote Signer Library")
+	if len(tlsConfig.CertificateChain) > 0 {
+		cert.PrivateKey = remotesigner.New(cert.Leaf, cstream)
+		if cert.PrivateKey == nil {
+			return nil, errors.New("failed to retrieve Private Key from Remote Signer Library")
+		}
 	}
 
 	minVersion, maxVersion, err := getTLSMinMaxVersionsClient(tlsConfig)
@@ -106,8 +108,7 @@ func GetTLSConfigurationForClient(serverHostname string, cstream s2av2pb.S2AServ
 	}
 
 	// Create mTLS credentials for client.
-	return &tls.Config{
-		Certificates:           []tls.Certificate{cert},
+	config := &tls.Config{
 		VerifyPeerCertificate:  certverifier.VerifyServerCertificateChain(serverHostname, verificationMode, cstream),
 		ServerName:             serverHostname,
 		InsecureSkipVerify:     true, // NOLINT
@@ -116,7 +117,11 @@ func GetTLSConfigurationForClient(serverHostname string, cstream s2av2pb.S2AServ
 		MinVersion:             minVersion,
 		MaxVersion:             maxVersion,
 		NextProtos:             []string{h2},
-	}, nil
+	}
+	if len(tlsConfig.CertificateChain) > 0 {
+		config.Certificates = []tls.Certificate{cert}
+	}
+	return config, nil
 }
 
 // GetTLSConfigurationForServer returns a tls.Config instance for use by a server application.
