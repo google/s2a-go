@@ -58,8 +58,11 @@ var (
 type Server struct {
 	s2av2pb.UnimplementedS2AServiceServer
 	// ExpectedToken is the token S2Av2 expects to be attached to the SessionReq.
-	ExpectedToken         string
-	isAssistingClientSide bool
+	ExpectedToken string
+	// ShouldNotReturnClientCredentials indicates whether the fake S2Av2 should
+	// not return credentials when GetTlsConfiguration is called by a client.
+	ShouldNotReturnClientCredentials bool
+	isAssistingClientSide            bool
 	// TODO(rmehta19): Decide whether to also store validationResult (bool).
 	// Set this after validating token attached to first SessionReq. Check
 	// this field before completing subsequent SessionReq.
@@ -92,7 +95,7 @@ func (s *Server) SetUpSession(stream s2av2pb.S2AService_SetUpSessionServer) erro
 				}
 				break
 			}
-			resp, err = getTLSConfiguration(req.GetGetTlsConfigurationReq())
+			resp, err = getTLSConfiguration(req.GetGetTlsConfigurationReq(), s.ShouldNotReturnClientCredentials)
 			if err != nil {
 				log.Printf("Fake S2A Service: failed to build SessionResp with GetTlsConfigurationResp: %v", err)
 				return err
@@ -213,8 +216,25 @@ func validatePeerCertificateChain(req *s2av2pb.ValidatePeerCertificateChainReq) 
 }
 
 // TODO(rmehta19): Update this to return ciphersuites in Client/Server TlsConfiguration.
-func getTLSConfiguration(req *s2av2pb.GetTlsConfigurationReq) (*s2av2pb.SessionResp, error) {
+func getTLSConfiguration(req *s2av2pb.GetTlsConfigurationReq, shouldNotReturnClientCredentials bool) (*s2av2pb.SessionResp, error) {
 	if req.GetConnectionSide() == commonpb.ConnectionSide_CONNECTION_SIDE_CLIENT {
+		if shouldNotReturnClientCredentials {
+			return &s2av2pb.SessionResp{
+				Status: &s2av2pb.Status{
+					Code: uint32(codes.OK),
+				},
+				RespOneof: &s2av2pb.SessionResp_GetTlsConfigurationResp{
+					GetTlsConfigurationResp: &s2av2pb.GetTlsConfigurationResp{
+						TlsConfiguration: &s2av2pb.GetTlsConfigurationResp_ClientTlsConfiguration_{
+							ClientTlsConfiguration: &s2av2pb.GetTlsConfigurationResp_ClientTlsConfiguration{
+								MinTlsVersion: commonpb.TLSVersion_TLS_VERSION_1_3,
+								MaxTlsVersion: commonpb.TLSVersion_TLS_VERSION_1_3,
+							},
+						},
+					},
+				},
+			}, nil
+		}
 		return &s2av2pb.SessionResp{
 			Status: &s2av2pb.Status{
 				Code: uint32(codes.OK),

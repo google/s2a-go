@@ -89,7 +89,7 @@ func (m *fakeAccessTokenManager) Token(identity *commonpbv1.Identity) (string, e
 	return "", fmt.Errorf("unable to get token")
 }
 
-func startFakeS2Av2Server(wg *sync.WaitGroup, expToken string) (stop func(), address string, err error) {
+func startFakeS2Av2Server(wg *sync.WaitGroup, expToken string, shouldNotReturnClientCreds bool) (stop func(), address string, err error) {
 	listener, err := net.Listen("tcp", ":0")
 	if err != nil {
 		log.Fatalf("Failed to listen on address %s: %v", address, err)
@@ -97,7 +97,10 @@ func startFakeS2Av2Server(wg *sync.WaitGroup, expToken string) (stop func(), add
 	address = listener.Addr().String()
 	s := grpc.NewServer()
 	log.Printf("Server: started gRPC fake S2Av2 Server on address: %s", address)
-	s2av2pb.RegisterS2AServiceServer(s, &fakes2av2.Server{ExpectedToken: expToken})
+	s2av2pb.RegisterS2AServiceServer(s, &fakes2av2.Server{
+		ExpectedToken:                    expToken,
+		ShouldNotReturnClientCredentials: shouldNotReturnClientCreds,
+	})
 	go func() {
 		wg.Done()
 		if err := s.Serve(listener); err != nil {
@@ -118,7 +121,7 @@ func TestTLSConfigStoreClient(t *testing.T) {
 	// Start up fake S2Av2 server.
 	var wg sync.WaitGroup
 	wg.Add(1)
-	stop, address, err := startFakeS2Av2Server(&wg, "TestTlsConfigStoreClient_token")
+	stop, address, err := startFakeS2Av2Server(&wg, "TestTlsConfigStoreClient_token", false)
 	wg.Wait()
 	if err != nil {
 		t.Fatalf("Error starting fake S2Av2 Server: %v", err)
@@ -219,6 +222,70 @@ func TestTLSConfigStoreClient(t *testing.T) {
 	stop()
 }
 
+// TestTLSConfigStoreClientWithoutCredentials runs unit tests for
+// GetTLSConfigurationForClient, but does not expect the TLS configuration
+// to contain any client credentials.
+func TestTLSConfigStoreClientWithoutCredentials(t *testing.T) {
+	// Start up fake S2Av2 server.
+	var wg sync.WaitGroup
+	wg.Add(1)
+	stop, address, err := startFakeS2Av2Server(&wg, "", true)
+	wg.Wait()
+	if err != nil {
+		t.Fatalf("Error starting fake S2Av2 Server: %v", err)
+	}
+
+	// Create stream to S2Av2.
+	opts := []grpc.DialOption{
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+		grpc.WithReturnConnectionError(),
+		grpc.WithBlock(),
+	}
+	conn, err := grpc.Dial(address, opts...)
+	if err != nil {
+		t.Fatalf("Client: failed to connect: %v", err)
+	}
+	defer conn.Close()
+	c := s2av2pb.NewS2AServiceClient(conn)
+	log.Printf("Client: connected to: %s", address)
+	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
+	defer cancel()
+
+	// Setup bidrectional streaming session.
+	callOpts := []grpc.CallOption{}
+	cstream, err := c.SetUpSession(ctx, callOpts...)
+	if err != nil {
+		t.Fatalf("Client: failed to setup bidirectional streaming RPC session: %v", err)
+	}
+	log.Printf("Client: set up bidirectional streaming RPC session.")
+	config, err := GetTLSConfigurationForClient("hostname", cstream, nil, nil, s2av2pb.ValidatePeerCertificateChainReq_CONNECT_TO_GOOGLE)
+	if err != nil {
+		t.Errorf("GetTLSConfigurationForClient failed: %v", err)
+	}
+	if len(config.Certificates) > 0 {
+		t.Errorf("config had unexpected number of certificates")
+	}
+	if got, want := config.InsecureSkipVerify, true; got != want {
+		t.Errorf("config.InsecureSkipVerify = %v, want %v", got, want)
+	}
+	if got, want := config.SessionTicketsDisabled, true; got != want {
+		t.Errorf("config.SessionTicketsDisabled = %v, want %v", got, want)
+	}
+	if config.ClientSessionCache != nil {
+		t.Errorf("config.ClientSessionCache expected to be nil")
+	}
+	if got, want := int(config.MinVersion), tls.VersionTLS13; got != want {
+		t.Errorf("config.MinVersion = %v, want %v", got, want)
+	}
+	if got, want := int(config.MaxVersion), tls.VersionTLS13; got != want {
+		t.Errorf("config.MaxVersion = %v, want %v", got, want)
+	}
+	if !compareNextProtos(config.NextProtos, []string{"h2"}) {
+		t.Errorf("config.NextProtos = %v, want %v", config.NextProtos, []string{"h2"})
+	}
+	stop()
+}
+
 // TestTLSConfigStoreServer runs unit tests for GetTLSConfigurationForServer.
 func TestTLSConfigStoreServer(t *testing.T) {
 	// Setup for static server test.
@@ -229,7 +296,7 @@ func TestTLSConfigStoreServer(t *testing.T) {
 	// Start up fake S2Av2 server.
 	var wg sync.WaitGroup
 	wg.Add(1)
-	stop, address, err := startFakeS2Av2Server(&wg, "TestTlsConfigStoreServer_token")
+	stop, address, err := startFakeS2Av2Server(&wg, "TestTlsConfigStoreServer_token", false)
 	wg.Wait()
 	if err != nil {
 		t.Fatalf("Error starting fake S2Av2 Server: %v", err)
@@ -498,7 +565,7 @@ func TestGetServerConfigFromS2Av2(t *testing.T) {
 	// Start up fake S2Av2 server.
 	var wg sync.WaitGroup
 	wg.Add(1)
-	stop, address, err := startFakeS2Av2Server(&wg, "TestGetServerConfigFromS2Av2_token")
+	stop, address, err := startFakeS2Av2Server(&wg, "TestGetServerConfigFromS2Av2_token", false)
 	wg.Wait()
 	if err != nil {
 		t.Fatalf("Error starting fake S2Av2 Server: %v", err)
@@ -621,7 +688,7 @@ func TestGetClientConfig(t *testing.T) {
 	// Start up fake S2Av2 server.
 	var wg sync.WaitGroup
 	wg.Add(1)
-	stop, address, err := startFakeS2Av2Server(&wg, "TestGetClientConfig_token")
+	stop, address, err := startFakeS2Av2Server(&wg, "TestGetClientConfig_token", false)
 	wg.Wait()
 	if err != nil {
 		t.Fatalf("Error starting fake S2Av2 Server: %v", err)
