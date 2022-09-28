@@ -661,7 +661,7 @@ func TestGetServerConfigFromS2Av2(t *testing.T) {
 				t.Fatalf("Client: failed to setup bidirectional streaming RPC session: %v", err)
 			}
 			log.Printf("Client: set up bidirectional streaming RPC session.")
-			gotTLSConfig, gotErr := getServerConfigFromS2Av2(tc.tokenManager, tc.localIdentities, cstream)
+			gotTLSConfig, gotErr := getServerConfigFromS2Av2(tc.tokenManager, tc.localIdentities, "test_server_name", cstream)
 			if gotErr != tc.expErr {
 				if (gotErr == nil) || (tc.expErr == nil) {
 					t.Errorf("gotErr = %v,  tc.expErr = %v", gotErr, tc.expErr)

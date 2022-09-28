@@ -137,13 +137,7 @@ func GetTLSConfigurationForServer(cstream s2av2pb.S2AService_SetUpSessionClient,
 // connection.
 func ClientConfig(tokenManager tokenmanager.AccessTokenManager, localIdentities []*commonpbv1.Identity, verificationMode s2av2pb.ValidatePeerCertificateChainReq_VerificationMode, cstream s2av2pb.S2AService_SetUpSessionClient) func(chi *tls.ClientHelloInfo) (*tls.Config, error) {
 	return func(chi *tls.ClientHelloInfo) (*tls.Config, error) {
-		localIdentities = append(localIdentities,
-			&commonpbv1.Identity{
-				IdentityOneof: &commonpbv1.Identity_Hostname{
-					Hostname: chi.ServerName,
-				},
-			})
-		tlsConfig, err := getServerConfigFromS2Av2(tokenManager, localIdentities, cstream)
+		tlsConfig, err := getServerConfigFromS2Av2(tokenManager, localIdentities, chi.ServerName, cstream)
 		if err != nil {
 			return nil, err
 		}
@@ -224,7 +218,7 @@ func getTLSCipherSuite(tlsCipherSuite commonpb.Ciphersuite) uint16 {
 	}
 }
 
-func getServerConfigFromS2Av2(tokenManager tokenmanager.AccessTokenManager, localIdentities []*commonpbv1.Identity, cstream s2av2pb.S2AService_SetUpSessionClient) (*s2av2pb.GetTlsConfigurationResp_ServerTlsConfiguration, error) {
+func getServerConfigFromS2Av2(tokenManager tokenmanager.AccessTokenManager, localIdentities []*commonpbv1.Identity, sni string, cstream s2av2pb.S2AService_SetUpSessionClient) (*s2av2pb.GetTlsConfigurationResp_ServerTlsConfiguration, error) {
 	authMechanisms := getAuthMechanisms(tokenManager, localIdentities)
 	var locID *commonpbv1.Identity
 	if localIdentities != nil {
@@ -237,6 +231,7 @@ func getServerConfigFromS2Av2(tokenManager tokenmanager.AccessTokenManager, loca
 		ReqOneof: &s2av2pb.SessionReq_GetTlsConfigurationReq{
 			GetTlsConfigurationReq: &s2av2pb.GetTlsConfigurationReq{
 				ConnectionSide: commonpb.ConnectionSide_CONNECTION_SIDE_SERVER,
+				Sni:            sni,
 			},
 		},
 	}); err != nil {
