@@ -32,7 +32,8 @@ run_tests() {
 
 main() {
   if [[ -n "${KOKORO_ROOT}" ]]; then
-    use_bazel.sh "4.2.1"
+    chmod +x "${KOKORO_GFILE_DIR}/use_bazel.sh"
+    "${KOKORO_GFILE_DIR}/use_bazel.sh" 4.2.1
   fi
   run_tests
 }
