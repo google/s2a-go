@@ -32,6 +32,7 @@ run_tests() {
 
 main() {
   if [[ -n "${KOKORO_ROOT}" ]]; then
+    chmod +x "${KOKORO_GFILE_DIR}/use_bazel.sh"
     "${KOKORO_GFILE_DIR}/use_bazel.sh" 4.2.1
   fi
   run_tests
