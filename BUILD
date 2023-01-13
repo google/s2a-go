@@ -38,6 +38,7 @@ go_library(
         "//internal/handshaker/service",
         "//internal/proto/common_go_proto:common_go_proto",
         "//internal/proto/v2/s2a_go_proto:s2a_go_proto",
+        "//internal/tokenmanager",
         "//internal/v2",
         "@com_github_golang_protobuf//proto",
         "@org_golang_google_grpc//credentials:go_default_library",
@@ -54,6 +55,9 @@ go_test(
         "s2a_options_test.go",
         "s2a_test.go",
         "s2a_utils_test.go",
+    ],
+    embedsrcs = [
+        "//internal/v2/tlsconfigstore/example_cert_key:export_testdata",  # keep
     ],
     embed = [":s2a"],
     deps = [

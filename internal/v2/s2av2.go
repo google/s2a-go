@@ -120,7 +120,7 @@ func (c *s2av2TransportCreds) ClientHandshake(ctx context.Context, serverAuthori
 	}
 	ctx, cancel := context.WithTimeout(ctx, defaultTimeout)
 	defer cancel()
-	cstream, err := c.createStream(ctx)
+	cstream, err := createStream(ctx, c.s2av2Address)
 	if err != nil {
 		grpclog.Infof("Failed to connect to S2Av2: %v", err)
 		return nil, nil, err
@@ -165,7 +165,7 @@ func (c *s2av2TransportCreds) ServerHandshake(rawConn net.Conn) (net.Conn, crede
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
 	defer cancel()
-	cstream, err := c.createStream(ctx)
+	cstream, err := createStream(ctx, c.s2av2Address)
 	if err != nil {
 		grpclog.Infof("Failed to connect to S2Av2: %v", err)
 		return nil, nil, err
@@ -238,6 +238,21 @@ func (c *s2av2TransportCreds) Clone() credentials.TransportCredentials {
 	return creds
 }
 
+// NewClientTLSConfig returns a tls.Config instance that uses S2Av2 to establish a TLS connection as
+// a client. The tls.Config MUST only be used to establish a single TLS connection.
+func NewClientTLSConfig(
+	ctx context.Context,
+	s2av2Address string,
+	tokenManager tokenmanager.AccessTokenManager,
+	verificationMode s2av2pb.ValidatePeerCertificateChainReq_VerificationMode) (*tls.Config, error) {
+	cstream, err := createStream(ctx, s2av2Address)
+	if err != nil {
+		grpclog.Infof("Failed to connect to S2Av2: %v", err)
+		return nil, err
+	}
+	return tlsconfigstore.GetTLSConfigurationForClient("", cstream, tokenManager, nil, verificationMode)
+}
+
 // OverrideServerName sets the ServerName in the s2av2TransportCreds protocol
 // info. The ServerName MUST be a hostname.
 func (c *s2av2TransportCreds) OverrideServerName(serverNameOverride string) error {
@@ -251,9 +266,9 @@ func (c *s2av2TransportCreds) OverrideServerName(serverNameOverride string) erro
 	return nil
 }
 
-func (c *s2av2TransportCreds) createStream(ctx context.Context) (s2av2pb.S2AService_SetUpSessionClient, error) {
+func createStream(ctx context.Context, s2av2Address string) (s2av2pb.S2AService_SetUpSessionClient, error) {
 	// TODO(rmehta19): Consider whether to close the connection to S2Av2.
-	conn, err := service.Dial(c.s2av2Address)
+	conn, err := service.Dial(s2av2Address)
 	if err != nil {
 		return nil, err
 	}

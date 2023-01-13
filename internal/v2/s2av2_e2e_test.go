@@ -19,14 +19,19 @@
 package v2
 
 import (
+	"bytes"
 	"context"
+	"crypto/tls"
 	"fmt"
+	"github.com/google/s2a-go/internal/tokenmanager"
 	"io/ioutil"
 	"net"
 	"os"
 	"path/filepath"
 	"testing"
 	"time"
+
+	_ "embed"
 
 	"github.com/google/s2a-go/internal/v2/fakes2av2"
 	"google.golang.org/grpc/grpclog"
@@ -42,6 +47,13 @@ const (
 	accessTokenEnvVariable = "S2A_ACCESS_TOKEN"
 	defaultE2ETimeout      = time.Second * 5
 	clientMessage          = "echo"
+)
+
+var (
+	//go:embed tlsconfigstore/example_cert_key/client_cert.pem
+	clientCertpem []byte
+	//go:embed tlsconfigstore/example_cert_key/client_key.pem
+	clientKeypem []byte
 )
 
 // server implements the helloworld.GreeterServer.
@@ -245,4 +257,47 @@ func TestEndToEndUsingFakeS2AOnUDSEmptyId(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), defaultE2ETimeout)
 	defer cancel()
 	runClient(ctx, t, clientS2AAddr, serverAddr, nil)
+}
+
+func TestNewClientTlsConfigWithTokenManager(t *testing.T) {
+	os.Setenv(accessTokenEnvVariable, "TestNewClientTlsConfig_token")
+	s2AAddr := startFakeS2A(t, "TestNewClientTlsConfig_token")
+	accessTokenManager, err := tokenmanager.NewSingleTokenAccessTokenManager()
+	if err != nil {
+		t.Errorf("tokenmanager.NewSingleTokenAccessTokenManager() failed: %v", err)
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), defaultE2ETimeout)
+	defer cancel()
+	config, err := NewClientTLSConfig(ctx, s2AAddr, accessTokenManager, s2av2pb.ValidatePeerCertificateChainReq_CONNECT_TO_GOOGLE)
+	if err != nil {
+		t.Errorf("NewClientTLSConfig() failed: %v", err)
+	}
+
+	cert, err := tls.X509KeyPair(clientCertpem, clientKeypem)
+	if err != nil {
+		t.Fatalf("tls.X509KeyPair failed: %v", err)
+	}
+	if got, want := config.Certificates[0].Certificate[0], cert.Certificate[0]; !bytes.Equal(got, want) {
+		t.Errorf("tls.Config has unexpected certificate: got: %v, want: %v", got, want)
+	}
+}
+
+func TestNewClientTlsConfigWithoutTokenManager(t *testing.T) {
+	os.Unsetenv(accessTokenEnvVariable)
+	s2AAddr := startFakeS2A(t, "ignored-value")
+	var tokenManager tokenmanager.AccessTokenManager
+	ctx, cancel := context.WithTimeout(context.Background(), defaultE2ETimeout)
+	defer cancel()
+	config, err := NewClientTLSConfig(ctx, s2AAddr, tokenManager, s2av2pb.ValidatePeerCertificateChainReq_CONNECT_TO_GOOGLE)
+	if err != nil {
+		t.Errorf("NewClientTLSConfig() failed: %v", err)
+	}
+
+	cert, err := tls.X509KeyPair(clientCertpem, clientKeypem)
+	if err != nil {
+		t.Fatalf("tls.X509KeyPair failed: %v", err)
+	}
+	if got, want := config.Certificates[0].Certificate[0], cert.Certificate[0]; !bytes.Equal(got, want) {
+		t.Errorf("tls.Config has unexpected certificate: got: %v, want: %v", got, want)
+	}
 }
