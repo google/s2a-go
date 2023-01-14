@@ -44,6 +44,9 @@ go_test(
     "s2av2_test.go",
     "s2av2_e2e_test.go",
   ],
+  embedsrcs = [
+      "//internal/v2/tlsconfigstore/example_cert_key:export_testdata",  # keep
+  ],
   embed = [":v2"],
   deps = [
     "//internal/proto/common_go_proto:common_go_proto",

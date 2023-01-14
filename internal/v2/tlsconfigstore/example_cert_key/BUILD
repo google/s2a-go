@@ -17,7 +17,11 @@
 
 
 package(
-    default_visibility = ["//internal/v2/tlsconfigstore:__pkg__"],
+    default_visibility = [
+        "//internal/v2:__pkg__",
+        "//internal/v2/tlsconfigstore:__pkg__",
+        "//:__pkg__",
+    ],
 )
 
 licenses(["notice"])

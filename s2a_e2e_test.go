@@ -19,7 +19,9 @@
 package s2a
 
 import (
+	"bytes"
 	"context"
+	"crypto/tls"
 	"fmt"
 	"io/ioutil"
 	"net"
@@ -27,6 +29,8 @@ import (
 	"path/filepath"
 	"testing"
 	"time"
+
+	_ "embed"
 
 	"github.com/google/s2a-go/internal/fakehandshaker/service"
 	"github.com/google/s2a-go/internal/v2/fakes2av2"
@@ -53,6 +57,13 @@ const (
 	serverSpiffeID        = "test_server_spiffe_id"
 	clientMessage         = "echo"
 	defaultE2ETestTimeout = time.Second * 5
+)
+
+var (
+	//go:embed internal/v2/tlsconfigstore/example_cert_key/client_cert.pem
+	clientCertpem []byte
+	//go:embed internal/v2/tlsconfigstore/example_cert_key/client_key.pem
+	clientKeypem []byte
 )
 
 // server is used to implement helloworld.GreeterServer.
@@ -336,4 +347,61 @@ func TestV2EndToEndUsingFakeS2AOnUDS(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), defaultE2ETestTimeout)
 	defer cancel()
 	runClient(ctx, t, clientS2AAddress, serverAddress, true)
+}
+
+func TestNewTLSClientConfigFactoryWithTokenManager(t *testing.T) {
+	os.Setenv(accessTokenEnvVariable, "TestNewTLSClientConfigFactory_token")
+	s2AAddr := startFakeS2A(t, true, "TestNewTLSClientConfigFactory_token")
+	ctx, cancel := context.WithTimeout(context.Background(), defaultE2ETestTimeout)
+	defer cancel()
+
+	factory, err := NewTLSClientConfigFactory(&ClientOptions{
+		S2AAddress: s2AAddr,
+		EnableV2:   true,
+	})
+	if err != nil {
+		t.Errorf("NewTLSClientConfigFactory() failed: %v", err)
+	}
+
+	config, err := factory.Build(ctx, nil)
+	if err != nil {
+		t.Errorf("Build tls config failed: %v", err)
+	}
+
+	cert, err := tls.X509KeyPair(clientCertpem, clientKeypem)
+	if err != nil {
+		t.Fatalf("tls.X509KeyPair failed: %v", err)
+	}
+
+	if got, want := config.Certificates[0].Certificate[0], cert.Certificate[0]; !bytes.Equal(got, want) {
+		t.Errorf("tls.Config has unexpected certificate: got: %v, want: %v", got, want)
+	}
+}
+
+func TestNewTLSClientConfigFactoryWithoutTokenManager(t *testing.T) {
+	os.Unsetenv(accessTokenEnvVariable)
+	s2AAddr := startFakeS2A(t, true, "ignored-value")
+	ctx, cancel := context.WithTimeout(context.Background(), defaultE2ETestTimeout)
+	defer cancel()
+
+	factory, err := NewTLSClientConfigFactory(&ClientOptions{
+		S2AAddress: s2AAddr,
+		EnableV2:   true,
+	})
+	if err != nil {
+		t.Errorf("NewTLSClientConfigFactory() failed: %v", err)
+	}
+
+	config, err := factory.Build(ctx, nil)
+	if err != nil {
+		t.Errorf("Build tls config failed: %v", err)
+	}
+
+	cert, err := tls.X509KeyPair(clientCertpem, clientKeypem)
+	if err != nil {
+		t.Fatalf("tls.X509KeyPair failed: %v", err)
+	}
+	if got, want := config.Certificates[0].Certificate[0], cert.Certificate[0]; !bytes.Equal(got, want) {
+		t.Errorf("tls.Config has unexpected certificate: got: %v, want: %v", got, want)
+	}
 }

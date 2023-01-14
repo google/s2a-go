@@ -22,8 +22,10 @@ package s2a
 
 import (
 	"context"
+	"crypto/tls"
 	"errors"
 	"fmt"
+	"github.com/google/s2a-go/internal/tokenmanager"
 	"net"
 	"sync"
 	"time"
@@ -274,6 +276,52 @@ func (c *s2aTransportCreds) Clone() credentials.TransportCredentials {
 func (c *s2aTransportCreds) OverrideServerName(serverNameOverride string) error {
 	c.info.ServerName = serverNameOverride
 	return nil
+}
+
+// TLSClientConfigOptions specifies parameters for creating client TLS config.
+type TLSClientConfigOptions struct{}
+
+// TLSClientConfigFactory defines the interface for a client TLS config factory.
+type TLSClientConfigFactory interface {
+	Build(ctx context.Context, opts *TLSClientConfigOptions) (*tls.Config, error)
+}
+
+// NewTLSClientConfigFactory returns an instance of s2aTLSClientConfigFactory.
+func NewTLSClientConfigFactory(opts *ClientOptions) (TLSClientConfigFactory, error) {
+	if opts == nil {
+		return nil, fmt.Errorf("opts must be non-nil")
+	}
+	if !opts.EnableV2 {
+		return nil, fmt.Errorf("NewTLSClientConfigFactory only supports S2Av2")
+	}
+
+	tokenManager, err := tokenmanager.NewSingleTokenAccessTokenManager()
+	if err != nil {
+		// The only possible error is: access token not set in the environment,
+		// which is okay in environments other than serverless.
+		grpclog.Infof("Access token manager not initialized: %v", err)
+		return &s2aTLSClientConfigFactory{
+			s2av2Address:     opts.S2AAddress,
+			tokenManager:     nil,
+			verificationMode: getVerificationMode(opts.VerificationMode),
+		}, nil
+	}
+	return &s2aTLSClientConfigFactory{
+		s2av2Address:     opts.S2AAddress,
+		tokenManager:     tokenManager,
+		verificationMode: getVerificationMode(opts.VerificationMode),
+	}, nil
+}
+
+type s2aTLSClientConfigFactory struct {
+	s2av2Address     string
+	tokenManager     tokenmanager.AccessTokenManager
+	verificationMode s2av2pb.ValidatePeerCertificateChainReq_VerificationMode
+}
+
+func (f *s2aTLSClientConfigFactory) Build(
+	ctx context.Context, opts *TLSClientConfigOptions) (*tls.Config, error) {
+	return v2.NewClientTLSConfig(ctx, f.s2av2Address, f.tokenManager, f.verificationMode)
 }
 
 func getVerificationMode(verificationMode VerificationModeType) s2av2pb.ValidatePeerCertificateChainReq_VerificationMode {
