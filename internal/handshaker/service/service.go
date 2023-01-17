@@ -43,7 +43,6 @@ var (
 	hsConnMap = make(map[string]*grpc.ClientConn)
 	// hsDialer will be reassigned in tests.
 	hsDialer = grpc.Dial
-
 )
 
 func init() {
