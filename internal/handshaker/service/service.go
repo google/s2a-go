@@ -20,12 +20,22 @@
 package service
 
 import (
+	"context"
+	"net"
 	"sync"
+	"time"
 
+	"google.golang.org/appengine"
+	"google.golang.org/appengine/socket"
 	grpc "google.golang.org/grpc"
+	//"google.golang.org/grpc/grpclog"
 )
 
 var (
+	// appEngineDialerHook is an AppEngine-specific dial option that is set
+	// during init time. If nil, then the application is not running on Google
+	// AppEngine.
+	appEngineDialerHook func(context.Context) grpc.DialOption
 	// mu guards hsConnMap and hsDialer.
 	mu sync.Mutex
 	// hsConnMap represents a mapping from an S2A handshaker service address
@@ -35,10 +45,21 @@ var (
 	hsDialer = grpc.Dial
 )
 
+func init() {
+	if !appengine.IsAppEngine() {
+		return
+	}
+	appEngineDialerHook = func(ctx context.Context) grpc.DialOption {
+		return grpc.WithDialer(func(addr string, timeout time.Duration) (net.Conn, error) {
+			return socket.DialTimeout(ctx, "tcp", addr, timeout)
+		})
+	}
+}
+
 // Dial dials the S2A handshaker service. If a connection has already been
 // established, this function returns it. Otherwise, a new connection is
 // created.
-func Dial(handshakerServiceAddress string) (*grpc.ClientConn, error) {
+func Dial(ctx context.Context, handshakerServiceAddress string) (*grpc.ClientConn, error) {
 	mu.Lock()
 	defer mu.Unlock()
 
@@ -46,8 +67,18 @@ func Dial(handshakerServiceAddress string) (*grpc.ClientConn, error) {
 	if !ok {
 		// Create a new connection to the S2A handshaker service. Note that
 		// this connection stays open until the application is closed.
-		var err error
-		hsConn, err = hsDialer(handshakerServiceAddress, grpc.WithInsecure())
+		grpcOpts := []grpc.DialOption{
+			grpc.WithBlock(),
+			grpc.WithReturnConnectionError(),
+			grpc.WithInsecure(),
+		}
+		//if appEngineDialerHook != nil {
+		//	if grpclog.V(1) {
+		//		grpclog.Info("Using AppEngine-specific dialer to talk to S2A.")
+		//	}
+		//	grpcOpts = append(grpcOpts, appEngineDialerHook(ctx))
+		//}
+		hsConn, err := hsDialer(handshakerServiceAddress, grpcOpts...)
 		if err != nil {
 			return nil, err
 		}

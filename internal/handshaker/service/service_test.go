@@ -19,6 +19,7 @@
 package service
 
 import (
+	"context"
 	"testing"
 
 	grpc "google.golang.org/grpc"
@@ -42,7 +43,7 @@ func TestDial(t *testing.T) {
 
 	// First call to Dial, it should create a connection to the server running
 	// at the given address.
-	conn1, err := Dial(testAddress1)
+	conn1, err := Dial(context.Background(), testAddress1)
 	if err != nil {
 		t.Fatalf("first call to Dial(%v) failed: %v", testAddress1, err)
 	}
@@ -54,7 +55,7 @@ func TestDial(t *testing.T) {
 	}
 
 	// Second call to Dial should return conn1 above.
-	conn2, err := Dial(testAddress1)
+	conn2, err := Dial(context.Background(), testAddress1)
 	if err != nil {
 		t.Fatalf("second call to Dial(%v) failed: %v", testAddress1, err)
 	}
@@ -67,7 +68,7 @@ func TestDial(t *testing.T) {
 
 	// Third call to Dial using a different address should create a new
 	// connection.
-	conn3, err := Dial(testAddress2)
+	conn3, err := Dial(context.Background(), testAddress2)
 	if err != nil {
 		t.Fatalf("third call to Dial(%v) failed: %v", testAddress2, err)
 	}

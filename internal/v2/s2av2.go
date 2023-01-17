@@ -268,7 +268,7 @@ func (c *s2av2TransportCreds) OverrideServerName(serverNameOverride string) erro
 
 func createStream(ctx context.Context, s2av2Address string) (s2av2pb.S2AService_SetUpSessionClient, error) {
 	// TODO(rmehta19): Consider whether to close the connection to S2Av2.
-	conn, err := service.Dial(s2av2Address)
+	conn, err := service.Dial(ctx, s2av2Address)
 	if err != nil {
 		return nil, err
 	}

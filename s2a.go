@@ -151,7 +151,7 @@ func (c *s2aTransportCreds) ClientHandshake(ctx context.Context, serverAuthority
 	}
 
 	// Connect to the S2A.
-	hsConn, err := service.Dial(c.s2aAddr)
+	hsConn, err := service.Dial(ctx, c.s2aAddr)
 	if err != nil {
 		grpclog.Infof("Failed to connect to S2A: %v", err)
 		return nil, nil, err
@@ -198,15 +198,15 @@ func (c *s2aTransportCreds) ServerHandshake(rawConn net.Conn) (net.Conn, credent
 		return nil, nil, errors.New("server handshake called using client transport credentials")
 	}
 
+	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
+	defer cancel()
+
 	// Connect to the S2A.
-	hsConn, err := service.Dial(c.s2aAddr)
+	hsConn, err := service.Dial(ctx, c.s2aAddr)
 	if err != nil {
 		grpclog.Infof("Failed to connect to S2A: %v", err)
 		return nil, nil, err
 	}
-
-	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
-	defer cancel()
 
 	opts := &handshaker.ServerHandshakerOptions{
 		MinTLSVersion:   c.minTLSVersion,
