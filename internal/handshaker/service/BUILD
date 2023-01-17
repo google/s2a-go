@@ -31,6 +31,7 @@ go_library(
         "@org_golang_google_appengine//:go_default_library",
         "@org_golang_google_appengine//socket:go_default_library",
         "@org_golang_google_grpc//:go_default_library",
+        "@org_golang_google_grpc//grpclog:go_default_library",
     ],
 )
 
