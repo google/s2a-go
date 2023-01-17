@@ -22,6 +22,8 @@ package service
 import (
 	"sync"
 
+	_ "google.golang.org/appengine"
+	_ "google.golang.org/appengine/socket"
 	grpc "google.golang.org/grpc"
 )
 

@@ -55,6 +55,16 @@ go_repository(
   version = "v1.45.0",
 )
 
+# Google AppEngine.
+#
+# Last Updated: January 17, 2023.
+go_repository(
+  name = "org_golang_google_appengine",
+  importpath = "google.golang.org/appengine",
+  sum = "h1:/wp5JvzpHIxhs/dumFmF7BXTf3Z+dd4uXta4kVyO508=",
+  version = "v1.4.0",
+)
+
 # Go Protobuf.
 #
 #
