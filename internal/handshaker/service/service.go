@@ -51,7 +51,7 @@ var (
 
 func init() {
 	// TODO(matthewstevenson88): Remove flag and change default behavior.
-	flag.Bool("use_appengine_dialer", false, "Experimental: if true, the S2A-Go client uses an AppEngine-specific dialer when running on AppEngine.")
+	flag.BoolVar(&enableAppEngineDialer, "use_appengine_dialer", false, "Experimental: if true, the S2A-Go client uses an AppEngine-specific dialer when running on AppEngine.")
 	if !appengine.IsAppEngine() {
 		return
 	}
