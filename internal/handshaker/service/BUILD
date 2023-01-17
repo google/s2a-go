@@ -28,6 +28,8 @@ go_library(
     srcs = ["service.go"],
     importpath = "github.com/google/s2a-go/internal/handshaker/service",
     deps = [
+        "@org_golang_google_appengine//:go_default_library",
+        "@org_golang_google_appengine//socket:go_default_library",
         "@org_golang_google_grpc//:go_default_library",
     ],
 )
