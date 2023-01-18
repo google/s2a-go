@@ -81,3 +81,13 @@ func TestDial(t *testing.T) {
 		t.Fatalf("(conn2 == conn3) = %v, want %v", got, want)
 	}
 }
+
+func TestAppEngineSpecificDialOptions(t *testing.T) {
+	if enableAppEngineDialer {
+		t.Fatalf("expected enableAppEngineDialer to be false")
+	}
+	if appEngineDialerHook != nil {
+		t.Fatalf("expected appEngineDialerHook to be nil")
+	}
+}
+
