@@ -90,4 +90,3 @@ func TestAppEngineSpecificDialOptions(t *testing.T) {
 		t.Fatalf("expected appEngineDialerHook to be nil")
 	}
 }
-
