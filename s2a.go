@@ -279,7 +279,9 @@ func (c *s2aTransportCreds) OverrideServerName(serverNameOverride string) error 
 }
 
 // TLSClientConfigOptions specifies parameters for creating client TLS config.
-type TLSClientConfigOptions struct{}
+type TLSClientConfigOptions struct {
+	ServerName string
+}
 
 // TLSClientConfigFactory defines the interface for a client TLS config factory.
 type TLSClientConfigFactory interface {
@@ -321,7 +323,11 @@ type s2aTLSClientConfigFactory struct {
 
 func (f *s2aTLSClientConfigFactory) Build(
 	ctx context.Context, opts *TLSClientConfigOptions) (*tls.Config, error) {
-	return v2.NewClientTLSConfig(ctx, f.s2av2Address, f.tokenManager, f.verificationMode)
+	serverName := ""
+	if opts != nil && opts.ServerName != "" {
+		serverName = opts.ServerName
+	}
+	return v2.NewClientTLSConfig(ctx, f.s2av2Address, f.tokenManager, f.verificationMode, serverName)
 }
 
 func getVerificationMode(verificationMode VerificationModeType) s2av2pb.ValidatePeerCertificateChainReq_VerificationMode {
