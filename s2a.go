@@ -280,6 +280,10 @@ func (c *s2aTransportCreds) OverrideServerName(serverNameOverride string) error 
 
 // TLSClientConfigOptions specifies parameters for creating client TLS config.
 type TLSClientConfigOptions struct {
+	// ServerName is required by s2a as the expected name when verifying the hostname found in server's certificate.
+	// 		tlsConfig, _ := factory.Build(ctx, &s2a.TLSClientConfigOptions{
+	//			ServerName: "example.com",
+	//		})
 	ServerName string
 }
 
