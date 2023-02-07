@@ -114,10 +114,7 @@ func (c *s2av2TransportCreds) ClientHandshake(ctx context.Context, serverAuthori
 		return nil, nil, errors.New("client handshake called using server transport credentials")
 	}
 	// Remove the port from serverAuthority.
-	serverName, _, err := net.SplitHostPort(serverAuthority)
-	if err != nil {
-		serverName = serverAuthority
-	}
+	serverName := removeServerNamePort(serverAuthority)
 	ctx, cancel := context.WithTimeout(ctx, defaultTimeout)
 	defer cancel()
 	cstream, err := createStream(ctx, c.s2av2Address)
@@ -244,26 +241,33 @@ func NewClientTLSConfig(
 	ctx context.Context,
 	s2av2Address string,
 	tokenManager tokenmanager.AccessTokenManager,
-	verificationMode s2av2pb.ValidatePeerCertificateChainReq_VerificationMode) (*tls.Config, error) {
+	verificationMode s2av2pb.ValidatePeerCertificateChainReq_VerificationMode,
+	serverName string) (*tls.Config, error) {
 	cstream, err := createStream(ctx, s2av2Address)
 	if err != nil {
 		grpclog.Infof("Failed to connect to S2Av2: %v", err)
 		return nil, err
 	}
-	return tlsconfigstore.GetTLSConfigurationForClient("", cstream, tokenManager, nil, verificationMode)
+
+	return tlsconfigstore.GetTLSConfigurationForClient(removeServerNamePort(serverName), cstream, tokenManager, nil, verificationMode)
 }
 
 // OverrideServerName sets the ServerName in the s2av2TransportCreds protocol
 // info. The ServerName MUST be a hostname.
 func (c *s2av2TransportCreds) OverrideServerName(serverNameOverride string) error {
-	// Remove the port from serverNameOverride.
-	serverName, _, err := net.SplitHostPort(serverNameOverride)
-	if err != nil {
-		serverName = serverNameOverride
-	}
+	serverName := removeServerNamePort(serverNameOverride)
 	c.info.ServerName = serverName
 	c.serverName = serverName
 	return nil
+}
+
+// Remove the trailing port from server name.
+func removeServerNamePort(serverName string) string {
+	name, _, err := net.SplitHostPort(serverName)
+	if err != nil {
+		name = serverName
+	}
+	return name
 }
 
 func createStream(ctx context.Context, s2av2Address string) (s2av2pb.S2AService_SetUpSessionClient, error) {
