@@ -45,7 +45,7 @@ func TestNewClientCreds(t *testing.T) {
 		},
 	} {
 		t.Run(tc.description, func(t *testing.T) {
-			c, err := NewClientCreds(fakes2av2Address, &commonpbv1.Identity{
+			c, err := NewClientCreds("test_fallback_addr", fakes2av2Address, &commonpbv1.Identity{
 				IdentityOneof: &commonpbv1.Identity_Hostname{
 					Hostname: "test_rsa_client_identity",
 				},
@@ -112,7 +112,7 @@ func TestServerHandshakeFail(t *testing.T) {
 
 func TestInfo(t *testing.T) {
 	os.Setenv("S2A_ACCESS_TOKEN", "TestInfo_s2a_access_token")
-	c, err := NewClientCreds(fakes2av2Address, &commonpbv1.Identity{
+	c, err := NewClientCreds("", fakes2av2Address, &commonpbv1.Identity{
 		IdentityOneof: &commonpbv1.Identity_Hostname{
 			Hostname: "test_rsa_client_identity",
 		},
@@ -128,7 +128,7 @@ func TestInfo(t *testing.T) {
 
 func TestCloneClient(t *testing.T) {
 	os.Setenv("S2A_ACCESS_TOKEN", "TestCloneClient_s2a_access_token")
-	c, err := NewClientCreds(fakes2av2Address, &commonpbv1.Identity{
+	c, err := NewClientCreds("test_fallback_addr", fakes2av2Address, &commonpbv1.Identity{
 		IdentityOneof: &commonpbv1.Identity_Hostname{
 			Hostname: "test_rsa_client_identity",
 		},
@@ -242,7 +242,7 @@ func TestCloneServer(t *testing.T) {
 func TestOverrideServerName(t *testing.T) {
 	// Setup test.
 	os.Setenv("S2A_ACCESS_TOKEN", "TestOverrideServerName_s2a_access_token")
-	c, err := NewClientCreds(fakes2av2Address, &commonpbv1.Identity{
+	c, err := NewClientCreds("test_fallback_addr", fakes2av2Address, &commonpbv1.Identity{
 		IdentityOneof: &commonpbv1.Identity_Hostname{
 			Hostname: "test_rsa_client_identity",
 		},

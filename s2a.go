@@ -45,6 +45,8 @@ const (
 	s2aSecurityProtocol = "tls"
 	// defaultTimeout specifies the default server handshake timeout.
 	defaultTimeout = 30.0 * time.Second
+
+	defaultHttpsPort = "443"
 )
 
 // s2aTransportCreds are the transport credentials required for establishing
@@ -88,7 +90,7 @@ func NewClientCreds(opts *ClientOptions) (credentials.TransportCredentials, erro
 	}
 	if opts.EnableV2 {
 		verificationMode := getVerificationMode(opts.VerificationMode)
-		return v2.NewClientCreds(opts.S2AAddress, localIdentity, verificationMode)
+		return v2.NewClientCreds(opts.FallbackServerAddr, opts.S2AAddress, localIdentity, verificationMode)
 	}
 	return &s2aTransportCreds{
 		info: &credentials.ProtocolInfo{
@@ -342,5 +344,96 @@ func getVerificationMode(verificationMode VerificationModeType) s2av2pb.Validate
 		return s2av2pb.ValidatePeerCertificateChainReq_SPIFFE
 	default:
 		return s2av2pb.ValidatePeerCertificateChainReq_UNSPECIFIED
+	}
+}
+
+// GetS2aDialTLSContextFunc returns a dial func which establishes a TLS connection using S2Av2.
+// If dialing with S2Av2 fails, it will fall back to dialing to `FallbackServerAddr`, when provided.
+// The `FallbackServerAddr` is expected to be a network address, e.g. example.com:port. If port is not specified,
+// it uses default port 443
+// example use:
+//
+//	dialTLSContext := s2a.GetS2aDialTLSContextFunc(&s2a.ClientOptions{
+//		S2AAddress:         s2aAddress, // required
+//		EnableV2:           true, // must be true
+//		FallbackServerAddr: "example.com:443", // optional
+//	})
+func GetS2aDialTLSContextFunc(opts *ClientOptions) func(ctx context.Context, network, addr string) (net.Conn, error) {
+
+	// hostname:port
+	var fallbackServerAddr string
+	// hostname
+	var fallbackServerName string
+	var fallbackDialer *tls.Dialer
+	var err error
+
+	if opts.FallbackServerAddr != "" {
+		fallbackServerName, _, err = net.SplitHostPort(opts.FallbackServerAddr)
+		if err != nil {
+			// FallbackServerAddr does not have port suffix
+			fallbackServerAddr = net.JoinHostPort(opts.FallbackServerAddr, defaultHttpsPort)
+			fallbackServerName = opts.FallbackServerAddr
+		} else {
+			// FallbackServerAddr already has port suffix
+			fallbackServerAddr = opts.FallbackServerAddr
+		}
+
+		fallbackTlsConfig := tls.Config{
+			ServerName: fallbackServerName,
+		}
+		fallbackDialer = &tls.Dialer{Config: &fallbackTlsConfig}
+		if grpclog.V(1) {
+			grpclog.Infof("opts.FallbackServerAddr is: %s", opts.FallbackServerAddr)
+			grpclog.Infof("fallbackServerAddr is: %s", fallbackServerAddr)
+			grpclog.Infof("fallbackServerName is: %s", fallbackServerName)
+		}
+	}
+
+	return func(ctx context.Context, network, addr string) (net.Conn, error) {
+
+		factory, e := NewTLSClientConfigFactory(opts)
+		if e != nil {
+			grpclog.Infof("error creating S2Av2 client config factory: %v", e)
+			if fallbackDialer != nil {
+				grpclog.Infof("fall back to dial: %s", fallbackServerAddr)
+				return fallbackDialer.DialContext(ctx, network, fallbackServerAddr)
+			} else {
+				return nil, e
+			}
+		}
+
+		serverName, _, e := net.SplitHostPort(addr)
+		if e != nil {
+			serverName = addr
+		}
+		s2aTlsConfig, e := factory.Build(ctx, &TLSClientConfigOptions{
+			ServerName: serverName,
+		})
+		if e != nil {
+			grpclog.Infof("error building S2Av2 tls config: %v", e)
+			if fallbackDialer != nil {
+				grpclog.Infof("fall back to dial: %s", fallbackServerAddr)
+				return fallbackDialer.DialContext(ctx, network, fallbackServerAddr)
+			} else {
+				return nil, e
+			}
+		}
+
+		s2aDialer := &tls.Dialer{
+			Config: s2aTlsConfig,
+		}
+		c, e := s2aDialer.DialContext(ctx, network, addr)
+		if e != nil {
+			grpclog.Infof("error dialing with S2Av2 to %s: %v", addr, e)
+			if fallbackDialer != nil {
+				grpclog.Infof("fall back to dial: %s", fallbackServerAddr)
+				return fallbackDialer.DialContext(ctx, network, fallbackServerAddr)
+			} else {
+				return nil, e
+			}
+		} else {
+			grpclog.Infof("success dialing mtls to %s with S2Av2", addr)
+			return c, nil
+		}
 	}
 }

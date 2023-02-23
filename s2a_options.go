@@ -121,6 +121,12 @@ type ClientOptions struct {
 	// VerificationMode specifies the mode that S2A must use to verify the
 	// peer certificate chain.
 	VerificationMode VerificationModeType
+
+	// S2Av2 only.
+	// Network address of the fallback server, e.g., example.com:port, or example.com;
+	// If specified, client handshake will try regular TLS with this fallback addr after dialing with S2Av2 fails;
+	// If no port suffix, 443 is used as the default.
+	FallbackServerAddr string
 }
 
 // DefaultClientOptions returns the default client options.

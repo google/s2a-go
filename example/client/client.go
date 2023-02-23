@@ -44,7 +44,7 @@ var (
 
 func runClient(serverAddr *string) {
 	// TODO(rmehta19): Use S2A v1 NewClientCreds, specify EnableV2 in ClientOptions.
-	creds, err := v2.NewClientCreds(*s2aAddr, &commonpbv1.Identity{
+	creds, err := v2.NewClientCreds("", *s2aAddr, &commonpbv1.Identity{
 		IdentityOneof: &commonpbv1.Identity_Hostname{
 			Hostname: "test_rsa_client_identity",
 		},
