@@ -171,6 +171,8 @@ func (c *s2av2TransportCreds) ClientHandshake(ctx context.Context, serverAuthori
 		grpclog.Infof("Failed to do client handshake using S2Av2: %v", err)
 		rawConn.Close()
 		return c.fallbackClientHandshake(ctx, err)
+	} else {
+		grpclog.Infof("Successful done client handshake using S2Av2 to: %s", serverName)
 	}
 	return conn, authInfo, err
 }
