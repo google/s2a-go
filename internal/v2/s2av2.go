@@ -40,7 +40,7 @@ import (
 )
 
 const (
-	s2aSecurityProtocol = "s2av2"
+	s2aSecurityProtocol = "tls"
 	defaultTimeout      = 20.0 * time.Second
 )
 
