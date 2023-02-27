@@ -121,7 +121,7 @@ func TestInfo(t *testing.T) {
 		t.Fatalf("NewClientCreds() failed: %v", err)
 	}
 	info := c.Info()
-	if got, want := info.SecurityProtocol, "s2av2"; got != want {
+	if got, want := info.SecurityProtocol, "tls"; got != want {
 		t.Errorf("info.SecurityProtocol=%v, want %v", got, want)
 	}
 }

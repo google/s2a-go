@@ -42,7 +42,7 @@ import (
 )
 
 const (
-	s2aSecurityProtocol = "s2a"
+	s2aSecurityProtocol = "tls"
 	// defaultTimeout specifies the default server handshake timeout.
 	defaultTimeout = 30.0 * time.Second
 )
