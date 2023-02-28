@@ -14,10 +14,6 @@
 
 load("@io_bazel_rules_go//go:def.bzl", "go_library")
 
-package(
-    default_visibility = ["//example:__subpackages__"],
-)
-
 go_library(
     name = "s2a_fallback",
     srcs = ["s2a_fallback.go"],

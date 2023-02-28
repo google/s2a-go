@@ -135,11 +135,12 @@ type ClientOptions struct {
 type FallbackOptions struct {
 	// FallbackClientHandshakeFunc is used to specify fallback behavior when calling s2a.NewClientCreds().
 	// It will be called by s2av2TransportCreds's ClientHandshake function, after handshake with S2Av2 fails.
-	//     originConn: the original raw connection passed into ClientHandshake func.
+	//	   originServer: the original server attempted with S2Av2.
+	//     originConn: the original raw tcp connection passed into ClientHandshake func.
 	//                 If fallback is successful, the `originConn` should be closed.
 	//     originErr: the error encountered when performing handshake with S2Av2.
 	// This fallback func should return a post-handshake TLS connection, plus its auth info.
-	FallbackClientHandshakeFunc func(ctx context.Context, originConn net.Conn, originErr error) (net.Conn, credentials.AuthInfo, error)
+	FallbackClientHandshakeFunc func(ctx context.Context, originServer string, originConn net.Conn, originErr error) (net.Conn, credentials.AuthInfo, error)
 
 	// FallbackDialer is used to specify fallback behavior when calling s2a.NewS2aDialTLSContextFunc().
 	// It passes in a custom fallback dialer and server address to use after dialing with S2Av2 fails.

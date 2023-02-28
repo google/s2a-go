@@ -42,10 +42,9 @@ import (
 const (
 	s2aSecurityProtocol = "tls"
 	defaultTimeout      = 20.0 * time.Second
-	defaultHttpsPort    = "443"
 )
 
-type FallbackClientHandshake func(context.Context, net.Conn, error) (net.Conn, credentials.AuthInfo, error)
+type FallbackClientHandshake func(context.Context, string, net.Conn, error) (net.Conn, credentials.AuthInfo, error)
 type s2av2TransportCreds struct {
 	info         *credentials.ProtocolInfo
 	isClient     bool
@@ -126,7 +125,7 @@ func (c *s2av2TransportCreds) ClientHandshake(ctx context.Context, serverAuthori
 	if err != nil {
 		grpclog.Infof("Failed to connect to S2Av2: %v", err)
 		if c.fallbackClientHandshake != nil {
-			return c.fallbackClientHandshake(ctx, rawConn, err)
+			return c.fallbackClientHandshake(ctx, serverAuthority, rawConn, err)
 		}
 		return nil, nil, err
 	}
@@ -147,7 +146,7 @@ func (c *s2av2TransportCreds) ClientHandshake(ctx context.Context, serverAuthori
 		if err != nil {
 			grpclog.Info("Failed to get client TLS config from S2Av2: %v", err)
 			if c.fallbackClientHandshake != nil {
-				return c.fallbackClientHandshake(ctx, rawConn, err)
+				return c.fallbackClientHandshake(ctx, serverAuthority, rawConn, err)
 			}
 			return nil, nil, err
 		}
@@ -156,7 +155,7 @@ func (c *s2av2TransportCreds) ClientHandshake(ctx context.Context, serverAuthori
 		if err != nil {
 			grpclog.Info("Failed to get client TLS config from S2Av2: %v", err)
 			if c.fallbackClientHandshake != nil {
-				return c.fallbackClientHandshake(ctx, rawConn, err)
+				return c.fallbackClientHandshake(ctx, serverAuthority, rawConn, err)
 			}
 			return nil, nil, err
 		}
@@ -170,7 +169,7 @@ func (c *s2av2TransportCreds) ClientHandshake(ctx context.Context, serverAuthori
 	if err != nil {
 		grpclog.Infof("Failed to do client handshake using S2Av2: %v", err)
 		if c.fallbackClientHandshake != nil {
-			return c.fallbackClientHandshake(ctx, rawConn, err)
+			return c.fallbackClientHandshake(ctx, serverAuthority, rawConn, err)
 		}
 		return nil, nil, err
 	} else {

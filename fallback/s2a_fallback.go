@@ -27,11 +27,11 @@ const (
 //
 // The fallbackAddr is expected to be a network address, e.g. example.com:port. If port is not specified,
 // it uses default port 443
-func DefaultFallbackClientHandshakeFunc(fallbackAddr string) func(ctx context.Context, originConn net.Conn, originErr error) (net.Conn, credentials.AuthInfo, error) {
-	return func(ctx context.Context, originConn net.Conn, originErr error) (net.Conn, credentials.AuthInfo, error) {
+func DefaultFallbackClientHandshakeFunc(fallbackAddr string) func(context.Context, string, net.Conn, error) (net.Conn, credentials.AuthInfo, error) {
+	return func(ctx context.Context, originServer string, originConn net.Conn, originErr error) (net.Conn, credentials.AuthInfo, error) {
 		fallbackServerAddr, fallbackServerName, err := processFallbackAddr(fallbackAddr)
 		if err != nil {
-			return nil, nil, fmt.Errorf("no fallback server address specified, skipping fallback; S2Av2 client handshake error: %w", originErr)
+			return nil, nil, fmt.Errorf("no fallback server address specified, skipping fallback; S2Av2 client handshake with %s error: %w", originServer, originErr)
 		}
 
 		fallbackTLSConfig := tls.Config{
@@ -42,13 +42,13 @@ func DefaultFallbackClientHandshakeFunc(fallbackAddr string) func(ctx context.Co
 		fbConn, fbErr := fallbackDialer.DialContext(ctx, "tcp", fallbackServerAddr)
 		if fbErr != nil {
 			grpclog.Infof("dialing to fallback server %s failed: %v", fallbackServerAddr, fbErr)
-			return nil, nil, fmt.Errorf("dialing to fallback server %s failed: %v; S2Av2 client handshake error: %w", fallbackServerAddr, fbErr, originErr)
+			return nil, nil, fmt.Errorf("dialing to fallback server %s failed: %v; S2Av2 client handshake with %s error: %w", fallbackServerAddr, fbErr, originServer, originErr)
 		}
 
 		tc, success := fbConn.(*tls.Conn)
 		if !success {
 			grpclog.Infof("the connection with fallback server is expected to be tls but isn't")
-			return nil, nil, fmt.Errorf("the connection with fallback server is expected to be tls but isn't; S2Av2 client handshake error: %w", originErr)
+			return nil, nil, fmt.Errorf("the connection with fallback server is expected to be tls but isn't; S2Av2 client handshake with %s error: %w", originServer, originErr)
 		}
 
 		tlsInfo := credentials.TLSInfo{
