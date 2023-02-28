@@ -90,7 +90,11 @@ func NewClientCreds(opts *ClientOptions) (credentials.TransportCredentials, erro
 	}
 	if opts.EnableV2 {
 		verificationMode := getVerificationMode(opts.VerificationMode)
-		return v2.NewClientCreds(opts.FallbackServerAddr, opts.S2AAddress, localIdentity, verificationMode)
+		var fallbackFunc v2.FallbackClientHandshake
+		if opts.FallbackOpts != nil && opts.FallbackOpts.FallbackClientHandshakeFunc != nil {
+			fallbackFunc = opts.FallbackOpts.FallbackClientHandshakeFunc
+		}
+		return v2.NewClientCreds(opts.S2AAddress, localIdentity, verificationMode, fallbackFunc)
 	}
 	return &s2aTransportCreds{
 		info: &credentials.ProtocolInfo{
@@ -347,59 +351,28 @@ func getVerificationMode(verificationMode VerificationModeType) s2av2pb.Validate
 	}
 }
 
-// GetS2aDialTLSContextFunc returns a dial func which establishes a TLS connection using S2Av2.
-// If dialing with S2Av2 fails, it will fall back to dialing to `FallbackServerAddr`, when provided.
-// The `FallbackServerAddr` is expected to be a network address, e.g. example.com:port. If port is not specified,
-// it uses default port 443
-// example use:
-//
-//	dialTLSContext := s2a.GetS2aDialTLSContextFunc(&s2a.ClientOptions{
-//		S2AAddress:         s2aAddress, // required
-//		EnableV2:           true, // must be true
-//		FallbackServerAddr: "example.com:443", // optional
-//	})
-func GetS2aDialTLSContextFunc(opts *ClientOptions) func(ctx context.Context, network, addr string) (net.Conn, error) {
-
-	// hostname:port
-	var fallbackServerAddr string
-	// hostname
-	var fallbackServerName string
-	var fallbackDialer *tls.Dialer
-	var err error
-
-	if opts.FallbackServerAddr != "" {
-		fallbackServerName, _, err = net.SplitHostPort(opts.FallbackServerAddr)
-		if err != nil {
-			// FallbackServerAddr does not have port suffix
-			fallbackServerAddr = net.JoinHostPort(opts.FallbackServerAddr, defaultHttpsPort)
-			fallbackServerName = opts.FallbackServerAddr
-		} else {
-			// FallbackServerAddr already has port suffix
-			fallbackServerAddr = opts.FallbackServerAddr
-		}
-
-		fallbackTlsConfig := tls.Config{
-			ServerName: fallbackServerName,
-		}
-		fallbackDialer = &tls.Dialer{Config: &fallbackTlsConfig}
-		if grpclog.V(1) {
-			grpclog.Infof("opts.FallbackServerAddr is: %s", opts.FallbackServerAddr)
-			grpclog.Infof("fallbackServerAddr is: %s", fallbackServerAddr)
-			grpclog.Infof("fallbackServerName is: %s", fallbackServerName)
-		}
-	}
+// NewS2aDialTLSContextFunc returns a dial func which establishes an MTLS connection using S2Av2.
+func NewS2aDialTLSContextFunc(opts *ClientOptions) func(ctx context.Context, network, addr string) (net.Conn, error) {
 
 	return func(ctx context.Context, network, addr string) (net.Conn, error) {
+
+		fallback := func(err error) (net.Conn, error) {
+			if opts.FallbackOpts != nil && opts.FallbackOpts.FallbackDialer != nil && opts.FallbackOpts.FallbackServerAddr != "" {
+				grpclog.Infof("fall back to dial: %s", opts.FallbackOpts.FallbackServerAddr)
+				fbConn, fbErr := opts.FallbackOpts.FallbackDialer.DialContext(ctx, network, opts.FallbackOpts.FallbackServerAddr)
+				if fbErr != nil {
+					return nil, fmt.Errorf("error fallback dial to %s; S2Av2 error: %w", opts.FallbackOpts.FallbackServerAddr, err)
+				} else {
+					return fbConn, nil
+				}
+			}
+			return nil, err
+		}
 
 		factory, e := NewTLSClientConfigFactory(opts)
 		if e != nil {
 			grpclog.Infof("error creating S2Av2 client config factory: %v", e)
-			if fallbackDialer != nil {
-				grpclog.Infof("fall back to dial: %s", fallbackServerAddr)
-				return fallbackDialer.DialContext(ctx, network, fallbackServerAddr)
-			} else {
-				return nil, e
-			}
+			return fallback(e)
 		}
 
 		serverName, _, e := net.SplitHostPort(addr)
@@ -411,12 +384,7 @@ func GetS2aDialTLSContextFunc(opts *ClientOptions) func(ctx context.Context, net
 		})
 		if e != nil {
 			grpclog.Infof("error building S2Av2 tls config: %v", e)
-			if fallbackDialer != nil {
-				grpclog.Infof("fall back to dial: %s", fallbackServerAddr)
-				return fallbackDialer.DialContext(ctx, network, fallbackServerAddr)
-			} else {
-				return nil, e
-			}
+			return fallback(e)
 		}
 
 		s2aDialer := &tls.Dialer{
@@ -425,14 +393,9 @@ func GetS2aDialTLSContextFunc(opts *ClientOptions) func(ctx context.Context, net
 		c, e := s2aDialer.DialContext(ctx, network, addr)
 		if e != nil {
 			grpclog.Infof("error dialing with S2Av2 to %s: %v", addr, e)
-			if fallbackDialer != nil {
-				grpclog.Infof("fall back to dial: %s", fallbackServerAddr)
-				return fallbackDialer.DialContext(ctx, network, fallbackServerAddr)
-			} else {
-				return nil, e
-			}
+			return fallback(e)
 		} else {
-			grpclog.Infof("success dialing mtls to %s with S2Av2", addr)
+			grpclog.Infof("success dialing MTLS to %s with S2Av2", addr)
 			return c, nil
 		}
 	}

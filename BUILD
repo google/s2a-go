@@ -29,6 +29,7 @@ go_library(
     name = "s2a",
     srcs = [
         "s2a.go",
+        "s2a_fallback.go",
         "s2a_options.go",
         "s2a_utils.go",
     ],
@@ -36,8 +37,8 @@ go_library(
     deps = [
         "//internal/handshaker",
         "//internal/handshaker/service",
-        "//internal/proto/common_go_proto:common_go_proto",
-        "//internal/proto/v2/s2a_go_proto:s2a_go_proto",
+        "//internal/proto/common_go_proto",
+        "//internal/proto/v2/s2a_go_proto",
         "//internal/tokenmanager",
         "//internal/v2",
         "@com_github_golang_protobuf//proto",
@@ -56,16 +57,16 @@ go_test(
         "s2a_test.go",
         "s2a_utils_test.go",
     ],
+    embed = [":s2a"],
     embedsrcs = [
         "//internal/v2/tlsconfigstore/example_cert_key:export_testdata",  # keep
     ],
-    embed = [":s2a"],
     deps = [
         "//internal/fakehandshaker/service",
-        "//internal/proto/common_go_proto:common_go_proto",
-        "//internal/proto/s2a_go_proto:s2a_go_proto",
-        "//internal/proto/examples/helloworld_go_proto:helloworld_go_proto",
-        "//internal/proto/v2/s2a_go_proto:s2a_go_proto",
+        "//internal/proto/common_go_proto",
+        "//internal/proto/examples/helloworld_go_proto",
+        "//internal/proto/s2a_go_proto",
+        "//internal/proto/v2/s2a_go_proto",
         "//internal/v2",
         "//internal/v2/fakes2av2",
         "@com_github_google_go_cmp//cmp:go_default_library",

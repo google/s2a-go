@@ -19,7 +19,11 @@
 package s2a
 
 import (
+	"context"
+	"crypto/tls"
 	"errors"
+	"google.golang.org/grpc/credentials"
+	"net"
 	"sync"
 
 	s2apb "github.com/google/s2a-go/internal/proto/common_go_proto"
@@ -123,9 +127,26 @@ type ClientOptions struct {
 	VerificationMode VerificationModeType
 
 	// S2Av2 only.
-	// Network address of the fallback server, e.g., example.com:port, or example.com;
-	// If specified, client handshake will try regular TLS with this fallback addr after dialing with S2Av2 fails;
-	// If no port suffix, 443 is used as the default.
+	// If specified, client handshake will try the fallback options after dialing with S2Av2 fails.
+	FallbackOpts *FallbackOptions
+}
+
+// FallbackOptions contains the client handshake fallback options, for S2Av2 only.
+type FallbackOptions struct {
+	// FallbackClientHandshakeFunc is used to specify fallback behavior when calling s2a.NewClientCreds().
+	// It is called by s2av2TransportCreds's ClientHandshake function, after handshake with S2Av2 fails.
+	//     originConn: the original raw connection passed into ClientHandshake func.
+	//                 If fallback is successful, the `originConn` should be closed.
+	//     originErr: the error encountered when performing handshake with S2Av2.
+	// This fallback func should return a post-handshake TLS connection, plus its auth info.
+	FallbackClientHandshakeFunc func(ctx context.Context, originConn net.Conn, originErr error) (net.Conn, credentials.AuthInfo, error)
+
+	// FallbackDialer, together with FallbackServerAddr is used to specify fallback behavior when calling
+	// s2a.NewS2aDialTLSContextFunc(). It passes in a custom fallback dialer to use after dialing with S2Av2 fails.
+	FallbackDialer *tls.Dialer
+
+	// FallbackServerAddr, together with FallbackDialer is used to specify fallback behavior when calling
+	// s2a.NewS2aDialTLSContextFunc(). It passes in a fallback server address to use after dialing with S2Av2 fails.
 	FallbackServerAddr string
 }
 

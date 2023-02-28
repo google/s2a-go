@@ -130,7 +130,7 @@ func startServer(t *testing.T, s2aAddress string, localIdentities []*commonpbv1.
 
 // runClient starts up a client and calls the server.
 func runClient(ctx context.Context, t *testing.T, clientS2AAddress, serverAddr string, localIdentity *commonpbv1.Identity) {
-	creds, err := NewClientCreds("", clientS2AAddress, localIdentity, s2av2pb.ValidatePeerCertificateChainReq_CONNECT_TO_GOOGLE)
+	creds, err := NewClientCreds(clientS2AAddress, localIdentity, s2av2pb.ValidatePeerCertificateChainReq_CONNECT_TO_GOOGLE, nil)
 	if err != nil {
 		t.Errorf("NewClientCreds(%s) failed: %v", clientS2AAddress, err)
 	}

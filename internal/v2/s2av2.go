@@ -24,7 +24,6 @@ import (
 	"context"
 	"crypto/tls"
 	"errors"
-	"fmt"
 	"net"
 	"time"
 
@@ -43,32 +42,27 @@ import (
 const (
 	s2aSecurityProtocol = "tls"
 	defaultTimeout      = 20.0 * time.Second
-	alpnProtoStrH2      = "h2"
 	defaultHttpsPort    = "443"
 )
 
+type FallbackClientHandshake func(context.Context, net.Conn, error) (net.Conn, credentials.AuthInfo, error)
 type s2av2TransportCreds struct {
-	info               *credentials.ProtocolInfo
-	isClient           bool
-	serverName         string
-	fallbackServerAddr string
-	s2av2Address       string
-	tokenManager       *tokenmanager.AccessTokenManager
+	info         *credentials.ProtocolInfo
+	isClient     bool
+	serverName   string
+	s2av2Address string
+	tokenManager *tokenmanager.AccessTokenManager
 	// localIdentity should only be used by the client.
 	localIdentity *commonpbv1.Identity
 	// localIdentities should only be used by the server.
-	localIdentities  []*commonpbv1.Identity
-	verificationMode s2av2pb.ValidatePeerCertificateChainReq_VerificationMode
+	localIdentities         []*commonpbv1.Identity
+	verificationMode        s2av2pb.ValidatePeerCertificateChainReq_VerificationMode
+	fallbackClientHandshake FallbackClientHandshake
 }
 
 // NewClientCreds returns a client-side transport credentials object that uses
 // the S2Av2 to establish a secure connection with a server.
-func NewClientCreds(fallbackServerAddr string, s2av2Address string, localIdentity *commonpbv1.Identity, verificationMode s2av2pb.ValidatePeerCertificateChainReq_VerificationMode) (credentials.TransportCredentials, error) {
-	_, _, err := net.SplitHostPort(fallbackServerAddr)
-	if err != nil {
-		// If fallbackServerAddr has no port suffix, append default
-		fallbackServerAddr = net.JoinHostPort(fallbackServerAddr, defaultHttpsPort)
-	}
+func NewClientCreds(s2av2Address string, localIdentity *commonpbv1.Identity, verificationMode s2av2pb.ValidatePeerCertificateChainReq_VerificationMode, fallbackClientHandshakeFunc FallbackClientHandshake) (credentials.TransportCredentials, error) {
 	// Create an AccessTokenManager instance to use to authenticate to S2Av2.
 	accessTokenManager, err := tokenmanager.NewSingleTokenAccessTokenManager()
 
@@ -76,12 +70,12 @@ func NewClientCreds(fallbackServerAddr string, s2av2Address string, localIdentit
 		info: &credentials.ProtocolInfo{
 			SecurityProtocol: s2aSecurityProtocol,
 		},
-		isClient:           true,
-		serverName:         "",
-		fallbackServerAddr: fallbackServerAddr,
-		s2av2Address:       s2av2Address,
-		localIdentity:      localIdentity,
-		verificationMode:   verificationMode,
+		isClient:                true,
+		serverName:              "",
+		s2av2Address:            s2av2Address,
+		localIdentity:           localIdentity,
+		verificationMode:        verificationMode,
+		fallbackClientHandshake: fallbackClientHandshakeFunc,
 	}
 	if err != nil {
 		creds.tokenManager = nil
@@ -131,8 +125,10 @@ func (c *s2av2TransportCreds) ClientHandshake(ctx context.Context, serverAuthori
 	cstream, err := createStream(ctx, c.s2av2Address)
 	if err != nil {
 		grpclog.Infof("Failed to connect to S2Av2: %v", err)
-		rawConn.Close()
-		return c.fallbackClientHandshake(ctx, err)
+		if c.fallbackClientHandshake != nil {
+			return c.fallbackClientHandshake(ctx, rawConn, err)
+		}
+		return nil, nil, err
 	}
 	if grpclog.V(1) {
 		grpclog.Infof("Connected to S2Av2.")
@@ -150,15 +146,19 @@ func (c *s2av2TransportCreds) ClientHandshake(ctx context.Context, serverAuthori
 		config, err = tlsconfigstore.GetTLSConfigurationForClient(serverName, cstream, tokenManager, c.localIdentity, c.verificationMode)
 		if err != nil {
 			grpclog.Info("Failed to get client TLS config from S2Av2: %v", err)
-			rawConn.Close()
-			return c.fallbackClientHandshake(ctx, err)
+			if c.fallbackClientHandshake != nil {
+				return c.fallbackClientHandshake(ctx, rawConn, err)
+			}
+			return nil, nil, err
 		}
 	} else {
 		config, err = tlsconfigstore.GetTLSConfigurationForClient(c.serverName, cstream, tokenManager, c.localIdentity, c.verificationMode)
 		if err != nil {
 			grpclog.Info("Failed to get client TLS config from S2Av2: %v", err)
-			rawConn.Close()
-			return c.fallbackClientHandshake(ctx, err)
+			if c.fallbackClientHandshake != nil {
+				return c.fallbackClientHandshake(ctx, rawConn, err)
+			}
+			return nil, nil, err
 		}
 	}
 	if grpclog.V(1) {
@@ -169,48 +169,14 @@ func (c *s2av2TransportCreds) ClientHandshake(ctx context.Context, serverAuthori
 	conn, authInfo, err := creds.ClientHandshake(context.Background(), serverName, rawConn)
 	if err != nil {
 		grpclog.Infof("Failed to do client handshake using S2Av2: %v", err)
-		rawConn.Close()
-		return c.fallbackClientHandshake(ctx, err)
+		if c.fallbackClientHandshake != nil {
+			return c.fallbackClientHandshake(ctx, rawConn, err)
+		}
+		return nil, nil, err
 	} else {
 		grpclog.Infof("Successful done client handshake using S2Av2 to: %s", serverName)
 	}
 	return conn, authInfo, err
-}
-
-func (c *s2av2TransportCreds) fallbackClientHandshake(ctx context.Context, originErr error) (net.Conn, credentials.AuthInfo, error) {
-	if c.fallbackServerAddr == "" {
-		return nil, nil, fmt.Errorf("no fallback server address specified, skipping fallback; S2Av2 client handshake error: %w", originErr)
-	}
-	fallbackServerName := removeServerNamePort(c.fallbackServerAddr)
-	fallbackTlsConfig := tls.Config{
-		ServerName: fallbackServerName,
-		NextProtos: []string{alpnProtoStrH2},
-	}
-	fallbackDialer := &tls.Dialer{Config: &fallbackTlsConfig}
-	fbConn, fbErr := fallbackDialer.DialContext(ctx, "tcp", c.fallbackServerAddr)
-	if fbErr != nil {
-		grpclog.Infof("dialing to fallback server %s failed: %v", c.fallbackServerAddr, fbErr)
-		return nil, nil, fmt.Errorf("dialing to fallback server %s failed: %v; S2Av2 client handshake error: %w", c.fallbackServerAddr, fbErr, originErr)
-	}
-
-	tc, success := fbConn.(*tls.Conn)
-	if !success {
-		grpclog.Infof("the connection with fallback server is expected to be tls but isn't")
-		return nil, nil, fmt.Errorf("the connection with fallback server is expected to be tls but isn't; S2Av2 client handshake error: %w", originErr)
-	}
-
-	tlsInfo := credentials.TLSInfo{
-		State: tc.ConnectionState(),
-		CommonAuthInfo: credentials.CommonAuthInfo{
-			SecurityLevel: credentials.PrivacyAndIntegrity,
-		},
-	}
-	if grpclog.V(1) {
-		grpclog.Infof("ConnectionState.NegotiatedProtocol: %v", tc.ConnectionState().NegotiatedProtocol)
-		grpclog.Infof("ConnectionState.HandshakeComplete: %v", tc.ConnectionState().HandshakeComplete)
-		grpclog.Infof("ConnectionState.ServerName: %v", tc.ConnectionState().ServerName)
-	}
-	return fbConn, tlsInfo, nil
 }
 
 // ServerHandshake performs a server-side mTLS handshake using the S2Av2.
@@ -257,7 +223,7 @@ func (c *s2av2TransportCreds) Info() credentials.ProtocolInfo {
 func (c *s2av2TransportCreds) Clone() credentials.TransportCredentials {
 	info := *c.info
 	serverName := c.serverName
-	fallbackServerAddr := c.fallbackServerAddr
+	fallbackClientHandshake := c.fallbackClientHandshake
 
 	s2av2Address := c.s2av2Address
 	var tokenManager tokenmanager.AccessTokenManager
@@ -279,14 +245,14 @@ func (c *s2av2TransportCreds) Clone() credentials.TransportCredentials {
 		}
 	}
 	creds := &s2av2TransportCreds{
-		info:               &info,
-		isClient:           c.isClient,
-		serverName:         serverName,
-		fallbackServerAddr: fallbackServerAddr,
-		s2av2Address:       s2av2Address,
-		localIdentity:      localIdentity,
-		localIdentities:    localIdentities,
-		verificationMode:   verificationMode,
+		info:                    &info,
+		isClient:                c.isClient,
+		serverName:              serverName,
+		fallbackClientHandshake: fallbackClientHandshake,
+		s2av2Address:            s2av2Address,
+		localIdentity:           localIdentity,
+		localIdentities:         localIdentities,
+		verificationMode:        verificationMode,
 	}
 	if c.tokenManager == nil {
 		creds.tokenManager = nil

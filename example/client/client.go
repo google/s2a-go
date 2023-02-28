@@ -44,11 +44,11 @@ var (
 
 func runClient(serverAddr *string) {
 	// TODO(rmehta19): Use S2A v1 NewClientCreds, specify EnableV2 in ClientOptions.
-	creds, err := v2.NewClientCreds("", *s2aAddr, &commonpbv1.Identity{
+	creds, err := v2.NewClientCreds(*s2aAddr, &commonpbv1.Identity{
 		IdentityOneof: &commonpbv1.Identity_Hostname{
 			Hostname: "test_rsa_client_identity",
 		},
-	}, s2av2pb.ValidatePeerCertificateChainReq_CONNECT_TO_GOOGLE)
+	}, s2av2pb.ValidatePeerCertificateChainReq_CONNECT_TO_GOOGLE, nil)
 	if err != nil {
 		log.Fatalf("NewClientCreds() failed: %v", err)
 	}

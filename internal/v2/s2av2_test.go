@@ -45,11 +45,11 @@ func TestNewClientCreds(t *testing.T) {
 		},
 	} {
 		t.Run(tc.description, func(t *testing.T) {
-			c, err := NewClientCreds("test_fallback_addr", fakes2av2Address, &commonpbv1.Identity{
+			c, err := NewClientCreds(fakes2av2Address, &commonpbv1.Identity{
 				IdentityOneof: &commonpbv1.Identity_Hostname{
 					Hostname: "test_rsa_client_identity",
 				},
-			}, s2av2pb.ValidatePeerCertificateChainReq_CONNECT_TO_GOOGLE)
+			}, s2av2pb.ValidatePeerCertificateChainReq_CONNECT_TO_GOOGLE, nil)
 			if err != nil {
 				t.Fatalf("NewClientCreds() failed: %v", err)
 			}
@@ -112,11 +112,11 @@ func TestServerHandshakeFail(t *testing.T) {
 
 func TestInfo(t *testing.T) {
 	os.Setenv("S2A_ACCESS_TOKEN", "TestInfo_s2a_access_token")
-	c, err := NewClientCreds("", fakes2av2Address, &commonpbv1.Identity{
+	c, err := NewClientCreds(fakes2av2Address, &commonpbv1.Identity{
 		IdentityOneof: &commonpbv1.Identity_Hostname{
 			Hostname: "test_rsa_client_identity",
 		},
-	}, s2av2pb.ValidatePeerCertificateChainReq_CONNECT_TO_GOOGLE)
+	}, s2av2pb.ValidatePeerCertificateChainReq_CONNECT_TO_GOOGLE, nil)
 	if err != nil {
 		t.Fatalf("NewClientCreds() failed: %v", err)
 	}
@@ -128,11 +128,11 @@ func TestInfo(t *testing.T) {
 
 func TestCloneClient(t *testing.T) {
 	os.Setenv("S2A_ACCESS_TOKEN", "TestCloneClient_s2a_access_token")
-	c, err := NewClientCreds("test_fallback_addr", fakes2av2Address, &commonpbv1.Identity{
+	c, err := NewClientCreds(fakes2av2Address, &commonpbv1.Identity{
 		IdentityOneof: &commonpbv1.Identity_Hostname{
 			Hostname: "test_rsa_client_identity",
 		},
-	}, s2av2pb.ValidatePeerCertificateChainReq_CONNECT_TO_GOOGLE)
+	}, s2av2pb.ValidatePeerCertificateChainReq_CONNECT_TO_GOOGLE, nil)
 	if err != nil {
 		t.Fatalf("NewClientCreds() failed: %v", err)
 	}
@@ -242,11 +242,11 @@ func TestCloneServer(t *testing.T) {
 func TestOverrideServerName(t *testing.T) {
 	// Setup test.
 	os.Setenv("S2A_ACCESS_TOKEN", "TestOverrideServerName_s2a_access_token")
-	c, err := NewClientCreds("test_fallback_addr", fakes2av2Address, &commonpbv1.Identity{
+	c, err := NewClientCreds(fakes2av2Address, &commonpbv1.Identity{
 		IdentityOneof: &commonpbv1.Identity_Hostname{
 			Hostname: "test_rsa_client_identity",
 		},
-	}, s2av2pb.ValidatePeerCertificateChainReq_CONNECT_TO_GOOGLE)
+	}, s2av2pb.ValidatePeerCertificateChainReq_CONNECT_TO_GOOGLE, nil)
 	s2av2Creds, ok := c.(*s2av2TransportCreds)
 	if !ok {
 		t.Fatal("The created creds is not of type s2av2TransportCreds")
