@@ -29,7 +29,6 @@ go_library(
     name = "s2a",
     srcs = [
         "s2a.go",
-        "s2a_fallback.go",
         "s2a_options.go",
         "s2a_utils.go",
     ],

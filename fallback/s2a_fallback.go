@@ -1,17 +1,17 @@
-package s2a
+package fallback
 
 import (
 	"context"
 	"crypto/tls"
 	"fmt"
-	v2 "github.com/google/s2a-go/internal/v2"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/grpclog"
 	"net"
 )
 
 const (
-	alpnProtoStrH2 = "h2"
+	alpnProtoStrH2   = "h2"
+	defaultHttpsPort = "443"
 )
 
 // DefaultFallbackClientHandshakeFunc returns an implementation of FallbackOptions.FallbackClientHandshakeFunc.
@@ -21,24 +21,24 @@ const (
 //		S2AAddress: s2aAddress,
 //		EnableV2:   true,
 //		FallbackOpts: &s2a.FallbackOptions{ // optional, and for V2 only
-//			FallbackClientHandshakeFunc: s2a.DefaultFallbackClientHandshakeFunc(fallbackAddr),
+//			FallbackClientHandshakeFunc: fallback.DefaultFallbackClientHandshakeFunc(fallbackAddr),
 //		},
 //	})
 //
 // The fallbackAddr is expected to be a network address, e.g. example.com:port. If port is not specified,
 // it uses default port 443
-func DefaultFallbackClientHandshakeFunc(fallbackAddr string) v2.FallbackClientHandshake {
+func DefaultFallbackClientHandshakeFunc(fallbackAddr string) func(ctx context.Context, originConn net.Conn, originErr error) (net.Conn, credentials.AuthInfo, error) {
 	return func(ctx context.Context, originConn net.Conn, originErr error) (net.Conn, credentials.AuthInfo, error) {
 		fallbackServerAddr, fallbackServerName, err := processFallbackAddr(fallbackAddr)
 		if err != nil {
 			return nil, nil, fmt.Errorf("no fallback server address specified, skipping fallback; S2Av2 client handshake error: %w", originErr)
 		}
 
-		fallbackTlsConfig := tls.Config{
+		fallbackTLSConfig := tls.Config{
 			ServerName: fallbackServerName,
 			NextProtos: []string{alpnProtoStrH2},
 		}
-		fallbackDialer := &tls.Dialer{Config: &fallbackTlsConfig}
+		fallbackDialer := &tls.Dialer{Config: &fallbackTLSConfig}
 		fbConn, fbErr := fallbackDialer.DialContext(ctx, "tcp", fallbackServerAddr)
 		if fbErr != nil {
 			grpclog.Infof("dialing to fallback server %s failed: %v", fallbackServerAddr, fbErr)
@@ -70,15 +70,17 @@ func DefaultFallbackClientHandshakeFunc(fallbackAddr string) v2.FallbackClientHa
 // DefaultFallbackDialerAndAddress returns a TLS dialer and a network address for it to dial with.
 // example use:
 //
-//	    fallbackDialer, fallbackServerAddr := s2a.DefaultFallbackDialerAndAddress(fallbackAddr)
+//	    fallbackDialer, fallbackServerAddr := fallback.DefaultFallbackDialerAndAddress(fallbackAddr)
 //		dialTLSContext := s2a.NewS2aDialTLSContextFunc(&s2a.ClientOptions{
 //			S2AAddress:         s2aAddress, // required
 //			EnableV2:           true, // must be true
-//			FallbackOpts: &s2a.FallbackOptions{ // optional, and for V2 only
-//					FallbackDialer:     fallbackDialer,
-//					FallbackServerAddr: fallbackServerAddr,
+//			FallbackOpts: &s2a.FallbackOptions{
+//				FallbackDialer: &s2a.FallbackDialer{
+//					Dialer:     fallbackDialer,
+//					ServerAddr: fallbackServerAddr,
+//				},
 //			},
-//		})
+//	})
 //
 // The fallbackAddr is expected to be a network address, e.g. example.com:port. If port is not specified,
 // it uses default port 443
@@ -86,15 +88,11 @@ func DefaultFallbackDialerAndAddress(fallbackAddr string) (*tls.Dialer, string) 
 	var fallbackDialer *tls.Dialer
 	fallbackServerAddr, fallbackServerName, err := processFallbackAddr(fallbackAddr)
 	if err == nil {
-		fallbackTlsConfig := tls.Config{
+		fallbackTLSConfig := tls.Config{
 			ServerName: fallbackServerName,
 		}
-		fallbackDialer = &tls.Dialer{Config: &fallbackTlsConfig}
-		if grpclog.V(1) {
-			grpclog.Infof("fallbackAddr passed in is: %s", fallbackAddr)
-			grpclog.Infof("fallbackServerAddr is: %s", fallbackServerAddr)
-			grpclog.Infof("fallbackServerName is: %s", fallbackServerName)
-		}
+		fallbackDialer = &tls.Dialer{Config: &fallbackTLSConfig}
+
 		return fallbackDialer, fallbackServerAddr
 	}
 	return nil, ""

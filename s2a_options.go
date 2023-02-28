@@ -127,27 +127,31 @@ type ClientOptions struct {
 	VerificationMode VerificationModeType
 
 	// S2Av2 only.
-	// If specified, client handshake will try the fallback options after dialing with S2Av2 fails.
+	// Optional fallback after dialing with S2Av2 fails.
 	FallbackOpts *FallbackOptions
 }
 
-// FallbackOptions contains the client handshake fallback options, for S2Av2 only.
+// FallbackOptions contains the fallback options for S2Av2.
 type FallbackOptions struct {
 	// FallbackClientHandshakeFunc is used to specify fallback behavior when calling s2a.NewClientCreds().
-	// It is called by s2av2TransportCreds's ClientHandshake function, after handshake with S2Av2 fails.
+	// It will be called by s2av2TransportCreds's ClientHandshake function, after handshake with S2Av2 fails.
 	//     originConn: the original raw connection passed into ClientHandshake func.
 	//                 If fallback is successful, the `originConn` should be closed.
 	//     originErr: the error encountered when performing handshake with S2Av2.
 	// This fallback func should return a post-handshake TLS connection, plus its auth info.
 	FallbackClientHandshakeFunc func(ctx context.Context, originConn net.Conn, originErr error) (net.Conn, credentials.AuthInfo, error)
 
-	// FallbackDialer, together with FallbackServerAddr is used to specify fallback behavior when calling
-	// s2a.NewS2aDialTLSContextFunc(). It passes in a custom fallback dialer to use after dialing with S2Av2 fails.
-	FallbackDialer *tls.Dialer
+	// FallbackDialer is used to specify fallback behavior when calling s2a.NewS2aDialTLSContextFunc().
+	// It passes in a custom fallback dialer and server address to use after dialing with S2Av2 fails.
+	FallbackDialer *FallbackDialer
+}
 
-	// FallbackServerAddr, together with FallbackDialer is used to specify fallback behavior when calling
-	// s2a.NewS2aDialTLSContextFunc(). It passes in a fallback server address to use after dialing with S2Av2 fails.
-	FallbackServerAddr string
+// FallbackDialer contains a fallback tls.Dialer and a server address to connect to.
+type FallbackDialer struct {
+	// Dialer specifies a fallback tls.Dialer.
+	Dialer *tls.Dialer
+	// ServerAddr is used by Dialer to establish fallback connection.
+	ServerAddr string
 }
 
 // DefaultClientOptions returns the default client options.

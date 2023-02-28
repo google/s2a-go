@@ -45,8 +45,6 @@ const (
 	s2aSecurityProtocol = "tls"
 	// defaultTimeout specifies the default server handshake timeout.
 	defaultTimeout = 30.0 * time.Second
-
-	defaultHttpsPort = "443"
 )
 
 // s2aTransportCreds are the transport credentials required for establishing
@@ -352,16 +350,26 @@ func getVerificationMode(verificationMode VerificationModeType) s2av2pb.Validate
 }
 
 // NewS2aDialTLSContextFunc returns a dial func which establishes an MTLS connection using S2Av2.
+// example use with http.RoundTripper:
+//
+//		dialTLSContext := s2a.NewS2aDialTLSContextFunc(&s2a.ClientOptions{
+//			S2AAddress:         s2aAddress, // required
+//			EnableV2:           true, // must be true
+//		})
+//	 	trans := http.DefaultTransport
+//	 	trans.DialTLSContext = dialTLSContext
 func NewS2aDialTLSContextFunc(opts *ClientOptions) func(ctx context.Context, network, addr string) (net.Conn, error) {
 
 	return func(ctx context.Context, network, addr string) (net.Conn, error) {
 
 		fallback := func(err error) (net.Conn, error) {
-			if opts.FallbackOpts != nil && opts.FallbackOpts.FallbackDialer != nil && opts.FallbackOpts.FallbackServerAddr != "" {
-				grpclog.Infof("fall back to dial: %s", opts.FallbackOpts.FallbackServerAddr)
-				fbConn, fbErr := opts.FallbackOpts.FallbackDialer.DialContext(ctx, network, opts.FallbackOpts.FallbackServerAddr)
+			if opts.FallbackOpts != nil && opts.FallbackOpts.FallbackDialer != nil &&
+				opts.FallbackOpts.FallbackDialer.Dialer != nil && opts.FallbackOpts.FallbackDialer.ServerAddr != "" {
+				fbDialer := opts.FallbackOpts.FallbackDialer
+				grpclog.Infof("fall back to dial: %s", fbDialer.ServerAddr)
+				fbConn, fbErr := fbDialer.Dialer.DialContext(ctx, network, fbDialer.ServerAddr)
 				if fbErr != nil {
-					return nil, fmt.Errorf("error fallback dial to %s; S2Av2 error: %w", opts.FallbackOpts.FallbackServerAddr, err)
+					return nil, fmt.Errorf("error fallback to %s: %v; S2Av2 error: %w", fbDialer.ServerAddr, fbErr, err)
 				} else {
 					return fbConn, nil
 				}
@@ -379,16 +387,16 @@ func NewS2aDialTLSContextFunc(opts *ClientOptions) func(ctx context.Context, net
 		if e != nil {
 			serverName = addr
 		}
-		s2aTlsConfig, e := factory.Build(ctx, &TLSClientConfigOptions{
+		s2aTLSConfig, e := factory.Build(ctx, &TLSClientConfigOptions{
 			ServerName: serverName,
 		})
 		if e != nil {
-			grpclog.Infof("error building S2Av2 tls config: %v", e)
+			grpclog.Infof("error building S2Av2 TLS config: %v", e)
 			return fallback(e)
 		}
 
 		s2aDialer := &tls.Dialer{
-			Config: s2aTlsConfig,
+			Config: s2aTLSConfig,
 		}
 		c, e := s2aDialer.DialContext(ctx, network, addr)
 		if e != nil {
