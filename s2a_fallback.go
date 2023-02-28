@@ -62,6 +62,7 @@ func DefaultFallbackClientHandshakeFunc(fallbackAddr string) v2.FallbackClientHa
 			grpclog.Infof("ConnectionState.HandshakeComplete: %v", tc.ConnectionState().HandshakeComplete)
 			grpclog.Infof("ConnectionState.ServerName: %v", tc.ConnectionState().ServerName)
 		}
+		originConn.Close()
 		return fbConn, tlsInfo, nil
 	}
 }
