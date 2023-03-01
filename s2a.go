@@ -369,7 +369,7 @@ func NewS2aDialTLSContextFunc(opts *ClientOptions) func(ctx context.Context, net
 				grpclog.Infof("fall back to dial: %s", fbDialer.ServerAddr)
 				fbConn, fbErr := fbDialer.Dialer.DialContext(ctx, network, fbDialer.ServerAddr)
 				if fbErr != nil {
-					return nil, fmt.Errorf("error fallback to %s: %v; S2Av2 error: %w", fbDialer.ServerAddr, fbErr, err)
+					return nil, fmt.Errorf("error fallback to %s: %v; S2A error: %w", fbDialer.ServerAddr, fbErr, err)
 				} else {
 					return fbConn, nil
 				}
@@ -379,7 +379,7 @@ func NewS2aDialTLSContextFunc(opts *ClientOptions) func(ctx context.Context, net
 
 		factory, e := NewTLSClientConfigFactory(opts)
 		if e != nil {
-			grpclog.Infof("error creating S2Av2 client config factory: %v", e)
+			grpclog.Infof("error creating S2A client config factory: %v", e)
 			return fallback(e)
 		}
 
@@ -391,7 +391,7 @@ func NewS2aDialTLSContextFunc(opts *ClientOptions) func(ctx context.Context, net
 			ServerName: serverName,
 		})
 		if e != nil {
-			grpclog.Infof("error building S2Av2 TLS config: %v", e)
+			grpclog.Infof("error building S2A TLS config: %v", e)
 			return fallback(e)
 		}
 
@@ -400,10 +400,10 @@ func NewS2aDialTLSContextFunc(opts *ClientOptions) func(ctx context.Context, net
 		}
 		c, e := s2aDialer.DialContext(ctx, network, addr)
 		if e != nil {
-			grpclog.Infof("error dialing with S2Av2 to %s: %v", addr, e)
+			grpclog.Infof("error dialing with S2A to %s: %v", addr, e)
 			return fallback(e)
 		} else {
-			grpclog.Infof("success dialing MTLS to %s with S2Av2", addr)
+			grpclog.Infof("success dialing MTLS to %s with S2A", addr)
 			return c, nil
 		}
 	}
