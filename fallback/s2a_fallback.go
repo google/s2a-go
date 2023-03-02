@@ -57,13 +57,12 @@ const (
 //	            If fallback is successful, the `originConn` should be closed.
 //	originErr: the error encountered when performing client handshake with S2Av2.
 func DefaultFallbackClientHandshakeFunc(fallbackAddr string) (func(context.Context, string, net.Conn, error) (net.Conn, credentials.AuthInfo, error), error) {
-	fallbackServerAddr, fallbackServerName, err := processFallbackAddr(fallbackAddr)
+	fallbackServerAddr, err := processFallbackAddr(fallbackAddr)
 	if err != nil {
 		return nil, err
 	}
 	return func(ctx context.Context, originServer string, originConn net.Conn, originErr error) (net.Conn, credentials.AuthInfo, error) {
 		fallbackTLSConfig := tls.Config{
-			ServerName: fallbackServerName,
 			NextProtos: []string{alpnProtoStrH2},
 		}
 		fallbackDialer := &tls.Dialer{Config: &fallbackTLSConfig}
@@ -114,37 +113,28 @@ func DefaultFallbackClientHandshakeFunc(fallbackAddr string) (func(context.Conte
 // The fallbackAddr is expected to be a network address, e.g. example.com:port. If port is not specified,
 // it uses default port 443.
 func DefaultFallbackDialerAndAddress(fallbackAddr string) (*tls.Dialer, string, error) {
-	var fallbackDialer *tls.Dialer
-	fallbackServerAddr, fallbackServerName, err := processFallbackAddr(fallbackAddr)
+	fallbackServerAddr, err := processFallbackAddr(fallbackAddr)
 	if err != nil {
 		return nil, "", err
 	}
-	fallbackTLSConfig := tls.Config{
-		ServerName: fallbackServerName,
-	}
-	fallbackDialer = &tls.Dialer{Config: &fallbackTLSConfig}
-
-	return fallbackDialer, fallbackServerAddr, nil
+	return &tls.Dialer{}, fallbackServerAddr, nil
 }
 
-func processFallbackAddr(fallbackAddr string) (string, string, error) {
+func processFallbackAddr(fallbackAddr string) (string, error) {
 	// hostname:port
 	var fallbackServerAddr string
-	// hostname
-	var fallbackServerName string
 	var err error
 
 	if fallbackAddr != "" {
-		fallbackServerName, _, err = net.SplitHostPort(fallbackAddr)
+		_, _, err = net.SplitHostPort(fallbackAddr)
 		if err != nil {
 			// fallbackAddr does not have port suffix
 			fallbackServerAddr = net.JoinHostPort(fallbackAddr, defaultHttpsPort)
-			fallbackServerName = fallbackAddr
 		} else {
 			// FallbackServerAddr already has port suffix
 			fallbackServerAddr = fallbackAddr
 		}
-		return fallbackServerAddr, fallbackServerName, nil
+		return fallbackServerAddr, nil
 	}
-	return "", "", fmt.Errorf("empty fallback address")
+	return "", fmt.Errorf("empty fallback address")
 }
