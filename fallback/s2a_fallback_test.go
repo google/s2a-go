@@ -26,8 +26,8 @@ func TestDefaultFallbackClientHandshakeFunc(t *testing.T) {
 	for _, tc := range []struct {
 		desc              string
 		inputFallbackAddr string
-		funcInitialized bool
-		expectNilErr	bool
+		funcInitialized   bool
+		expectNilErr      bool
 	}{
 		{
 			"working case, fallback address has port suffix",
@@ -63,7 +63,7 @@ func TestDefaultFallbackDialerAndAddress(t *testing.T) {
 		inputFallbackAddr string
 		dialerInitialized bool
 		expectedAddr      string
-		expectNilErr	bool
+		expectNilErr      bool
 	}{
 		{
 			"working case, fallback address has port suffix",
