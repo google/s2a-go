@@ -12,7 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-load("@io_bazel_rules_go//go:def.bzl", "go_library")
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+package(
+    default_visibility = ["//:__subpackages__"],
+)
 
 go_library(
     name = "s2a_fallback",
@@ -22,4 +26,10 @@ go_library(
         "@org_golang_google_grpc//credentials:go_default_library",
         "@org_golang_google_grpc//grpclog:go_default_library",
     ],
+)
+
+go_test(
+    name = "s2a_fallback_test",
+    srcs = ["s2a_fallback_test.go"],
+    embed = [":s2a_fallback"],
 )

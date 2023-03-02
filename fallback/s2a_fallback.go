@@ -56,13 +56,12 @@ const (
 //	originConn: the original raw tcp connection passed into S2Av2's ClientHandshake func.
 //	            If fallback is successful, the `originConn` should be closed.
 //	originErr: the error encountered when performing client handshake with S2Av2.
-func DefaultFallbackClientHandshakeFunc(fallbackAddr string) func(context.Context, string, net.Conn, error) (net.Conn, credentials.AuthInfo, error) {
+func DefaultFallbackClientHandshakeFunc(fallbackAddr string) (func(context.Context, string, net.Conn, error) (net.Conn, credentials.AuthInfo, error), error) {
+	fallbackServerAddr, fallbackServerName, err := processFallbackAddr(fallbackAddr)
+	if err != nil {
+		return nil, err
+	}
 	return func(ctx context.Context, originServer string, originConn net.Conn, originErr error) (net.Conn, credentials.AuthInfo, error) {
-		fallbackServerAddr, fallbackServerName, err := processFallbackAddr(fallbackAddr)
-		if err != nil {
-			return nil, nil, fmt.Errorf("no fallback server address specified, skipping fallback; S2A client handshake with %s error: %w", originServer, originErr)
-		}
-
 		fallbackTLSConfig := tls.Config{
 			ServerName: fallbackServerName,
 			NextProtos: []string{alpnProtoStrH2},
@@ -93,7 +92,7 @@ func DefaultFallbackClientHandshakeFunc(fallbackAddr string) func(context.Contex
 		}
 		originConn.Close()
 		return fbConn, tlsInfo, nil
-	}
+	}, nil
 }
 
 // DefaultFallbackDialerAndAddress returns a TLS dialer and a network address for it to dial with.
@@ -114,18 +113,18 @@ func DefaultFallbackClientHandshakeFunc(fallbackAddr string) func(context.Contex
 //
 // The fallbackAddr is expected to be a network address, e.g. example.com:port. If port is not specified,
 // it uses default port 443.
-func DefaultFallbackDialerAndAddress(fallbackAddr string) (*tls.Dialer, string) {
+func DefaultFallbackDialerAndAddress(fallbackAddr string) (*tls.Dialer, string, error) {
 	var fallbackDialer *tls.Dialer
 	fallbackServerAddr, fallbackServerName, err := processFallbackAddr(fallbackAddr)
-	if err == nil {
-		fallbackTLSConfig := tls.Config{
-			ServerName: fallbackServerName,
-		}
-		fallbackDialer = &tls.Dialer{Config: &fallbackTLSConfig}
-
-		return fallbackDialer, fallbackServerAddr
+	if err != nil {
+		return nil, "", err
 	}
-	return nil, ""
+	fallbackTLSConfig := tls.Config{
+		ServerName: fallbackServerName,
+	}
+	fallbackDialer = &tls.Dialer{Config: &fallbackTLSConfig}
+
+	return fallbackDialer, fallbackServerAddr, nil
 }
 
 func processFallbackAddr(fallbackAddr string) (string, string, error) {
