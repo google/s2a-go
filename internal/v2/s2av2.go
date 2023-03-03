@@ -24,6 +24,7 @@ import (
 	"context"
 	"crypto/tls"
 	"errors"
+	"github.com/google/s2a-go/fallback"
 	"net"
 	"time"
 
@@ -44,7 +45,6 @@ const (
 	defaultTimeout      = 20.0 * time.Second
 )
 
-type FallbackClientHandshake func(context.Context, string, net.Conn, error) (net.Conn, credentials.AuthInfo, error)
 type s2av2TransportCreds struct {
 	info         *credentials.ProtocolInfo
 	isClient     bool
@@ -56,12 +56,12 @@ type s2av2TransportCreds struct {
 	// localIdentities should only be used by the server.
 	localIdentities         []*commonpbv1.Identity
 	verificationMode        s2av2pb.ValidatePeerCertificateChainReq_VerificationMode
-	fallbackClientHandshake FallbackClientHandshake
+	fallbackClientHandshake fallback.FallbackClientHandshake
 }
 
 // NewClientCreds returns a client-side transport credentials object that uses
 // the S2Av2 to establish a secure connection with a server.
-func NewClientCreds(s2av2Address string, localIdentity *commonpbv1.Identity, verificationMode s2av2pb.ValidatePeerCertificateChainReq_VerificationMode, fallbackClientHandshakeFunc FallbackClientHandshake) (credentials.TransportCredentials, error) {
+func NewClientCreds(s2av2Address string, localIdentity *commonpbv1.Identity, verificationMode s2av2pb.ValidatePeerCertificateChainReq_VerificationMode, fallbackClientHandshakeFunc fallback.FallbackClientHandshake) (credentials.TransportCredentials, error) {
 	// Create an AccessTokenManager instance to use to authenticate to S2Av2.
 	accessTokenManager, err := tokenmanager.NewSingleTokenAccessTokenManager()
 

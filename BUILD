@@ -34,6 +34,7 @@ go_library(
     ],
     importpath = "github.com/google/s2a-go/s2a",
     deps = [
+        "//fallback:s2a_fallback",
         "//internal/handshaker",
         "//internal/handshaker/service",
         "//internal/proto/common_go_proto",

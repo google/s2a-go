@@ -25,6 +25,7 @@ import (
 	"crypto/tls"
 	"errors"
 	"fmt"
+	"github.com/google/s2a-go/fallback"
 	"github.com/google/s2a-go/internal/tokenmanager"
 	"net"
 	"sync"
@@ -88,7 +89,7 @@ func NewClientCreds(opts *ClientOptions) (credentials.TransportCredentials, erro
 	}
 	if opts.EnableV2 {
 		verificationMode := getVerificationMode(opts.VerificationMode)
-		var fallbackFunc v2.FallbackClientHandshake
+		var fallbackFunc fallback.FallbackClientHandshake
 		if opts.FallbackOpts != nil && opts.FallbackOpts.FallbackClientHandshakeFunc != nil {
 			fallbackFunc = opts.FallbackOpts.FallbackClientHandshakeFunc
 		}
@@ -349,7 +350,7 @@ func getVerificationMode(verificationMode VerificationModeType) s2av2pb.Validate
 	}
 }
 
-// NewS2aDialTLSContextFunc returns a dial func which establishes an MTLS connection using S2Av2.
+// NewS2ADialTLSContextFunc returns a dial func which establishes an MTLS connection using S2A.
 // example use with http.RoundTripper:
 //
 //		dialTLSContext := s2a.NewS2aDialTLSContextFunc(&s2a.ClientOptions{
@@ -358,7 +359,7 @@ func getVerificationMode(verificationMode VerificationModeType) s2av2pb.Validate
 //		})
 //	 	trans := http.DefaultTransport
 //	 	trans.DialTLSContext = dialTLSContext
-func NewS2aDialTLSContextFunc(opts *ClientOptions) func(ctx context.Context, network, addr string) (net.Conn, error) {
+func NewS2ADialTLSContextFunc(opts *ClientOptions) func(ctx context.Context, network, addr string) (net.Conn, error) {
 
 	return func(ctx context.Context, network, addr string) (net.Conn, error) {
 

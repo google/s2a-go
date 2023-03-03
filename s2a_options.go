@@ -19,11 +19,9 @@
 package s2a
 
 import (
-	"context"
 	"crypto/tls"
 	"errors"
-	"google.golang.org/grpc/credentials"
-	"net"
+	"github.com/google/s2a-go/fallback"
 	"sync"
 
 	s2apb "github.com/google/s2a-go/internal/proto/common_go_proto"
@@ -126,24 +124,21 @@ type ClientOptions struct {
 	// peer certificate chain.
 	VerificationMode VerificationModeType
 
-	// S2Av2 only.
-	// Optional fallback after dialing with S2Av2 fails.
+	// Optional fallback after dialing with S2A fails.
 	FallbackOpts *FallbackOptions
 }
 
-// FallbackOptions contains the fallback options for S2Av2.
+
+// FallbackOptions prescribes the fallback logic that should be taken if the application fails to connect with S2A.
 type FallbackOptions struct {
 	// FallbackClientHandshakeFunc is used to specify fallback behavior when calling s2a.NewClientCreds().
-	// It will be called by s2av2TransportCreds's ClientHandshake function, after handshake with S2Av2 fails.
-	//     originServer: the original server attempted with S2Av2.
-	//     originConn: the original raw tcp connection passed into S2Av2's ClientHandshake func.
-	//                 If fallback is successful, the `originConn` should be closed.
-	//     originErr: the error encountered when performing client handshake with S2Av2.
-	// This fallback func should return a post-handshake TLS connection, plus its auth info.
-	FallbackClientHandshakeFunc func(ctx context.Context, originServer string, originConn net.Conn, originErr error) (net.Conn, credentials.AuthInfo, error)
+	// It will be called by ClientHandshake function, after handshake with S2A fails.
+	// s2a.NewClientCreds() ignores the other FallbackDialer field.
+	FallbackClientHandshakeFunc fallback.FallbackClientHandshake
 
 	// FallbackDialer is used to specify fallback behavior when calling s2a.NewS2aDialTLSContextFunc().
-	// It passes in a custom fallback dialer and server address to use after dialing with S2Av2 fails.
+	// It passes in a custom fallback dialer and server address to use after dialing with S2A fails.
+	// s2a.NewS2aDialTLSContextFunc() ignores the other FallbackClientHandshakeFunc field.
 	FallbackDialer *FallbackDialer
 }
 
