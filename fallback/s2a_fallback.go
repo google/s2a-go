@@ -36,10 +36,11 @@ const (
 
 // FallbackClientHandshake establishes a TLS connection and returns it, plus its auth info.
 // Input:
-//     targetServer: the server attempted with S2A.
-//     conn: the raw tcp connection passed into S2A's ClientHandshake func.
-//                 If fallback is successful, the `conn` should be closed.
-//     err: the error encountered when performing client handshake with S2A.
+//
+//	targetServer: the server attempted with S2A.
+//	conn: the raw tcp connection passed into S2A's ClientHandshake func.
+//	            If fallback is successful, the `conn` should be closed.
+//	err: the error encountered when performing client handshake with S2A.
 type FallbackClientHandshake func(ctx context.Context, targetServer string, conn net.Conn, err error) (net.Conn, credentials.AuthInfo, error)
 
 // DefaultFallbackClientHandshakeFunc returns an implementation of FallbackOptions.FallbackClientHandshakeFunc,
@@ -54,6 +55,7 @@ type FallbackClientHandshake func(ctx context.Context, targetServer string, conn
 //			FallbackClientHandshakeFunc: fallback.DefaultFallbackClientHandshakeFunc(fallbackAddr),
 //		},
 //	})
+//
 // The fallback server's certificate should be verifiable using OS root store.
 // The fallbackAddr is expected to be a network address, e.g. example.com:port. If port is not specified,
 // it uses default port 443.
@@ -69,9 +71,9 @@ func DefaultFallbackClientHandshakeFunc(fallbackAddr string) (func(context.Conte
 	}
 	return func(ctx context.Context, targetServer string, conn net.Conn, s2aErr error) (net.Conn, credentials.AuthInfo, error) {
 		fallbackTLSConfig := tls.Config{
-			MinVersion: tls.VersionTLS13,
+			MinVersion:         tls.VersionTLS13,
 			ClientSessionCache: nil,
-			NextProtos: []string{alpnProtoStrH2},
+			NextProtos:         []string{alpnProtoStrH2},
 		}
 		fallbackDialer := &tls.Dialer{Config: &fallbackTLSConfig}
 		fbConn, fbErr := fallbackDialer.DialContext(ctx, "tcp", fallbackServerAddr)
@@ -131,9 +133,9 @@ func DefaultFallbackDialerAndAddress(fallbackAddr string) (*tls.Dialer, string, 
 		return nil, "", err
 	}
 	fallbackTLSConfig := tls.Config{
-		MinVersion: tls.VersionTLS13,
+		MinVersion:         tls.VersionTLS13,
 		ClientSessionCache: nil,
-		NextProtos: []string{alpnProtoStrHttp},
+		NextProtos:         []string{alpnProtoStrHttp},
 	}
 	return &tls.Dialer{Config: &fallbackTLSConfig}, fallbackServerAddr, nil
 }

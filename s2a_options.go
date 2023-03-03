@@ -128,7 +128,6 @@ type ClientOptions struct {
 	FallbackOpts *FallbackOptions
 }
 
-
 // FallbackOptions prescribes the fallback logic that should be taken if the application fails to connect with S2A.
 type FallbackOptions struct {
 	// FallbackClientHandshakeFunc is used to specify fallback behavior when calling s2a.NewClientCreds().
