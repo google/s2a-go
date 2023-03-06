@@ -173,7 +173,7 @@ func (c *s2av2TransportCreds) ClientHandshake(ctx context.Context, serverAuthori
 		}
 		return nil, nil, err
 	} else {
-		grpclog.Infof("Successful done client handshake using S2Av2 to: %s", serverName)
+		grpclog.Infof("Successfully done client handshake using S2Av2 to: %s", serverName)
 	}
 	return conn, authInfo, err
 }

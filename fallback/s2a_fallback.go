@@ -35,17 +35,16 @@ const (
 )
 
 // FallbackClientHandshake establishes a TLS connection and returns it, plus its auth info.
-// Input:
+// Inputs:
 //
 //	targetServer: the server attempted with S2A.
-//	conn: the raw tcp connection passed into S2A's ClientHandshake func.
+//	conn: the tcp connection to the server at address targetServer that was passed into S2A's ClientHandshake func.
 //	            If fallback is successful, the `conn` should be closed.
-//	err: the error encountered when performing client handshake with S2A.
+//	err: the error encountered when performing the client-side TLS handshake with S2A.
 type FallbackClientHandshake func(ctx context.Context, targetServer string, conn net.Conn, err error) (net.Conn, credentials.AuthInfo, error)
 
-// DefaultFallbackClientHandshakeFunc returns an implementation of FallbackOptions.FallbackClientHandshakeFunc,
-// which is of type FallbackClientHandshake.
-// It establishes a TLS connection with the provided fallbackAddr, returns the new connection and its auth info.
+// DefaultFallbackClientHandshakeFunc returns a FallbackClientHandshake function,
+// which establishes a TLS connection to the provided fallbackAddr, returns the new connection and its auth info.
 // Example use:
 //
 //	transportCreds, _ = s2a.NewClientCreds(&s2a.ClientOptions{
@@ -56,12 +55,12 @@ type FallbackClientHandshake func(ctx context.Context, targetServer string, conn
 //		},
 //	})
 //
-// The fallback server's certificate should be verifiable using OS root store.
+// The fallback server's certificate must be verifiable using OS root store.
 // The fallbackAddr is expected to be a network address, e.g. example.com:port. If port is not specified,
 // it uses default port 443.
 // In the returned function's TLS config, ClientSessionCache is explicitly set to nil to disable TLS resumption,
 // and min TLS version is set to 1.3.
-func DefaultFallbackClientHandshakeFunc(fallbackAddr string) (func(context.Context, string, net.Conn, error) (net.Conn, credentials.AuthInfo, error), error) {
+func DefaultFallbackClientHandshakeFunc(fallbackAddr string) (FallbackClientHandshake, error) {
 	fallbackServerAddr, err := processFallbackAddr(fallbackAddr)
 	if err != nil {
 		if grpclog.V(1) {
@@ -104,7 +103,7 @@ func DefaultFallbackClientHandshakeFunc(fallbackAddr string) (func(context.Conte
 	}, nil
 }
 
-// DefaultFallbackDialerAndAddress returns a TLS dialer and a network address for it to dial with.
+// DefaultFallbackDialerAndAddress returns a TLS dialer and the network address to dial.
 // Example use:
 //
 //	    fallbackDialer, fallbackServerAddr := fallback.DefaultFallbackDialerAndAddress(fallbackAddr)
@@ -135,7 +134,7 @@ func DefaultFallbackDialerAndAddress(fallbackAddr string) (*tls.Dialer, string, 
 	fallbackTLSConfig := tls.Config{
 		MinVersion:         tls.VersionTLS13,
 		ClientSessionCache: nil,
-		NextProtos:         []string{alpnProtoStrHttp},
+		NextProtos:         []string{alpnProtoStrH2, alpnProtoStrHttp},
 	}
 	return &tls.Dialer{Config: &fallbackTLSConfig}, fallbackServerAddr, nil
 }

@@ -350,15 +350,15 @@ func getVerificationMode(verificationMode VerificationModeType) s2av2pb.Validate
 	}
 }
 
-// NewS2ADialTLSContextFunc returns a dial func which establishes an MTLS connection using S2A.
-// example use with http.RoundTripper:
+// NewS2ADialTLSContextFunc returns a dialer which establishes an MTLS connection using S2A.
+// Example use with http.RoundTripper:
 //
 //		dialTLSContext := s2a.NewS2aDialTLSContextFunc(&s2a.ClientOptions{
 //			S2AAddress:         s2aAddress, // required
 //			EnableV2:           true, // must be true
 //		})
-//	 	trans := http.DefaultTransport
-//	 	trans.DialTLSContext = dialTLSContext
+//	 	transport := http.DefaultTransport
+//	 	transport.DialTLSContext = dialTLSContext
 func NewS2ADialTLSContextFunc(opts *ClientOptions) func(ctx context.Context, network, addr string) (net.Conn, error) {
 
 	return func(ctx context.Context, network, addr string) (net.Conn, error) {
@@ -378,34 +378,33 @@ func NewS2ADialTLSContextFunc(opts *ClientOptions) func(ctx context.Context, net
 			return nil, err
 		}
 
-		factory, e := NewTLSClientConfigFactory(opts)
-		if e != nil {
-			grpclog.Infof("error creating S2A client config factory: %v", e)
-			return fallback(e)
+		factory, err := NewTLSClientConfigFactory(opts)
+		if err != nil {
+			grpclog.Infof("error creating S2A client config factory: %v", err)
+			return fallback(err)
 		}
 
-		serverName, _, e := net.SplitHostPort(addr)
-		if e != nil {
+		serverName, _, err := net.SplitHostPort(addr)
+		if err != nil {
 			serverName = addr
 		}
-		s2aTLSConfig, e := factory.Build(ctx, &TLSClientConfigOptions{
+		s2aTLSConfig, err := factory.Build(ctx, &TLSClientConfigOptions{
 			ServerName: serverName,
 		})
-		if e != nil {
-			grpclog.Infof("error building S2A TLS config: %v", e)
-			return fallback(e)
+		if err != nil {
+			grpclog.Infof("error building S2A TLS config: %v", err)
+			return fallback(err)
 		}
 
 		s2aDialer := &tls.Dialer{
 			Config: s2aTLSConfig,
 		}
-		c, e := s2aDialer.DialContext(ctx, network, addr)
-		if e != nil {
-			grpclog.Infof("error dialing with S2A to %s: %v", addr, e)
-			return fallback(e)
-		} else {
-			grpclog.Infof("success dialing MTLS to %s with S2A", addr)
-			return c, nil
+		c, err := s2aDialer.DialContext(ctx, network, addr)
+		if err != nil {
+			grpclog.Infof("error dialing with S2A to %s: %v", addr, err)
+			return fallback(err)
 		}
+		grpclog.Infof("success dialing MTLS to %s with S2A", addr)
+		return c, nil
 	}
 }
