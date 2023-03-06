@@ -131,7 +131,7 @@ func TestInfo(t *testing.T) {
 func TestCloneClient(t *testing.T) {
 	os.Setenv("S2A_ACCESS_TOKEN", "TestCloneClient_s2a_access_token")
 	fallbackFunc, err := fallback.DefaultFallbackClientHandshakeFunc("example.com")
-	if err!= nil {
+	if err != nil {
 		t.Errorf("error creating fallback handshake function: %v", err)
 	}
 	c, err := NewClientCreds(fakes2av2Address, &commonpbv1.Identity{
