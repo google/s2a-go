@@ -431,7 +431,7 @@ func startHTTPServer(t *testing.T) string {
 	return lis.Addr().String()
 }
 
-// runHTTPClient starts an HTTP client and talk to an HTTP server using S2A.
+// runHTTPClient starts an HTTP client and talks to an HTTP server using S2A.
 func runHTTPClient(t *testing.T, clientS2AAddress, serverAddr string, fallbackOpts *FallbackOptions) {
 	dialTLSContext := NewS2ADialTLSContextFunc(&ClientOptions{
 		S2AAddress:   clientS2AAddress,
