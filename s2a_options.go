@@ -19,7 +19,9 @@
 package s2a
 
 import (
+	"crypto/tls"
 	"errors"
+	"github.com/google/s2a-go/fallback"
 	"sync"
 
 	s2apb "github.com/google/s2a-go/internal/proto/common_go_proto"
@@ -121,6 +123,30 @@ type ClientOptions struct {
 	// VerificationMode specifies the mode that S2A must use to verify the
 	// peer certificate chain.
 	VerificationMode VerificationModeType
+
+	// Optional fallback after dialing with S2A fails.
+	FallbackOpts *FallbackOptions
+}
+
+// FallbackOptions prescribes the fallback logic that should be taken if the application fails to connect with S2A.
+type FallbackOptions struct {
+	// FallbackClientHandshakeFunc is used to specify fallback behavior when calling s2a.NewClientCreds().
+	// It will be called by ClientHandshake function, after handshake with S2A fails.
+	// s2a.NewClientCreds() ignores the other FallbackDialer field.
+	FallbackClientHandshakeFunc fallback.FallbackClientHandshake
+
+	// FallbackDialer is used to specify fallback behavior when calling s2a.NewS2aDialTLSContextFunc().
+	// It passes in a custom fallback dialer and server address to use after dialing with S2A fails.
+	// s2a.NewS2aDialTLSContextFunc() ignores the other FallbackClientHandshakeFunc field.
+	FallbackDialer *FallbackDialer
+}
+
+// FallbackDialer contains a fallback tls.Dialer and a server address to connect to.
+type FallbackDialer struct {
+	// Dialer specifies a fallback tls.Dialer.
+	Dialer *tls.Dialer
+	// ServerAddr is used by Dialer to establish fallback connection.
+	ServerAddr string
 }
 
 // DefaultClientOptions returns the default client options.

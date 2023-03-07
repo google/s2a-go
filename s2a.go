@@ -25,6 +25,7 @@ import (
 	"crypto/tls"
 	"errors"
 	"fmt"
+	"github.com/google/s2a-go/fallback"
 	"github.com/google/s2a-go/internal/tokenmanager"
 	"net"
 	"sync"
@@ -88,7 +89,11 @@ func NewClientCreds(opts *ClientOptions) (credentials.TransportCredentials, erro
 	}
 	if opts.EnableV2 {
 		verificationMode := getVerificationMode(opts.VerificationMode)
-		return v2.NewClientCreds(opts.S2AAddress, localIdentity, verificationMode)
+		var fallbackFunc fallback.FallbackClientHandshake
+		if opts.FallbackOpts != nil && opts.FallbackOpts.FallbackClientHandshakeFunc != nil {
+			fallbackFunc = opts.FallbackOpts.FallbackClientHandshakeFunc
+		}
+		return v2.NewClientCreds(opts.S2AAddress, localIdentity, verificationMode, fallbackFunc)
 	}
 	return &s2aTransportCreds{
 		info: &credentials.ProtocolInfo{
@@ -342,5 +347,64 @@ func getVerificationMode(verificationMode VerificationModeType) s2av2pb.Validate
 		return s2av2pb.ValidatePeerCertificateChainReq_SPIFFE
 	default:
 		return s2av2pb.ValidatePeerCertificateChainReq_UNSPECIFIED
+	}
+}
+
+// NewS2ADialTLSContextFunc returns a dialer which establishes an MTLS connection using S2A.
+// Example use with http.RoundTripper:
+//
+//		dialTLSContext := s2a.NewS2aDialTLSContextFunc(&s2a.ClientOptions{
+//			S2AAddress:         s2aAddress, // required
+//			EnableV2:           true, // must be true
+//		})
+//	 	transport := http.DefaultTransport
+//	 	transport.DialTLSContext = dialTLSContext
+func NewS2ADialTLSContextFunc(opts *ClientOptions) func(ctx context.Context, network, addr string) (net.Conn, error) {
+
+	return func(ctx context.Context, network, addr string) (net.Conn, error) {
+
+		fallback := func(err error) (net.Conn, error) {
+			if opts.FallbackOpts != nil && opts.FallbackOpts.FallbackDialer != nil &&
+				opts.FallbackOpts.FallbackDialer.Dialer != nil && opts.FallbackOpts.FallbackDialer.ServerAddr != "" {
+				fbDialer := opts.FallbackOpts.FallbackDialer
+				grpclog.Infof("fall back to dial: %s", fbDialer.ServerAddr)
+				fbConn, fbErr := fbDialer.Dialer.DialContext(ctx, network, fbDialer.ServerAddr)
+				if fbErr != nil {
+					return nil, fmt.Errorf("error fallback to %s: %v; S2A error: %w", fbDialer.ServerAddr, fbErr, err)
+				} else {
+					return fbConn, nil
+				}
+			}
+			return nil, err
+		}
+
+		factory, err := NewTLSClientConfigFactory(opts)
+		if err != nil {
+			grpclog.Infof("error creating S2A client config factory: %v", err)
+			return fallback(err)
+		}
+
+		serverName, _, err := net.SplitHostPort(addr)
+		if err != nil {
+			serverName = addr
+		}
+		s2aTLSConfig, err := factory.Build(ctx, &TLSClientConfigOptions{
+			ServerName: serverName,
+		})
+		if err != nil {
+			grpclog.Infof("error building S2A TLS config: %v", err)
+			return fallback(err)
+		}
+
+		s2aDialer := &tls.Dialer{
+			Config: s2aTLSConfig,
+		}
+		c, err := s2aDialer.DialContext(ctx, network, addr)
+		if err != nil {
+			grpclog.Infof("error dialing with S2A to %s: %v", addr, err)
+			return fallback(err)
+		}
+		grpclog.Infof("success dialing MTLS to %s with S2A", addr)
+		return c, nil
 	}
 }

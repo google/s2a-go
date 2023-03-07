@@ -20,7 +20,9 @@ package v2
 
 import (
 	"context"
+	"github.com/google/s2a-go/fallback"
 	"os"
+	"reflect"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -49,7 +51,7 @@ func TestNewClientCreds(t *testing.T) {
 				IdentityOneof: &commonpbv1.Identity_Hostname{
 					Hostname: "test_rsa_client_identity",
 				},
-			}, s2av2pb.ValidatePeerCertificateChainReq_CONNECT_TO_GOOGLE)
+			}, s2av2pb.ValidatePeerCertificateChainReq_CONNECT_TO_GOOGLE, nil)
 			if err != nil {
 				t.Fatalf("NewClientCreds() failed: %v", err)
 			}
@@ -116,7 +118,7 @@ func TestInfo(t *testing.T) {
 		IdentityOneof: &commonpbv1.Identity_Hostname{
 			Hostname: "test_rsa_client_identity",
 		},
-	}, s2av2pb.ValidatePeerCertificateChainReq_CONNECT_TO_GOOGLE)
+	}, s2av2pb.ValidatePeerCertificateChainReq_CONNECT_TO_GOOGLE, nil)
 	if err != nil {
 		t.Fatalf("NewClientCreds() failed: %v", err)
 	}
@@ -128,11 +130,15 @@ func TestInfo(t *testing.T) {
 
 func TestCloneClient(t *testing.T) {
 	os.Setenv("S2A_ACCESS_TOKEN", "TestCloneClient_s2a_access_token")
+	fallbackFunc, err := fallback.DefaultFallbackClientHandshakeFunc("example.com")
+	if err != nil {
+		t.Errorf("error creating fallback handshake function: %v", err)
+	}
 	c, err := NewClientCreds(fakes2av2Address, &commonpbv1.Identity{
 		IdentityOneof: &commonpbv1.Identity_Hostname{
 			Hostname: "test_rsa_client_identity",
 		},
-	}, s2av2pb.ValidatePeerCertificateChainReq_CONNECT_TO_GOOGLE)
+	}, s2av2pb.ValidatePeerCertificateChainReq_CONNECT_TO_GOOGLE, fallbackFunc)
 	if err != nil {
 		t.Fatalf("NewClientCreds() failed: %v", err)
 	}
@@ -158,6 +164,8 @@ func TestCloneClient(t *testing.T) {
 			return true
 		}
 		return false
+	}), cmp.Comparer(func(x, y fallback.FallbackClientHandshake) bool {
+		return reflect.ValueOf(x) == reflect.ValueOf(y)
 	})), true; got != want {
 		t.Errorf("cmp.Equal(%+v, %+v) = %v, want %v", s2av2Creds, s2av2CloneCreds, got, want)
 	}
@@ -246,7 +254,7 @@ func TestOverrideServerName(t *testing.T) {
 		IdentityOneof: &commonpbv1.Identity_Hostname{
 			Hostname: "test_rsa_client_identity",
 		},
-	}, s2av2pb.ValidatePeerCertificateChainReq_CONNECT_TO_GOOGLE)
+	}, s2av2pb.ValidatePeerCertificateChainReq_CONNECT_TO_GOOGLE, nil)
 	s2av2Creds, ok := c.(*s2av2TransportCreds)
 	if !ok {
 		t.Fatal("The created creds is not of type s2av2TransportCreds")

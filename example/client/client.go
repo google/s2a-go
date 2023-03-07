@@ -48,7 +48,7 @@ func runClient(serverAddr *string) {
 		IdentityOneof: &commonpbv1.Identity_Hostname{
 			Hostname: "test_rsa_client_identity",
 		},
-	}, s2av2pb.ValidatePeerCertificateChainReq_CONNECT_TO_GOOGLE)
+	}, s2av2pb.ValidatePeerCertificateChainReq_CONNECT_TO_GOOGLE, nil)
 	if err != nil {
 		log.Fatalf("NewClientCreds() failed: %v", err)
 	}
