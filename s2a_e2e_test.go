@@ -23,8 +23,10 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net"
+	"net/http"
 	"os"
 	"path/filepath"
 	"testing"
@@ -32,18 +34,17 @@ import (
 
 	_ "embed"
 
+	"github.com/google/s2a-go/fallback"
 	"github.com/google/s2a-go/internal/fakehandshaker/service"
-	"github.com/google/s2a-go/internal/v2/fakes2av2"
-	"google.golang.org/grpc/credentials"
-	"google.golang.org/grpc/grpclog"
-	"google.golang.org/grpc/peer"
-
-	grpc "google.golang.org/grpc"
-
 	commonpb "github.com/google/s2a-go/internal/proto/common_go_proto"
 	helloworldpb "github.com/google/s2a-go/internal/proto/examples/helloworld_go_proto"
 	s2apb "github.com/google/s2a-go/internal/proto/s2a_go_proto"
 	s2av2pb "github.com/google/s2a-go/internal/proto/v2/s2a_go_proto"
+	"github.com/google/s2a-go/internal/v2/fakes2av2"
+	grpc "google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
+	"google.golang.org/grpc/grpclog"
+	"google.golang.org/grpc/peer"
 )
 
 const (
@@ -64,6 +65,10 @@ var (
 	clientCertpem []byte
 	//go:embed internal/v2/tlsconfigstore/example_cert_key/client_key.pem
 	clientKeypem []byte
+	//go:embed internal/v2/tlsconfigstore/example_cert_key/server_cert.pem
+	serverCertpem []byte
+	//go:embed internal/v2/tlsconfigstore/example_cert_key/server_key.pem
+	serverKeypem []byte
 )
 
 // server is used to implement helloworld.GreeterServer.
@@ -404,4 +409,102 @@ func TestNewTLSClientConfigFactoryWithoutTokenManager(t *testing.T) {
 	if got, want := config.Certificates[0].Certificate[0], cert.Certificate[0]; !bytes.Equal(got, want) {
 		t.Errorf("tls.Config has unexpected certificate: got: %v, want: %v", got, want)
 	}
+}
+
+// startHTTPServer runs an HTTP server on a random local port and serves a /hello endpoint.
+func startHTTPServer(t *testing.T) string {
+	cert, _ := tls.X509KeyPair(serverCertpem, serverKeypem)
+	tlsConfig := tls.Config{
+		Certificates: []tls.Certificate{cert},
+	}
+	s := http.NewServeMux()
+	s.HandleFunc("/hello", func(w http.ResponseWriter, req *http.Request) {
+		fmt.Fprintf(w, "hello")
+	})
+	lis, err := tls.Listen("tcp", ":0", &tlsConfig)
+	if err != nil {
+		t.Errorf("net.Listen(tcp, :0) failed: %v", err)
+	}
+	go func() {
+		http.Serve(lis, s)
+	}()
+	return lis.Addr().String()
+}
+
+// runHTTPClient starts an HTTP client and talk to an HTTP server using S2A.
+func runHTTPClient(t *testing.T, clientS2AAddress, serverAddr string, fallbackOpts *FallbackOptions) {
+	dialTLSContext := NewS2ADialTLSContextFunc(&ClientOptions{
+		S2AAddress:   clientS2AAddress,
+		EnableV2:     true,
+		FallbackOpts: fallbackOpts,
+	})
+
+	tr := http.Transport{
+		DialTLSContext: dialTLSContext,
+	}
+
+	client := &http.Client{Transport: &tr}
+	reqURL := fmt.Sprintf("https://%s/hello", serverAddr)
+	t.Logf("reqURL is set to: %v", reqURL)
+	req, err := http.NewRequest(http.MethodGet, reqURL, nil)
+	if err != nil {
+		t.Errorf("error creating new HTTP request: %v", err)
+	}
+	resp, err := client.Do(req)
+	if err != nil {
+		t.Errorf("error making client HTTP request: %v", err)
+	}
+	respBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		t.Errorf("error reading HTTP response: %v", err)
+	}
+	if got, want := string(respBody), "hello"; got != want {
+		t.Errorf("expecting HTTP response:[%s], got [%s]", want, got)
+	}
+}
+func TestHTTPEndToEndUsingFakeS2AOverTCP(t *testing.T) {
+	os.Setenv(accessTokenEnvVariable, testV2AccessToken)
+
+	// Start the fake S2As for the client.
+	clientHandshakerAddr := startFakeS2A(t, true, testV2AccessToken)
+	t.Logf("fake handshaker for client running at address: %v", clientHandshakerAddr)
+
+	// Start the server.
+	serverAddr := startHTTPServer(t)
+	t.Logf("HTTP server running at address: %v", serverAddr)
+
+	// Finally, start up the client.
+	runHTTPClient(t, clientHandshakerAddr, serverAddr, nil)
+}
+
+func TestHTTPFallbackEndToEndUsingFakeS2AOverTCP(t *testing.T) {
+	fallback.FallbackTLSConfigHTTP = tls.Config{
+		MinVersion:         tls.VersionTLS13,
+		ClientSessionCache: nil,
+		NextProtos:         []string{"http/1.1", "h2"},
+		// set for testing only
+		InsecureSkipVerify: true,
+	}
+	os.Setenv(accessTokenEnvVariable, testV2AccessToken)
+
+	// Start the server.
+	serverAddr := startHTTPServer(t)
+	t.Logf("HTTP server running at address: %v", serverAddr)
+
+	fallbackServerAddr := startHTTPServer(t)
+	t.Logf("fallback HTTP server running at address: %v", fallbackServerAddr)
+
+	// Configure fallback options.
+	fbDialer, fbAddr, err := fallback.DefaultFallbackDialerAndAddress(fallbackServerAddr)
+	if err != nil {
+		t.Errorf("error creating fallback dialer: %v", err)
+	}
+	fallbackOpts := &FallbackOptions{
+		FallbackDialer: &FallbackDialer{
+			Dialer:     fbDialer,
+			ServerAddr: fbAddr,
+		},
+	}
+	// Set wrong client S2A address to trigger S2A failure and fallback.
+	runHTTPClient(t, "not_exist", serverAddr, fallbackOpts)
 }
