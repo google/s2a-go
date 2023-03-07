@@ -23,9 +23,10 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
+	"net"
+
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/grpclog"
-	"net"
 )
 
 const (
@@ -33,6 +34,22 @@ const (
 	alpnProtoStrHttp = "http/1.1"
 	defaultHttpsPort = "443"
 )
+
+// FallbackTLSConfigGRPC is a tls.Config used by the DefaultFallbackClientHandshakeFunc function.
+// It supports GRPC use case, thus the alpn is set to 'h2'.
+var FallbackTLSConfigGRPC = tls.Config{
+	MinVersion:         tls.VersionTLS13,
+	ClientSessionCache: nil,
+	NextProtos:         []string{alpnProtoStrH2},
+}
+
+// FallbackTLSConfigHTTP is a tls.Config used by the DefaultFallbackDialerAndAddress func.
+// It supports the HTTP use case and the alpn is set to both 'http/1.1' and 'h2'.
+var FallbackTLSConfigHTTP = tls.Config{
+	MinVersion:         tls.VersionTLS13,
+	ClientSessionCache: nil,
+	NextProtos:         []string{alpnProtoStrH2, alpnProtoStrHttp},
+}
 
 // FallbackClientHandshake establishes a TLS connection and returns it, plus its auth info.
 // Inputs:
@@ -61,6 +78,11 @@ type FallbackClientHandshake func(ctx context.Context, targetServer string, conn
 // In the returned function's TLS config, ClientSessionCache is explicitly set to nil to disable TLS resumption,
 // and min TLS version is set to 1.3.
 func DefaultFallbackClientHandshakeFunc(fallbackAddr string) (FallbackClientHandshake, error) {
+	var fallbackDialer = tls.Dialer{Config: &FallbackTLSConfigGRPC}
+	return defaultFallbackClientHandshakeFuncInternal(fallbackAddr, fallbackDialer.DialContext)
+}
+
+func defaultFallbackClientHandshakeFuncInternal(fallbackAddr string, dialContextFunc func(context.Context, string, string) (net.Conn, error)) (FallbackClientHandshake, error) {
 	fallbackServerAddr, err := processFallbackAddr(fallbackAddr)
 	if err != nil {
 		if grpclog.V(1) {
@@ -69,13 +91,7 @@ func DefaultFallbackClientHandshakeFunc(fallbackAddr string) (FallbackClientHand
 		return nil, err
 	}
 	return func(ctx context.Context, targetServer string, conn net.Conn, s2aErr error) (net.Conn, credentials.AuthInfo, error) {
-		fallbackTLSConfig := tls.Config{
-			MinVersion:         tls.VersionTLS13,
-			ClientSessionCache: nil,
-			NextProtos:         []string{alpnProtoStrH2},
-		}
-		fallbackDialer := &tls.Dialer{Config: &fallbackTLSConfig}
-		fbConn, fbErr := fallbackDialer.DialContext(ctx, "tcp", fallbackServerAddr)
+		fbConn, fbErr := dialContextFunc(ctx, "tcp", fallbackServerAddr)
 		if fbErr != nil {
 			grpclog.Infof("dialing to fallback server %s failed: %v", fallbackServerAddr, fbErr)
 			return nil, nil, fmt.Errorf("dialing to fallback server %s failed: %v; S2A client handshake with %s error: %w", fallbackServerAddr, fbErr, targetServer, s2aErr)
@@ -131,12 +147,7 @@ func DefaultFallbackDialerAndAddress(fallbackAddr string) (*tls.Dialer, string, 
 		}
 		return nil, "", err
 	}
-	fallbackTLSConfig := tls.Config{
-		MinVersion:         tls.VersionTLS13,
-		ClientSessionCache: nil,
-		NextProtos:         []string{alpnProtoStrH2, alpnProtoStrHttp},
-	}
-	return &tls.Dialer{Config: &fallbackTLSConfig}, fallbackServerAddr, nil
+	return &tls.Dialer{Config: &FallbackTLSConfigHTTP}, fallbackServerAddr, nil
 }
 
 func processFallbackAddr(fallbackAddr string) (string, error) {
