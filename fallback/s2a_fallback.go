@@ -23,10 +23,9 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
-	"net"
-
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/grpclog"
+	"net"
 )
 
 const (
