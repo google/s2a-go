@@ -179,7 +179,7 @@ func TestDefaultFallbackDialerAndAddress(t *testing.T) {
 		}
 		if err == nil {
 			if !reflect.DeepEqual(fbDialer.Config, &FallbackTLSConfigHTTP) {
-				t.Errorf("%v: unexpected tls config from fallback dialer: [%v], expected: [%v]", tc.desc, fbDialer.Config, FallbackTLSConfigHTTP)
+				t.Errorf("%v: unexpected tls config from fallback dialer: [%v], expected: [%v]", tc.desc, fbDialer.Config, &FallbackTLSConfigHTTP)
 			}
 
 		}
