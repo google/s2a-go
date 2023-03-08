@@ -132,7 +132,7 @@ func startServer(t *testing.T, s2aAddress string, localIdentities []*commonpbv1.
 	return lis.Addr().String()
 }
 
-// startFallbackServer runs a GRPC echo testing server.
+// startFallbackServer runs a GRPC echo testing server and returns the address.
 // It's used to test the default fallback logic upon S2A failure.
 func startFallbackServer(t *testing.T) string {
 	lis, err := net.Listen("tcp", ":0")
@@ -143,7 +143,10 @@ func startFallbackServer(t *testing.T) string {
 	if err != nil {
 		t.Errorf("failure initializing tls.certificate: %v", err)
 	}
+	// Client certs are not required for the fallback server.
 	creds := credentials.NewTLS(&tls.Config{
+		MinVersion:   tls.VersionTLS13,
+		MaxVersion:   tls.VersionTLS13,
 		Certificates: []tls.Certificate{cert},
 	})
 	s := grpc.NewServer(grpc.Creds(creds))
@@ -288,13 +291,8 @@ func TestEndToEndUsingFakeS2AOnUDSEmptyId(t *testing.T) {
 }
 
 func TestGRPCFallbackEndToEndUsingFakeS2AOverTCP(t *testing.T) {
-	fallback.FallbackTLSConfigGRPC = tls.Config{
-		MinVersion:         tls.VersionTLS13,
-		ClientSessionCache: nil,
-		NextProtos:         []string{"h2"},
-		// set for testing only
-		InsecureSkipVerify: true,
-	}
+	// Set for testing only.
+	fallback.FallbackTLSConfigGRPC.InsecureSkipVerify = true
 	os.Setenv(accessTokenEnvVariable, "TestE2ETCP_token")
 	// Start the fake S2A for the server.
 	serverS2AAddr := startFakeS2A(t, "TestE2ETCP_token")
@@ -320,12 +318,21 @@ func TestGRPCFallbackEndToEndUsingFakeS2AOverTCP(t *testing.T) {
 	if err != nil {
 		t.Errorf("error creating fallback handshake function: %v", err)
 	}
+	fallbackCalled := false
+	fallbackHandshakeWrapper := func(ctx context.Context, targetServer string, conn net.Conn, err error) (net.Conn, credentials.AuthInfo, error) {
+		fallbackCalled = true
+		return fallbackHandshake(ctx, targetServer, conn, err)
+	}
 	// Set wrong S2A address for client to trigger S2A failure and fallback.
 	runClient(ctx, t, "not_exist", serverAddr, &commonpbv1.Identity{
 		IdentityOneof: &commonpbv1.Identity_Hostname{
 			Hostname: "test_rsa_client_identity",
 		},
-	}, fallbackHandshake)
+	}, fallbackHandshakeWrapper)
+
+	if !fallbackCalled {
+		t.Errorf("fallbackHandshake is not called")
+	}
 }
 
 func TestNewClientTlsConfigWithTokenManager(t *testing.T) {
