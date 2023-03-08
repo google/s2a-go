@@ -479,6 +479,8 @@ func TestNewTLSClientConfigFactoryWithoutTokenManager(t *testing.T) {
 func startHTTPServer(t *testing.T, resp string) string {
 	cert, _ := tls.X509KeyPair(serverCertpem, serverKeypem)
 	tlsConfig := tls.Config{
+		MinVersion:   tls.VersionTLS13,
+		MaxVersion:   tls.VersionTLS13,
 		Certificates: []tls.Certificate{cert},
 	}
 	s := http.NewServeMux()
