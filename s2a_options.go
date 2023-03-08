@@ -120,6 +120,8 @@ type ClientOptions struct {
 	//
 	// If true, enables the use of S2Av2.
 	EnableV2 bool
+	// If true, enable the use of legacy S2Av1.
+	EnableLegacyMode bool
 	// VerificationMode specifies the mode that S2A must use to verify the
 	// peer certificate chain.
 	VerificationMode VerificationModeType
@@ -171,6 +173,8 @@ type ServerOptions struct {
 	//
 	// If true, enables the use of S2Av2.
 	EnableV2 bool
+	// If true, enable the use of legacy S2Av1.
+	EnableLegacyMode bool
 	// VerificationMode specifies the mode that S2A must use to verify the
 	// peer certificate chain.
 	VerificationMode VerificationModeType
