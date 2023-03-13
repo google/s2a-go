@@ -133,7 +133,7 @@ type FallbackOptions struct {
 	// FallbackClientHandshakeFunc is used to specify fallback behavior when calling s2a.NewClientCreds().
 	// It will be called by ClientHandshake function, after handshake with S2A fails.
 	// s2a.NewClientCreds() ignores the other FallbackDialer field.
-	FallbackClientHandshakeFunc fallback.FallbackClientHandshake
+	FallbackClientHandshakeFunc fallback.ClientHandshake
 
 	// FallbackDialer is used to specify fallback behavior when calling s2a.NewS2aDialTLSContextFunc().
 	// It passes in a custom fallback dialer and server address to use after dialing with S2A fails.

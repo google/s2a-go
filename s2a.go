@@ -89,7 +89,7 @@ func NewClientCreds(opts *ClientOptions) (credentials.TransportCredentials, erro
 	}
 	if opts.EnableV2 {
 		verificationMode := getVerificationMode(opts.VerificationMode)
-		var fallbackFunc fallback.FallbackClientHandshake
+		var fallbackFunc fallback.ClientHandshake
 		if opts.FallbackOpts != nil && opts.FallbackOpts.FallbackClientHandshakeFunc != nil {
 			fallbackFunc = opts.FallbackOpts.FallbackClientHandshakeFunc
 		}
@@ -371,9 +371,8 @@ func NewS2ADialTLSContextFunc(opts *ClientOptions) func(ctx context.Context, net
 				fbConn, fbErr := fbDialer.Dialer.DialContext(ctx, network, fbDialer.ServerAddr)
 				if fbErr != nil {
 					return nil, fmt.Errorf("error fallback to %s: %v; S2A error: %w", fbDialer.ServerAddr, fbErr, err)
-				} else {
-					return fbConn, nil
 				}
+				return fbConn, nil
 			}
 			return nil, err
 		}

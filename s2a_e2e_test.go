@@ -156,7 +156,7 @@ func startServer(t *testing.T, s2aAddress string, enableV2 bool) string {
 }
 
 // runClient starts up a client and calls the server.
-func runClient(ctx context.Context, t *testing.T, clientS2AAddress, serverAddr string, enableV2 bool, fallbackHandshake fallback.FallbackClientHandshake) {
+func runClient(ctx context.Context, t *testing.T, clientS2AAddress, serverAddr string, enableV2 bool, fallbackHandshake fallback.ClientHandshake) {
 	clientOpts := &ClientOptions{
 		TargetIdentities: []Identity{NewSpiffeID(serverSpiffeID)},
 		LocalIdentity:    NewHostname(clientHostname),

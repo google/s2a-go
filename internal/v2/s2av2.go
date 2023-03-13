@@ -56,12 +56,12 @@ type s2av2TransportCreds struct {
 	// localIdentities should only be used by the server.
 	localIdentities         []*commonpbv1.Identity
 	verificationMode        s2av2pb.ValidatePeerCertificateChainReq_VerificationMode
-	fallbackClientHandshake fallback.FallbackClientHandshake
+	fallbackClientHandshake fallback.ClientHandshake
 }
 
 // NewClientCreds returns a client-side transport credentials object that uses
 // the S2Av2 to establish a secure connection with a server.
-func NewClientCreds(s2av2Address string, localIdentity *commonpbv1.Identity, verificationMode s2av2pb.ValidatePeerCertificateChainReq_VerificationMode, fallbackClientHandshakeFunc fallback.FallbackClientHandshake) (credentials.TransportCredentials, error) {
+func NewClientCreds(s2av2Address string, localIdentity *commonpbv1.Identity, verificationMode s2av2pb.ValidatePeerCertificateChainReq_VerificationMode, fallbackClientHandshakeFunc fallback.ClientHandshake) (credentials.TransportCredentials, error) {
 	// Create an AccessTokenManager instance to use to authenticate to S2Av2.
 	accessTokenManager, err := tokenmanager.NewSingleTokenAccessTokenManager()
 
@@ -172,9 +172,9 @@ func (c *s2av2TransportCreds) ClientHandshake(ctx context.Context, serverAuthori
 			return c.fallbackClientHandshake(ctx, serverAuthority, rawConn, err)
 		}
 		return nil, nil, err
-	} else {
-		grpclog.Infof("Successfully done client handshake using S2Av2 to: %s", serverName)
 	}
+	grpclog.Infof("Successfully done client handshake using S2Av2 to: %s", serverName)
+
 	return conn, authInfo, err
 }
 
