@@ -164,7 +164,7 @@ func TestCloneClient(t *testing.T) {
 			return true
 		}
 		return false
-	}), cmp.Comparer(func(x, y fallback.FallbackClientHandshake) bool {
+	}), cmp.Comparer(func(x, y fallback.ClientHandshake) bool {
 		return reflect.ValueOf(x) == reflect.ValueOf(y)
 	})), true; got != want {
 		t.Errorf("cmp.Equal(%+v, %+v) = %v, want %v", s2av2Creds, s2av2CloneCreds, got, want)

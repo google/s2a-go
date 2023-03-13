@@ -160,7 +160,7 @@ func startFallbackServer(t *testing.T) string {
 }
 
 // runClient starts up a client and calls the server.
-func runClient(ctx context.Context, t *testing.T, clientS2AAddress, serverAddr string, localIdentity *commonpbv1.Identity, fallbackHandshake fallback.FallbackClientHandshake) {
+func runClient(ctx context.Context, t *testing.T, clientS2AAddress, serverAddr string, localIdentity *commonpbv1.Identity, fallbackHandshake fallback.ClientHandshake) {
 	creds, err := NewClientCreds(clientS2AAddress, localIdentity, s2av2pb.ValidatePeerCertificateChainReq_CONNECT_TO_GOOGLE, fallbackHandshake)
 	if err != nil {
 		t.Errorf("NewClientCreds(%s) failed: %v", clientS2AAddress, err)

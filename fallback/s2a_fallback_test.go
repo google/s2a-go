@@ -98,7 +98,7 @@ func TestDefaultFallbackClientHandshakeFunc(t *testing.T) {
 			t.Errorf("%v: got error [%v], want nil error [%v]", tc.desc, err, want)
 		}
 		if err == nil {
-			_, _, err := fbFunc(nil, "", nil, fmt.Errorf("testS2AError"))
+			_, _, err := fbFunc(context.TODO(), "", nil, fmt.Errorf("testS2AError"))
 			if err == nil {
 				t.Errorf("%v: expecting an error from the test dial function, got nil instead", tc.desc)
 			}
