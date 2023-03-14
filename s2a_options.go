@@ -21,8 +21,9 @@ package s2a
 import (
 	"crypto/tls"
 	"errors"
-	"github.com/google/s2a-go/fallback"
 	"sync"
+
+	"github.com/google/s2a-go/fallback"
 
 	s2apb "github.com/google/s2a-go/internal/proto/common_go_proto"
 )

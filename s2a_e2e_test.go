@@ -36,15 +36,17 @@ import (
 
 	"github.com/google/s2a-go/fallback"
 	"github.com/google/s2a-go/internal/fakehandshaker/service"
+	"github.com/google/s2a-go/internal/v2/fakes2av2"
+	"google.golang.org/grpc/credentials"
+	"google.golang.org/grpc/grpclog"
+	"google.golang.org/grpc/peer"
+
+	grpc "google.golang.org/grpc"
+
 	commonpb "github.com/google/s2a-go/internal/proto/common_go_proto"
 	helloworldpb "github.com/google/s2a-go/internal/proto/examples/helloworld_go_proto"
 	s2apb "github.com/google/s2a-go/internal/proto/s2a_go_proto"
 	s2av2pb "github.com/google/s2a-go/internal/proto/v2/s2a_go_proto"
-	"github.com/google/s2a-go/internal/v2/fakes2av2"
-	grpc "google.golang.org/grpc"
-	"google.golang.org/grpc/credentials"
-	"google.golang.org/grpc/grpclog"
-	"google.golang.org/grpc/peer"
 )
 
 const (
