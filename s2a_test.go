@@ -46,8 +46,9 @@ func TestNewClientCreds(t *testing.T) {
 				TargetIdentities: []Identity{
 					&hostname{"test_server_hostname"},
 				},
-				LocalIdentity: &hostname{"test_client_hostname"},
-				S2AAddress:    "test_s2a_address",
+				LocalIdentity:    &hostname{"test_client_hostname"},
+				S2AAddress:       "test_s2a_address",
+				EnableLegacyMode: true,
 			},
 			outMinTLSVersion: s2apb.TLSVersion_TLS1_3,
 			outMaxTLSVersion: s2apb.TLSVersion_TLS1_3,
@@ -75,8 +76,9 @@ func TestNewClientCreds(t *testing.T) {
 				TargetIdentities: []Identity{
 					&spiffeID{"test_server_spiffe_id"},
 				},
-				LocalIdentity: &spiffeID{"test_client_spiffe_id"},
-				S2AAddress:    "test_s2a_address",
+				LocalIdentity:    &spiffeID{"test_client_spiffe_id"},
+				S2AAddress:       "test_s2a_address",
+				EnableLegacyMode: true,
 			},
 			outMinTLSVersion: s2apb.TLSVersion_TLS1_3,
 			outMaxTLSVersion: s2apb.TLSVersion_TLS1_3,
@@ -104,8 +106,9 @@ func TestNewClientCreds(t *testing.T) {
 				TargetIdentities: []Identity{
 					&uid{"test_server_uid"},
 				},
-				LocalIdentity: &uid{"test_client_uid"},
-				S2AAddress:    "test_s2a_address",
+				LocalIdentity:    &uid{"test_client_uid"},
+				S2AAddress:       "test_s2a_address",
+				EnableLegacyMode: true,
 			},
 			outMinTLSVersion: s2apb.TLSVersion_TLS1_3,
 			outMaxTLSVersion: s2apb.TLSVersion_TLS1_3,
@@ -135,8 +138,9 @@ func TestNewClientCreds(t *testing.T) {
 					&hostname{"test_server_hostname"},
 					&uid{"test_server_uid"},
 				},
-				LocalIdentity: &spiffeID{"test_client_spiffe_id"},
-				S2AAddress:    "test_s2a_address",
+				LocalIdentity:    &spiffeID{"test_client_spiffe_id"},
+				S2AAddress:       "test_s2a_address",
+				EnableLegacyMode: true,
 			},
 			outMinTLSVersion: s2apb.TLSVersion_TLS1_3,
 			outMaxTLSVersion: s2apb.TLSVersion_TLS1_3,
@@ -219,7 +223,8 @@ func TestNewServerCreds(t *testing.T) {
 				LocalIdentities: []Identity{
 					&hostname{"test_server_hostname"},
 				},
-				S2AAddress: "test_s2a_address",
+				S2AAddress:       "test_s2a_address",
+				EnableLegacyMode: true,
 			},
 			outMinTLSVersion: s2apb.TLSVersion_TLS1_3,
 			outMaxTLSVersion: s2apb.TLSVersion_TLS1_3,
@@ -242,7 +247,8 @@ func TestNewServerCreds(t *testing.T) {
 				LocalIdentities: []Identity{
 					&spiffeID{"test_server_spiffe_id"},
 				},
-				S2AAddress: "test_s2a_address",
+				S2AAddress:       "test_s2a_address",
+				EnableLegacyMode: true,
 			},
 			outMinTLSVersion: s2apb.TLSVersion_TLS1_3,
 			outMaxTLSVersion: s2apb.TLSVersion_TLS1_3,
@@ -265,7 +271,8 @@ func TestNewServerCreds(t *testing.T) {
 				LocalIdentities: []Identity{
 					&uid{"test_server_uid"},
 				},
-				S2AAddress: "test_s2a_address",
+				S2AAddress:       "test_s2a_address",
+				EnableLegacyMode: true,
 			},
 			outMinTLSVersion: s2apb.TLSVersion_TLS1_3,
 			outMaxTLSVersion: s2apb.TLSVersion_TLS1_3,
@@ -290,7 +297,8 @@ func TestNewServerCreds(t *testing.T) {
 					&hostname{"test_server_hostname"},
 					&uid{"test_server_uid"},
 				},
-				S2AAddress: "test_s2a_address",
+				S2AAddress:       "test_s2a_address",
+				EnableLegacyMode: true,
 			},
 			outMinTLSVersion: s2apb.TLSVersion_TLS1_3,
 			outMaxTLSVersion: s2apb.TLSVersion_TLS1_3,
@@ -385,8 +393,9 @@ func TestCloneClient(t *testing.T) {
 			&spiffeID{"test_server_spiffe_id"},
 			&hostname{"test_server_hostname"},
 		},
-		LocalIdentity: &hostname{"test_client_hostname"},
-		S2AAddress:    "test_s2a_address",
+		LocalIdentity:    &hostname{"test_client_hostname"},
+		S2AAddress:       "test_s2a_address",
+		EnableLegacyMode: true,
 	}
 	c, err := NewClientCreds(opt)
 	if err != nil {
@@ -421,7 +430,8 @@ func TestCloneServer(t *testing.T) {
 			&spiffeID{"test_server_spiffe_id"},
 			&hostname{"test_server_hostname"},
 		},
-		S2AAddress: "test_s2a_address",
+		S2AAddress:       "test_s2a_address",
+		EnableLegacyMode: true,
 	})
 	if err != nil {
 		t.Fatalf("NewServerCreds(&ServerOptions{}) failed: %v", err)
