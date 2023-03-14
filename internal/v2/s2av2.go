@@ -24,11 +24,11 @@ import (
 	"context"
 	"crypto/tls"
 	"errors"
-	"github.com/google/s2a-go/fallback"
 	"net"
 	"time"
 
 	"github.com/golang/protobuf/proto"
+	"github.com/google/s2a-go/fallback"
 	"github.com/google/s2a-go/internal/handshaker/service"
 	"github.com/google/s2a-go/internal/tokenmanager"
 	"github.com/google/s2a-go/internal/v2/tlsconfigstore"

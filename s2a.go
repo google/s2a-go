@@ -25,15 +25,15 @@ import (
 	"crypto/tls"
 	"errors"
 	"fmt"
-	"github.com/google/s2a-go/fallback"
-	"github.com/google/s2a-go/internal/tokenmanager"
 	"net"
 	"sync"
 	"time"
 
 	"github.com/golang/protobuf/proto"
+	"github.com/google/s2a-go/fallback"
 	"github.com/google/s2a-go/internal/handshaker"
 	"github.com/google/s2a-go/internal/handshaker/service"
+	"github.com/google/s2a-go/internal/tokenmanager"
 	"github.com/google/s2a-go/internal/v2"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/grpclog"
@@ -87,31 +87,31 @@ func NewClientCreds(opts *ClientOptions) (credentials.TransportCredentials, erro
 	if err != nil {
 		return nil, err
 	}
-	if opts.EnableV2 {
-		verificationMode := getVerificationMode(opts.VerificationMode)
-		var fallbackFunc fallback.ClientHandshake
-		if opts.FallbackOpts != nil && opts.FallbackOpts.FallbackClientHandshakeFunc != nil {
-			fallbackFunc = opts.FallbackOpts.FallbackClientHandshakeFunc
-		}
-		return v2.NewClientCreds(opts.S2AAddress, localIdentity, verificationMode, fallbackFunc)
+	if opts.EnableLegacyMode {
+		return &s2aTransportCreds{
+			info: &credentials.ProtocolInfo{
+				SecurityProtocol: s2aSecurityProtocol,
+			},
+			minTLSVersion: commonpb.TLSVersion_TLS1_3,
+			maxTLSVersion: commonpb.TLSVersion_TLS1_3,
+			tlsCiphersuites: []commonpb.Ciphersuite{
+				commonpb.Ciphersuite_AES_128_GCM_SHA256,
+				commonpb.Ciphersuite_AES_256_GCM_SHA384,
+				commonpb.Ciphersuite_CHACHA20_POLY1305_SHA256,
+			},
+			localIdentity:               localIdentity,
+			targetIdentities:            targetIdentities,
+			isClient:                    true,
+			s2aAddr:                     opts.S2AAddress,
+			ensureProcessSessionTickets: opts.EnsureProcessSessionTickets,
+		}, nil
 	}
-	return &s2aTransportCreds{
-		info: &credentials.ProtocolInfo{
-			SecurityProtocol: s2aSecurityProtocol,
-		},
-		minTLSVersion: commonpb.TLSVersion_TLS1_3,
-		maxTLSVersion: commonpb.TLSVersion_TLS1_3,
-		tlsCiphersuites: []commonpb.Ciphersuite{
-			commonpb.Ciphersuite_AES_128_GCM_SHA256,
-			commonpb.Ciphersuite_AES_256_GCM_SHA384,
-			commonpb.Ciphersuite_CHACHA20_POLY1305_SHA256,
-		},
-		localIdentity:               localIdentity,
-		targetIdentities:            targetIdentities,
-		isClient:                    true,
-		s2aAddr:                     opts.S2AAddress,
-		ensureProcessSessionTickets: opts.EnsureProcessSessionTickets,
-	}, nil
+	verificationMode := getVerificationMode(opts.VerificationMode)
+	var fallbackFunc fallback.ClientHandshake
+	if opts.FallbackOpts != nil && opts.FallbackOpts.FallbackClientHandshakeFunc != nil {
+		fallbackFunc = opts.FallbackOpts.FallbackClientHandshakeFunc
+	}
+	return v2.NewClientCreds(opts.S2AAddress, localIdentity, verificationMode, fallbackFunc)
 }
 
 // NewServerCreds returns a server-side transport credentials object that uses
@@ -128,25 +128,25 @@ func NewServerCreds(opts *ServerOptions) (credentials.TransportCredentials, erro
 		}
 		localIdentities = append(localIdentities, protoLocalIdentity)
 	}
-	if opts.EnableV2 {
-		verificationMode := getVerificationMode(opts.VerificationMode)
-		return v2.NewServerCreds(opts.S2AAddress, localIdentities, verificationMode)
+	if opts.EnableLegacyMode {
+		return &s2aTransportCreds{
+			info: &credentials.ProtocolInfo{
+				SecurityProtocol: s2aSecurityProtocol,
+			},
+			minTLSVersion: commonpb.TLSVersion_TLS1_3,
+			maxTLSVersion: commonpb.TLSVersion_TLS1_3,
+			tlsCiphersuites: []commonpb.Ciphersuite{
+				commonpb.Ciphersuite_AES_128_GCM_SHA256,
+				commonpb.Ciphersuite_AES_256_GCM_SHA384,
+				commonpb.Ciphersuite_CHACHA20_POLY1305_SHA256,
+			},
+			localIdentities: localIdentities,
+			isClient:        false,
+			s2aAddr:         opts.S2AAddress,
+		}, nil
 	}
-	return &s2aTransportCreds{
-		info: &credentials.ProtocolInfo{
-			SecurityProtocol: s2aSecurityProtocol,
-		},
-		minTLSVersion: commonpb.TLSVersion_TLS1_3,
-		maxTLSVersion: commonpb.TLSVersion_TLS1_3,
-		tlsCiphersuites: []commonpb.Ciphersuite{
-			commonpb.Ciphersuite_AES_128_GCM_SHA256,
-			commonpb.Ciphersuite_AES_256_GCM_SHA384,
-			commonpb.Ciphersuite_CHACHA20_POLY1305_SHA256,
-		},
-		localIdentities: localIdentities,
-		isClient:        false,
-		s2aAddr:         opts.S2AAddress,
-	}, nil
+	verificationMode := getVerificationMode(opts.VerificationMode)
+	return v2.NewServerCreds(opts.S2AAddress, localIdentities, verificationMode)
 }
 
 // ClientHandshake initiates a client-side TLS handshake using the S2A.
@@ -302,10 +302,9 @@ func NewTLSClientConfigFactory(opts *ClientOptions) (TLSClientConfigFactory, err
 	if opts == nil {
 		return nil, fmt.Errorf("opts must be non-nil")
 	}
-	if !opts.EnableV2 {
+	if opts.EnableLegacyMode {
 		return nil, fmt.Errorf("NewTLSClientConfigFactory only supports S2Av2")
 	}
-
 	tokenManager, err := tokenmanager.NewSingleTokenAccessTokenManager()
 	if err != nil {
 		// The only possible error is: access token not set in the environment,

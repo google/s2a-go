@@ -21,8 +21,9 @@ package s2a
 import (
 	"crypto/tls"
 	"errors"
-	"github.com/google/s2a-go/fallback"
 	"sync"
+
+	"github.com/google/s2a-go/fallback"
 
 	s2apb "github.com/google/s2a-go/internal/proto/common_go_proto"
 )
@@ -156,7 +157,6 @@ func DefaultClientOptions(s2aAddress string) *ClientOptions {
 	return &ClientOptions{
 		S2AAddress:       s2aAddress,
 		VerificationMode: ConnectToGoogle,
-		EnableV2:         true,
 	}
 }
 
@@ -185,7 +185,6 @@ func DefaultServerOptions(s2aAddress string) *ServerOptions {
 	return &ServerOptions{
 		S2AAddress:       s2aAddress,
 		VerificationMode: ConnectToGoogle,
-		EnableV2:         true,
 	}
 }
 

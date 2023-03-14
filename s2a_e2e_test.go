@@ -36,15 +36,17 @@ import (
 
 	"github.com/google/s2a-go/fallback"
 	"github.com/google/s2a-go/internal/fakehandshaker/service"
+	"github.com/google/s2a-go/internal/v2/fakes2av2"
+	"google.golang.org/grpc/credentials"
+	"google.golang.org/grpc/grpclog"
+	"google.golang.org/grpc/peer"
+
+	grpc "google.golang.org/grpc"
+
 	commonpb "github.com/google/s2a-go/internal/proto/common_go_proto"
 	helloworldpb "github.com/google/s2a-go/internal/proto/examples/helloworld_go_proto"
 	s2apb "github.com/google/s2a-go/internal/proto/s2a_go_proto"
 	s2av2pb "github.com/google/s2a-go/internal/proto/v2/s2a_go_proto"
-	"github.com/google/s2a-go/internal/v2/fakes2av2"
-	grpc "google.golang.org/grpc"
-	"google.golang.org/grpc/credentials"
-	"google.golang.org/grpc/grpclog"
-	"google.golang.org/grpc/peer"
 )
 
 const (
@@ -83,16 +85,16 @@ func (s *server) SayHello(_ context.Context, in *helloworldpb.HelloRequest) (*he
 
 // startFakeS2A starts up a fake S2A and returns the address that it is
 // listening on.
-func startFakeS2A(t *testing.T, enableV2 bool, expToken string) string {
+func startFakeS2A(t *testing.T, enableLegacyMode bool, expToken string) string {
 	lis, err := net.Listen("tcp", ":")
 	if err != nil {
 		t.Errorf("net.Listen(tcp, :0) failed: %v", err)
 	}
 	s := grpc.NewServer()
-	if enableV2 {
-		s2av2pb.RegisterS2AServiceServer(s, &fakes2av2.Server{ExpectedToken: expToken})
-	} else {
+	if enableLegacyMode {
 		s2apb.RegisterS2AServiceServer(s, &service.FakeHandshakerService{})
+	} else {
+		s2av2pb.RegisterS2AServiceServer(s, &fakes2av2.Server{ExpectedToken: expToken})
 	}
 	go func() {
 		if err := s.Serve(lis); err != nil {
@@ -104,7 +106,7 @@ func startFakeS2A(t *testing.T, enableV2 bool, expToken string) string {
 
 // startFakeS2AOnUDS starts up a fake S2A on UDS and returns the address that
 // it is listening on.
-func startFakeS2AOnUDS(t *testing.T, enableV2 bool, expToken string) string {
+func startFakeS2AOnUDS(t *testing.T, enableLegacyMode bool, expToken string) string {
 	dir, err := ioutil.TempDir("/tmp", "socket_dir")
 	if err != nil {
 		t.Errorf("Unable to create temporary directory: %v", err)
@@ -115,10 +117,10 @@ func startFakeS2AOnUDS(t *testing.T, enableV2 bool, expToken string) string {
 		t.Errorf("net.Listen(unix, %s) failed: %v", udsAddress, err)
 	}
 	s := grpc.NewServer()
-	if enableV2 {
-		s2av2pb.RegisterS2AServiceServer(s, &fakes2av2.Server{ExpectedToken: expToken})
-	} else {
+	if enableLegacyMode {
 		s2apb.RegisterS2AServiceServer(s, &service.FakeHandshakerService{})
+	} else {
+		s2av2pb.RegisterS2AServiceServer(s, &fakes2av2.Server{ExpectedToken: expToken})
 	}
 	go func() {
 		if err := s.Serve(lis); err != nil {
@@ -130,11 +132,11 @@ func startFakeS2AOnUDS(t *testing.T, enableV2 bool, expToken string) string {
 
 // startServer starts up a server and returns the address that it is listening
 // on.
-func startServer(t *testing.T, s2aAddress string, enableV2 bool) string {
+func startServer(t *testing.T, s2aAddress string, enableLegacyMode bool) string {
 	serverOpts := &ServerOptions{
-		LocalIdentities: []Identity{NewSpiffeID(serverSpiffeID)},
-		S2AAddress:      s2aAddress,
-		EnableV2:        enableV2,
+		LocalIdentities:  []Identity{NewSpiffeID(serverSpiffeID)},
+		S2AAddress:       s2aAddress,
+		EnableLegacyMode: enableLegacyMode,
 	}
 	creds, err := NewServerCreds(serverOpts)
 	if err != nil {
@@ -156,12 +158,12 @@ func startServer(t *testing.T, s2aAddress string, enableV2 bool) string {
 }
 
 // runClient starts up a client and calls the server.
-func runClient(ctx context.Context, t *testing.T, clientS2AAddress, serverAddr string, enableV2 bool, fallbackHandshake fallback.ClientHandshake) {
+func runClient(ctx context.Context, t *testing.T, clientS2AAddress, serverAddr string, enableLegacyMode bool, fallbackHandshake fallback.ClientHandshake) {
 	clientOpts := &ClientOptions{
 		TargetIdentities: []Identity{NewSpiffeID(serverSpiffeID)},
 		LocalIdentity:    NewHostname(clientHostname),
 		S2AAddress:       clientS2AAddress,
-		EnableV2:         enableV2,
+		EnableLegacyMode: enableLegacyMode,
 		FallbackOpts: &FallbackOptions{
 			FallbackClientHandshakeFunc: fallbackHandshake,
 		},
@@ -197,7 +199,7 @@ func runClient(ctx context.Context, t *testing.T, clientS2AAddress, serverAddr s
 	}
 	grpclog.Infof("Client received message from server: %s", resp.GetMessage())
 
-	if !enableV2 {
+	if enableLegacyMode {
 		// Check the auth info.
 		authInfo, err := AuthInfoFromPeer(peer)
 		if err != nil {
@@ -229,28 +231,9 @@ func TestV1EndToEndUsingFakeS2AOverTCP(t *testing.T) {
 	os.Setenv(accessTokenEnvVariable, "")
 
 	// Start the fake S2As for the client and server.
-	serverHandshakerAddr := startFakeS2A(t, false, "")
+	serverHandshakerAddr := startFakeS2A(t, true, "")
 	grpclog.Infof("Fake handshaker for server running at address: %v", serverHandshakerAddr)
-	clientHandshakerAddr := startFakeS2A(t, false, "")
-	grpclog.Infof("Fake handshaker for client running at address: %v", clientHandshakerAddr)
-
-	// Start the server.
-	serverAddr := startServer(t, serverHandshakerAddr, false)
-	grpclog.Infof("Server running at address: %v", serverAddr)
-
-	// Finally, start up the client.
-	ctx, cancel := context.WithTimeout(context.Background(), defaultE2ETestTimeout)
-	defer cancel()
-	runClient(ctx, t, clientHandshakerAddr, serverAddr, false, nil)
-}
-
-func TestV2EndToEndUsingFakeS2AOverTCP(t *testing.T) {
-	os.Setenv(accessTokenEnvVariable, testV2AccessToken)
-
-	// Start the fake S2As for the client and server.
-	serverHandshakerAddr := startFakeS2A(t, true, testV2AccessToken)
-	grpclog.Infof("Fake handshaker for server running at address: %v", serverHandshakerAddr)
-	clientHandshakerAddr := startFakeS2A(t, true, testV2AccessToken)
+	clientHandshakerAddr := startFakeS2A(t, true, "")
 	grpclog.Infof("Fake handshaker for client running at address: %v", clientHandshakerAddr)
 
 	// Start the server.
@@ -261,6 +244,25 @@ func TestV2EndToEndUsingFakeS2AOverTCP(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), defaultE2ETestTimeout)
 	defer cancel()
 	runClient(ctx, t, clientHandshakerAddr, serverAddr, true, nil)
+}
+
+func TestV2EndToEndUsingFakeS2AOverTCP(t *testing.T) {
+	os.Setenv(accessTokenEnvVariable, testV2AccessToken)
+
+	// Start the fake S2As for the client and server.
+	serverHandshakerAddr := startFakeS2A(t, false, testV2AccessToken)
+	grpclog.Infof("Fake handshaker for server running at address: %v", serverHandshakerAddr)
+	clientHandshakerAddr := startFakeS2A(t, false, testV2AccessToken)
+	grpclog.Infof("Fake handshaker for client running at address: %v", clientHandshakerAddr)
+
+	// Start the server.
+	serverAddr := startServer(t, serverHandshakerAddr, false)
+	grpclog.Infof("Server running at address: %v", serverAddr)
+
+	// Finally, start up the client.
+	ctx, cancel := context.WithTimeout(context.Background(), defaultE2ETestTimeout)
+	defer cancel()
+	runClient(ctx, t, clientHandshakerAddr, serverAddr, false, nil)
 }
 
 // startFallbackServer runs a GRPC echo testing server and returns the address.
@@ -295,11 +297,11 @@ func TestV2GRPCFallbackEndToEndUsingFakeS2AOverTCP(t *testing.T) {
 	os.Setenv(accessTokenEnvVariable, testV2AccessToken)
 
 	// Start the fake S2A for the server.
-	serverHandshakerAddr := startFakeS2A(t, true, testV2AccessToken)
+	serverHandshakerAddr := startFakeS2A(t, false, testV2AccessToken)
 	grpclog.Infof("fake handshaker for server running at address: %v", serverHandshakerAddr)
 
 	// Start the server.
-	serverAddr := startServer(t, serverHandshakerAddr, true)
+	serverAddr := startServer(t, serverHandshakerAddr, false)
 	fallbackServerAddr := startFallbackServer(t)
 	t.Logf("server running at address: %v", serverAddr)
 	t.Logf("fallback server running at address: %v", fallbackServerAddr)
@@ -316,7 +318,7 @@ func TestV2GRPCFallbackEndToEndUsingFakeS2AOverTCP(t *testing.T) {
 		fallbackCalled = true
 		return fallbackHandshake(ctx, targetServer, conn, err)
 	}
-	runClient(ctx, t, "not_exist", serverAddr, true, fallbackHandshakeWrapper)
+	runClient(ctx, t, "not_exist", serverAddr, false, fallbackHandshakeWrapper)
 	if !fallbackCalled {
 		t.Errorf("fallbackHandshake is not called")
 	}
@@ -325,9 +327,28 @@ func TestV1EndToEndUsingTokens(t *testing.T) {
 	os.Setenv(accessTokenEnvVariable, testAccessToken)
 
 	// Start the handshaker servers for the client and server.
-	serverS2AAddress := startFakeS2A(t, false, "")
+	serverS2AAddress := startFakeS2A(t, true, "")
 	grpclog.Infof("Fake S2A for server running at address: %v", serverS2AAddress)
-	clientS2AAddress := startFakeS2A(t, false, "")
+	clientS2AAddress := startFakeS2A(t, true, "")
+	grpclog.Infof("Fake S2A for client running at address: %v", clientS2AAddress)
+
+	// Start the server.
+	serverAddr := startServer(t, serverS2AAddress, true)
+	grpclog.Infof("Server running at address: %v", serverAddr)
+
+	// Finally, start up the client.
+	ctx, cancel := context.WithTimeout(context.Background(), defaultE2ETestTimeout)
+	defer cancel()
+	runClient(ctx, t, clientS2AAddress, serverAddr, true, nil)
+}
+
+func TestV2EndToEndUsingTokens(t *testing.T) {
+	os.Setenv(accessTokenEnvVariable, testV2AccessToken)
+
+	// Start the handshaker servers for the client and server.
+	serverS2AAddress := startFakeS2A(t, false, testV2AccessToken)
+	grpclog.Infof("Fake S2A for server running at address: %v", serverS2AAddress)
+	clientS2AAddress := startFakeS2A(t, false, testV2AccessToken)
 	grpclog.Infof("Fake S2A for client running at address: %v", clientS2AAddress)
 
 	// Start the server.
@@ -340,70 +361,32 @@ func TestV1EndToEndUsingTokens(t *testing.T) {
 	runClient(ctx, t, clientS2AAddress, serverAddr, false, nil)
 }
 
-func TestV2EndToEndUsingTokens(t *testing.T) {
-	os.Setenv(accessTokenEnvVariable, testV2AccessToken)
-
-	// Start the handshaker servers for the client and server.
-	serverS2AAddress := startFakeS2A(t, true, testV2AccessToken)
-	grpclog.Infof("Fake S2A for server running at address: %v", serverS2AAddress)
-	clientS2AAddress := startFakeS2A(t, true, testV2AccessToken)
-	grpclog.Infof("Fake S2A for client running at address: %v", clientS2AAddress)
-
-	// Start the server.
-	serverAddr := startServer(t, serverS2AAddress, true)
-	grpclog.Infof("Server running at address: %v", serverAddr)
-
-	// Finally, start up the client.
-	ctx, cancel := context.WithTimeout(context.Background(), defaultE2ETestTimeout)
-	defer cancel()
-	runClient(ctx, t, clientS2AAddress, serverAddr, true, nil)
-}
-
 func TestV2EndToEndEmptyToken(t *testing.T) {
 	os.Unsetenv(accessTokenEnvVariable)
 
 	// Start the handshaker servers for the client and server.
-	serverS2AAddress := startFakeS2A(t, true, testV2AccessToken)
+	serverS2AAddress := startFakeS2A(t, false, testV2AccessToken)
 	grpclog.Infof("Fake S2A for server running at address: %v", serverS2AAddress)
-	clientS2AAddress := startFakeS2A(t, true, testV2AccessToken)
+	clientS2AAddress := startFakeS2A(t, false, testV2AccessToken)
 	grpclog.Infof("Fake S2A for client running at address: %v", clientS2AAddress)
 
 	// Start the server.
-	serverAddr := startServer(t, serverS2AAddress, true)
+	serverAddr := startServer(t, serverS2AAddress, false)
 	grpclog.Infof("Server running at address: %v", serverAddr)
 
 	// Finally, start up the client.
 	ctx, cancel := context.WithTimeout(context.Background(), defaultE2ETestTimeout)
 	defer cancel()
-	runClient(ctx, t, clientS2AAddress, serverAddr, true, nil)
+	runClient(ctx, t, clientS2AAddress, serverAddr, false, nil)
 }
 
 func TestV1EndToEndUsingFakeS2AOnUDS(t *testing.T) {
 	os.Setenv(accessTokenEnvVariable, "")
 
 	// Start fake S2As for use by the client and server.
-	serverS2AAddress := startFakeS2AOnUDS(t, false, "")
+	serverS2AAddress := startFakeS2AOnUDS(t, true, "")
 	grpclog.Infof("Fake S2A for server listening on UDS at address: %v", serverS2AAddress)
-	clientS2AAddress := startFakeS2AOnUDS(t, false, "")
-	grpclog.Infof("Fake S2A for client listening on UDS at address: %v", clientS2AAddress)
-
-	// Start the server.
-	serverAddress := startServer(t, serverS2AAddress, false)
-	grpclog.Infof("Server running at address: %v", serverS2AAddress)
-
-	// Finally, start up the client.
-	ctx, cancel := context.WithTimeout(context.Background(), defaultE2ETestTimeout)
-	defer cancel()
-	runClient(ctx, t, clientS2AAddress, serverAddress, false, nil)
-}
-
-func TestV2EndToEndUsingFakeS2AOnUDS(t *testing.T) {
-	os.Setenv(accessTokenEnvVariable, testV2AccessToken)
-
-	// Start fake S2As for use by the client and server.
-	serverS2AAddress := startFakeS2AOnUDS(t, true, testV2AccessToken)
-	grpclog.Infof("Fake S2A for server listening on UDS at address: %v", serverS2AAddress)
-	clientS2AAddress := startFakeS2AOnUDS(t, true, testV2AccessToken)
+	clientS2AAddress := startFakeS2AOnUDS(t, true, "")
 	grpclog.Infof("Fake S2A for client listening on UDS at address: %v", clientS2AAddress)
 
 	// Start the server.
@@ -416,15 +399,33 @@ func TestV2EndToEndUsingFakeS2AOnUDS(t *testing.T) {
 	runClient(ctx, t, clientS2AAddress, serverAddress, true, nil)
 }
 
+func TestV2EndToEndUsingFakeS2AOnUDS(t *testing.T) {
+	os.Setenv(accessTokenEnvVariable, testV2AccessToken)
+
+	// Start fake S2As for use by the client and server.
+	serverS2AAddress := startFakeS2AOnUDS(t, false, testV2AccessToken)
+	grpclog.Infof("Fake S2A for server listening on UDS at address: %v", serverS2AAddress)
+	clientS2AAddress := startFakeS2AOnUDS(t, false, testV2AccessToken)
+	grpclog.Infof("Fake S2A for client listening on UDS at address: %v", clientS2AAddress)
+
+	// Start the server.
+	serverAddress := startServer(t, serverS2AAddress, false)
+	grpclog.Infof("Server running at address: %v", serverS2AAddress)
+
+	// Finally, start up the client.
+	ctx, cancel := context.WithTimeout(context.Background(), defaultE2ETestTimeout)
+	defer cancel()
+	runClient(ctx, t, clientS2AAddress, serverAddress, false, nil)
+}
+
 func TestNewTLSClientConfigFactoryWithTokenManager(t *testing.T) {
 	os.Setenv(accessTokenEnvVariable, "TestNewTLSClientConfigFactory_token")
-	s2AAddr := startFakeS2A(t, true, "TestNewTLSClientConfigFactory_token")
+	s2AAddr := startFakeS2A(t, false, "TestNewTLSClientConfigFactory_token")
 	ctx, cancel := context.WithTimeout(context.Background(), defaultE2ETestTimeout)
 	defer cancel()
 
 	factory, err := NewTLSClientConfigFactory(&ClientOptions{
 		S2AAddress: s2AAddr,
-		EnableV2:   true,
 	})
 	if err != nil {
 		t.Errorf("NewTLSClientConfigFactory() failed: %v", err)
@@ -447,13 +448,12 @@ func TestNewTLSClientConfigFactoryWithTokenManager(t *testing.T) {
 
 func TestNewTLSClientConfigFactoryWithoutTokenManager(t *testing.T) {
 	os.Unsetenv(accessTokenEnvVariable)
-	s2AAddr := startFakeS2A(t, true, "ignored-value")
+	s2AAddr := startFakeS2A(t, false, "ignored-value")
 	ctx, cancel := context.WithTimeout(context.Background(), defaultE2ETestTimeout)
 	defer cancel()
 
 	factory, err := NewTLSClientConfigFactory(&ClientOptions{
 		S2AAddress: s2AAddr,
-		EnableV2:   true,
 	})
 	if err != nil {
 		t.Errorf("NewTLSClientConfigFactory() failed: %v", err)
@@ -502,7 +502,6 @@ func startHTTPServer(t *testing.T, resp string) string {
 func runHTTPClient(t *testing.T, clientS2AAddress, serverAddr string, fallbackOpts *FallbackOptions) string {
 	dialTLSContext := NewS2ADialTLSContextFunc(&ClientOptions{
 		S2AAddress:   clientS2AAddress,
-		EnableV2:     true,
 		FallbackOpts: fallbackOpts,
 	})
 
@@ -531,7 +530,7 @@ func TestHTTPEndToEndUsingFakeS2AOverTCP(t *testing.T) {
 	os.Setenv(accessTokenEnvVariable, testV2AccessToken)
 
 	// Start the fake S2As for the client.
-	clientHandshakerAddr := startFakeS2A(t, true, testV2AccessToken)
+	clientHandshakerAddr := startFakeS2A(t, false, testV2AccessToken)
 	t.Logf("fake handshaker for client running at address: %v", clientHandshakerAddr)
 
 	// Start the server.
