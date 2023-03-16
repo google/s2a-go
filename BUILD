@@ -32,7 +32,7 @@ go_library(
         "s2a_options.go",
         "s2a_utils.go",
     ],
-    importpath = "github.com/google/s2a-go/s2a",
+    importpath = "github.com/google/s2a-go",
     deps = [
         "//fallback:s2a_fallback",
         "//internal/handshaker",
