@@ -22,10 +22,10 @@ package main
 import (
 	"context"
 	"flag"
-	"github.com/google/s2a-go/s2a"
 	"log"
 	"time"
 
+	"github.com/google/s2a-go"
 	"google.golang.org/grpc"
 
 	pb "github.com/google/s2a-go/example/proto/echo_go_proto"
