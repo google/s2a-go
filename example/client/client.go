@@ -22,7 +22,7 @@ package main
 import (
 	"context"
 	"flag"
-	"github.com/google/s2a-go"
+	"github.com/google/s2a-go/s2a"
 	"log"
 	"time"
 

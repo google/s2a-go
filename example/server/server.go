@@ -24,8 +24,8 @@ import (
 	"log"
 	"net"
 
-	"github.com/google/s2a-go"
 	"github.com/google/s2a-go/example/echo"
+	"github.com/google/s2a-go/s2a"
 	"google.golang.org/grpc"
 
 	pb "github.com/google/s2a-go/example/proto/echo_go_proto"
