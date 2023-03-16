@@ -354,7 +354,6 @@ func getVerificationMode(verificationMode VerificationModeType) s2av2pb.Validate
 //
 //		dialTLSContext := s2a.NewS2aDialTLSContextFunc(&s2a.ClientOptions{
 //			S2AAddress:         s2aAddress, // required
-//			EnableV2:           true, // must be true
 //		})
 //	 	transport := http.DefaultTransport
 //	 	transport.DialTLSContext = dialTLSContext

@@ -20,12 +20,12 @@ package v2
 
 import (
 	"context"
-	"github.com/google/s2a-go/fallback"
 	"os"
 	"reflect"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/google/s2a-go/fallback"
 	"github.com/google/s2a-go/internal/tokenmanager"
 	"google.golang.org/protobuf/testing/protocmp"
 

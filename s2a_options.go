@@ -117,10 +117,6 @@ type ClientOptions struct {
 	//     ensureProcessSessionTickets.Wait()
 	//   }
 	EnsureProcessSessionTickets *sync.WaitGroup
-	// DEPRECATED: Should always be set to true.
-	//
-	// If true, enables the use of S2Av2.
-	EnableV2 bool
 	// If true, enables the use of legacy S2Av1.
 	EnableLegacyMode bool
 	// VerificationMode specifies the mode that S2A must use to verify the
@@ -169,10 +165,6 @@ type ServerOptions struct {
 	LocalIdentities []Identity
 	// S2AAddress is the address of the S2A.
 	S2AAddress string
-	// DEPRECATED: Should always be set to true.
-	//
-	// If true, enables the use of S2Av2.
-	EnableV2 bool
 	// If true, enables the use of legacy S2Av1.
 	EnableLegacyMode bool
 	// VerificationMode specifies the mode that S2A must use to verify the

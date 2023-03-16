@@ -66,7 +66,6 @@ type ClientHandshake func(ctx context.Context, targetServer string, conn net.Con
 //
 //	transportCreds, _ = s2a.NewClientCreds(&s2a.ClientOptions{
 //		S2AAddress: s2aAddress,
-//		EnableV2:   true,
 //		FallbackOpts: &s2a.FallbackOptions{ // optional
 //			FallbackClientHandshakeFunc: fallback.DefaultFallbackClientHandshakeFunc(fallbackAddr),
 //		},
@@ -125,7 +124,6 @@ func defaultFallbackClientHandshakeFuncInternal(fallbackAddr string, dialContext
 //	    fallbackDialer, fallbackServerAddr := fallback.DefaultFallbackDialerAndAddress(fallbackAddr)
 //		dialTLSContext := s2a.NewS2aDialTLSContextFunc(&s2a.ClientOptions{
 //			S2AAddress:         s2aAddress, // required
-//			EnableV2:           true, // must be true
 //			FallbackOpts: &s2a.FallbackOptions{
 //				FallbackDialer: &s2a.FallbackDialer{
 //					Dialer:     fallbackDialer,
