@@ -46,8 +46,8 @@ mv internal/proto/v2/common.pb.go internal/proto/v2/common_go_proto/common.pb.go
 mkdir -p internal/proto/v2/s2a_go_proto
 mv internal/proto/v2/s2a.pb.go internal/proto/v2/s2a_go_proto/s2a.pb.go
 mv internal/proto/v2/s2a_grpc.pb.go internal/proto/v2/s2a_go_proto/s2a_grpc.pb.go
-sed -i 's/common_go_proto \"github.com\/google\/s2a\/internal\/proto\/common_go_proto\"/common_go_proto \"github.com\/google\/s2a-go\/internal\/proto\/common_go_proto\"/g' internal/proto/v2/s2a_go_proto/s2a.pb.go
-sed -i 's/common_go_proto1 \"github.com\/google\/s2a\/internal\/proto\/v2\/common_go_proto\"/common_go_proto1 \"github.com\/google\/s2a-go\/internal\/proto\/v2\/common_go_proto\"/g' internal/proto/v2/s2a_go_proto/s2a.pb.go
+sed -i 's/common_go_proto1 \"github.com\/google\/s2a\/internal\/proto\/common_go_proto\"/common_go_proto1 \"github.com\/google\/s2a-go\/internal\/proto\/common_go_proto\"/g' internal/proto/v2/s2a_go_proto/s2a.pb.go
+sed -i 's/common_go_proto \"github.com\/google\/s2a\/internal\/proto\/v2\/common_go_proto\"/common_go_proto \"github.com\/google\/s2a-go\/internal\/proto\/v2\/common_go_proto\"/g' internal/proto/v2/s2a_go_proto/s2a.pb.go
 sed -i 's/s2a_context_go_proto \"github.com\/google\/s2a\/internal\/proto\/v2\/s2a_context_go_proto\"/s2a_context_go_proto \"github.com\/google\/s2a-go\/internal\/proto\/v2\/s2a_context_go_proto\"/g' internal/proto/v2/s2a_go_proto/s2a.pb.go
 
 mkdir -p internal/proto/v2/s2a_context_go_proto

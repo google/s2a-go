@@ -40,6 +40,18 @@ enum SignatureAlgorithm {
   S2A_SSL_SIGN_ED25519 = 10;
 }
 
+message AlpnPolicy {
+  // If true, the application MUST perform ALPN negotiation.
+  bool enable_alpn_negotiation = 1;
+
+  // The ordered list of ALPN protocols that specify how the application SHOULD
+  // negotiate ALPN during the TLS handshake.
+  //
+  // The application MAY ignore any ALPN protocols in this list that are not
+  // supported by the application.
+  repeated AlpnProtocol alpn_protocols = 2;
+}
+
 message AuthenticationMechanism {
   // Applications may specify an identity associated to an authentication
   // mechanism. Otherwise, S2A assumes that the authentication mechanism is
@@ -73,7 +85,7 @@ message GetTlsConfigurationReq {
 }
 
 message GetTlsConfigurationResp {
-  // Next ID: 7
+  // Next ID: 8
   message ClientTlsConfiguration {
     reserved 4, 5;
 
@@ -95,9 +107,13 @@ message GetTlsConfigurationResp {
     // The ordered list of TLS 1.0-1.2 ciphersuites that the client MAY offer to
     // negotiate in the TLS handshake.
     repeated Ciphersuite ciphersuites = 6;
+
+    // The policy that dictates how the client negotiates ALPN during the TLS
+    // handshake.
+    AlpnPolicy alpn_policy = 7;
   }
 
-  // Next ID: 11
+  // Next ID: 12
   message ServerTlsConfiguration {
     reserved 4, 5;
 
@@ -140,6 +156,10 @@ message GetTlsConfigurationResp {
     // |OffloadResumptionKeyOperation| can add to the number of unencrypted
     // bytes to form the encrypted bytes.
     uint32 max_overhead_of_ticket_aead = 9;
+
+    // The policy that dictates how the server negotiates ALPN during the TLS
+    // handshake.
+    AlpnPolicy alpn_policy = 11;
   }
 
   oneof tls_configuration {
