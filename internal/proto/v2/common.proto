@@ -46,3 +46,10 @@ enum ConnectionSide {
   CONNECTION_SIDE_SERVER = 2;
 }
 
+// The ALPN protocols that the application can negotiate during a TLS handshake.
+enum AlpnProtocol {
+  ALPN_PROTOCOL_UNSPECIFIED = 0;
+  ALPN_PROTOCOL_GRPC = 1;
+  ALPN_PROTOCOL_HTTP2 = 2;
+  ALPN_PROTOCOL_HTTP1_1 = 3;
+}
