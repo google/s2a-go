@@ -24,13 +24,11 @@ import (
 	"log"
 	"net"
 
+	"github.com/google/s2a-go"
 	"github.com/google/s2a-go/example/echo"
-	"github.com/google/s2a-go/internal/v2"
 	"google.golang.org/grpc"
 
 	pb "github.com/google/s2a-go/example/proto/echo_go_proto"
-	commonpbv1 "github.com/google/s2a-go/internal/proto/common_go_proto"
-	s2av2pb "github.com/google/s2a-go/internal/proto/v2/s2a_go_proto"
 )
 
 var (
@@ -39,16 +37,11 @@ var (
 )
 
 func runServer(listenPort *string) {
-	localIdentities := []*commonpbv1.Identity{
-		{
-			IdentityOneof: &commonpbv1.Identity_Hostname{
-				Hostname: "test_rsa_server_identity",
-			},
-		},
-	}
-
-	// TODO(rmehta19): Use S2A v1 NewServerCreds, specify EnableV2 in ServerOptions.
-	creds, err := v2.NewServerCreds(*s2aAddr, localIdentities, s2av2pb.ValidatePeerCertificateChainReq_CONNECT_TO_GOOGLE)
+	creds, err := s2a.NewServerCreds(&s2a.ServerOptions{
+		S2AAddress:       *s2aAddr,
+		VerificationMode: s2a.ConnectToGoogle,
+		LocalIdentities:  []s2a.Identity{s2a.NewHostname("test_rsa_server_identity")},
+	})
 	if err != nil {
 		log.Fatalf("NewClientCreds() failed: %v", err)
 	}
