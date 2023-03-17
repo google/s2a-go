@@ -24,6 +24,7 @@ import (
 	"context"
 	"crypto/tls"
 	"errors"
+	"flag"
 	"net"
 	"time"
 
@@ -42,8 +43,9 @@ import (
 
 const (
 	s2aSecurityProtocol = "tls"
-	defaultTimeout      = 20.0 * time.Second
 )
+
+var S2ATimeout = flag.Duration("s2a_timeout", 3*time.Second, "Timeout enforced on the connection to the S2A service for handshake.")
 
 type s2av2TransportCreds struct {
 	info         *credentials.ProtocolInfo
@@ -119,9 +121,9 @@ func (c *s2av2TransportCreds) ClientHandshake(ctx context.Context, serverAuthori
 	}
 	// Remove the port from serverAuthority.
 	serverName := removeServerNamePort(serverAuthority)
-	ctx, cancel := context.WithTimeout(ctx, defaultTimeout)
+	timeoutCtx, cancel := context.WithTimeout(ctx, *S2ATimeout)
 	defer cancel()
-	cstream, err := createStream(ctx, c.s2av2Address)
+	cstream, err := createStream(timeoutCtx, c.s2av2Address)
 	if err != nil {
 		grpclog.Infof("Failed to connect to S2Av2: %v", err)
 		if c.fallbackClientHandshake != nil {
@@ -165,7 +167,7 @@ func (c *s2av2TransportCreds) ClientHandshake(ctx context.Context, serverAuthori
 	}
 	creds := credentials.NewTLS(config)
 
-	conn, authInfo, err := creds.ClientHandshake(context.Background(), serverName, rawConn)
+	conn, authInfo, err := creds.ClientHandshake(ctx, serverName, rawConn)
 	if err != nil {
 		grpclog.Infof("Failed to do client handshake using S2Av2: %v", err)
 		if c.fallbackClientHandshake != nil {
@@ -183,7 +185,7 @@ func (c *s2av2TransportCreds) ServerHandshake(rawConn net.Conn) (net.Conn, crede
 	if c.isClient {
 		return nil, nil, errors.New("server handshake called using client transport credentials")
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), *S2ATimeout)
 	defer cancel()
 	cstream, err := createStream(ctx, c.s2av2Address)
 	if err != nil {
