@@ -18,9 +18,9 @@ package s2a.proto.v2;
 
 option go_package = "github.com/google/s2a/internal/proto/v2/s2a_go_proto";
 
-import "internal/proto/common.proto";
-import "internal/proto/v2/common.proto";
-import "internal/proto/v2/s2a_context.proto";
+import "internal/proto/common/common.proto";
+import "internal/proto/v2/common/common.proto";
+import "internal/proto/v2/s2a_context/s2a_context.proto";
 
 enum SignatureAlgorithm {
   S2A_SSL_SIGN_UNSPECIFIED = 0;

@@ -52,13 +52,13 @@ const (
 )
 
 var (
-	//go:embed tlsconfigstore/example_cert_key/client_cert.pem
+	//go:embed example_cert_key/client_cert.pem
 	clientCertpem []byte
-	//go:embed tlsconfigstore/example_cert_key/client_key.pem
+	//go:embed example_cert_key/client_key.pem
 	clientKeypem []byte
-	//go:embed tlsconfigstore/example_cert_key/server_cert.pem
+	//go:embed example_cert_key/server_cert.pem
 	serverCertpem []byte
-	//go:embed tlsconfigstore/example_cert_key/server_key.pem
+	//go:embed example_cert_key/server_key.pem
 	serverKeypem []byte
 )
 

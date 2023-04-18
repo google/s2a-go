@@ -18,7 +18,7 @@ package s2a.proto.v2;
 
 option go_package = "github.com/google/s2a/internal/proto/v2/s2a_context_go_proto";
 
-import "internal/proto/common.proto";
+import "internal/proto/common/common.proto";
 
 message S2AContext {
   // The SPIFFE ID from the peer leaf certificate, if present.
