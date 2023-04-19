@@ -40,17 +40,17 @@ import (
 )
 
 var (
-	//go:embed example_cert_key/client_root_cert.pem
+	//go:embed testdata/client_root_cert.pem
 	clientCert []byte
-	//go:embed example_cert_key/client_root_cert.der
+	//go:embed testdata/client_root_cert.der
 	clientDERCert []byte
-	//go:embed example_cert_key/client_root_key.pem
+	//go:embed testdata/client_root_key.pem
 	clientKey []byte
-	//go:embed example_cert_key/server_root_cert.pem
+	//go:embed testdata/server_root_cert.pem
 	serverCert []byte
-	//go:embed example_cert_key/server_root_cert.der
+	//go:embed testdata/server_root_cert.der
 	serverDERCert []byte
-	//go:embed example_cert_key/server_root_key.pem
+	//go:embed testdata/server_root_key.pem
 	serverKey []byte
 )
 

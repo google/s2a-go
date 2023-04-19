@@ -41,17 +41,17 @@ const (
 )
 
 var (
-	//go:embed example_cert_key/client_root_cert.der
+	//go:embed testdata/client_root_cert.der
 	clientRootDERCert []byte
-	//go:embed example_cert_key/client_intermediate_cert.der
+	//go:embed testdata/client_intermediate_cert.der
 	clientIntermediateDERCert []byte
-	//go:embed example_cert_key/client_leaf_cert.der
+	//go:embed testdata/client_leaf_cert.der
 	clientLeafDERCert []byte
-	//go:embed example_cert_key/server_root_cert.der
+	//go:embed testdata/server_root_cert.der
 	serverRootDERCert []byte
-	//go:embed example_cert_key/server_intermediate_cert.der
+	//go:embed testdata/server_intermediate_cert.der
 	serverIntermediateDERCert []byte
-	//go:embed example_cert_key/server_leaf_cert.der
+	//go:embed testdata/server_leaf_cert.der
 	serverLeafDERCert []byte
 )
 
