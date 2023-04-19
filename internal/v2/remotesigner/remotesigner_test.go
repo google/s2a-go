@@ -70,17 +70,17 @@ func startFakeS2Av2Server(wg *sync.WaitGroup, expToken string) (stop func(), add
 }
 
 var (
-	//go:embed example_cert_key/client_cert.pem
+	//go:embed testdata/client_cert.pem
 	clientCertPEM []byte
-	//go:embed example_cert_key/client_cert.der
+	//go:embed testdata/client_cert.der
 	clientCertDER []byte
-	//go:embed example_cert_key/client_key.pem
+	//go:embed testdata/client_key.pem
 	clientKeyPEM []byte
-	//go:embed example_cert_key/server_cert.pem
+	//go:embed testdata/server_cert.pem
 	serverCertPEM []byte
-	//go:embed example_cert_key/server_cert.der
+	//go:embed testdata/server_cert.der
 	serverCertDER []byte
-	//go:embed example_cert_key/server_key.pem
+	//go:embed testdata/server_key.pem
 	serverKeyPEM []byte
 )
 

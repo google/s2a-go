@@ -63,13 +63,13 @@ const (
 )
 
 var (
-	//go:embed internal/v2/tlsconfigstore/example_cert_key/client_cert.pem
+	//go:embed testdata/client_cert.pem
 	clientCertpem []byte
-	//go:embed internal/v2/tlsconfigstore/example_cert_key/client_key.pem
+	//go:embed testdata/client_key.pem
 	clientKeypem []byte
-	//go:embed internal/v2/tlsconfigstore/example_cert_key/server_cert.pem
+	//go:embed testdata/server_cert.pem
 	serverCertpem []byte
-	//go:embed internal/v2/tlsconfigstore/example_cert_key/server_key.pem
+	//go:embed testdata/server_key.pem
 	serverKeypem []byte
 )
 
