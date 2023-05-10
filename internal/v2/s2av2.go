@@ -33,6 +33,7 @@ import (
 	"github.com/google/s2a-go/internal/handshaker/service"
 	"github.com/google/s2a-go/internal/tokenmanager"
 	"github.com/google/s2a-go/internal/v2/tlsconfigstore"
+	"github.com/google/s2a-go/stream"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/grpclog"
@@ -56,14 +57,16 @@ type s2av2TransportCreds struct {
 	// localIdentity should only be used by the client.
 	localIdentity *commonpbv1.Identity
 	// localIdentities should only be used by the server.
-	localIdentities         []*commonpbv1.Identity
-	verificationMode        s2av2pb.ValidatePeerCertificateChainReq_VerificationMode
-	fallbackClientHandshake fallback.ClientHandshake
+	localIdentities           []*commonpbv1.Identity
+	verificationMode          s2av2pb.ValidatePeerCertificateChainReq_VerificationMode
+	fallbackClientHandshake   fallback.ClientHandshake
+	getS2AStream              func() (*stream.S2AStream, error)
+	serverAuthorizationPolicy []byte
 }
 
 // NewClientCreds returns a client-side transport credentials object that uses
 // the S2Av2 to establish a secure connection with a server.
-func NewClientCreds(s2av2Address string, localIdentity *commonpbv1.Identity, verificationMode s2av2pb.ValidatePeerCertificateChainReq_VerificationMode, fallbackClientHandshakeFunc fallback.ClientHandshake) (credentials.TransportCredentials, error) {
+func NewClientCreds(s2av2Address string, localIdentity *commonpbv1.Identity, verificationMode s2av2pb.ValidatePeerCertificateChainReq_VerificationMode, fallbackClientHandshakeFunc fallback.ClientHandshake, getS2AStream func() (*stream.S2AStream, error), serverAuthorizationPolicy []byte) (credentials.TransportCredentials, error) {
 	// Create an AccessTokenManager instance to use to authenticate to S2Av2.
 	accessTokenManager, err := tokenmanager.NewSingleTokenAccessTokenManager()
 
@@ -71,12 +74,14 @@ func NewClientCreds(s2av2Address string, localIdentity *commonpbv1.Identity, ver
 		info: &credentials.ProtocolInfo{
 			SecurityProtocol: s2aSecurityProtocol,
 		},
-		isClient:                true,
-		serverName:              "",
-		s2av2Address:            s2av2Address,
-		localIdentity:           localIdentity,
-		verificationMode:        verificationMode,
-		fallbackClientHandshake: fallbackClientHandshakeFunc,
+		isClient:                  true,
+		serverName:                "",
+		s2av2Address:              s2av2Address,
+		localIdentity:             localIdentity,
+		verificationMode:          verificationMode,
+		fallbackClientHandshake:   fallbackClientHandshakeFunc,
+		getS2AStream:              getS2AStream,
+		serverAuthorizationPolicy: serverAuthorizationPolicy,
 	}
 	if err != nil {
 		creds.tokenManager = nil
@@ -91,7 +96,7 @@ func NewClientCreds(s2av2Address string, localIdentity *commonpbv1.Identity, ver
 
 // NewServerCreds returns a server-side transport credentials object that uses
 // the S2Av2 to establish a secure connection with a client.
-func NewServerCreds(s2av2Address string, localIdentities []*commonpbv1.Identity, verificationMode s2av2pb.ValidatePeerCertificateChainReq_VerificationMode) (credentials.TransportCredentials, error) {
+func NewServerCreds(s2av2Address string, localIdentities []*commonpbv1.Identity, verificationMode s2av2pb.ValidatePeerCertificateChainReq_VerificationMode, getS2AStream func() (*stream.S2AStream, error)) (credentials.TransportCredentials, error) {
 	// Create an AccessTokenManager instance to use to authenticate to S2Av2.
 	accessTokenManager, err := tokenmanager.NewSingleTokenAccessTokenManager()
 	creds := &s2av2TransportCreds{
@@ -102,6 +107,7 @@ func NewServerCreds(s2av2Address string, localIdentities []*commonpbv1.Identity,
 		s2av2Address:     s2av2Address,
 		localIdentities:  localIdentities,
 		verificationMode: verificationMode,
+		getS2AStream:     getS2AStream,
 	}
 	if err != nil {
 		creds.tokenManager = nil

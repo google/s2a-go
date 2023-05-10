@@ -24,9 +24,9 @@ import (
 	"sync"
 
 	"github.com/google/s2a-go/fallback"
+	"github.com/google/s2a-go/stream"
 
 	s2apb "github.com/google/s2a-go/internal/proto/common_go_proto"
-	s2av2pb "github.com/google/s2a-go/internal/proto/v2/s2a_go_proto"
 )
 
 // Identity is the interface for S2A identities.
@@ -79,14 +79,6 @@ const (
 	Spiffe
 )
 
-// s2AStream defines the operation for communicating with the S2A server over a bidirectional stream.
-type s2AStream interface {
-	// Send sends the message to the S2A server.
-	Send(*s2av2pb.SessionReq) error
-	// Recv receives the message from the S2A server.
-	Recv() (*s2av2pb.SessionResp, error)
-}
-
 // ClientOptions contains the client-side options used to establish a secure
 // channel using the S2A handshaker service.
 type ClientOptions struct {
@@ -135,8 +127,8 @@ type ClientOptions struct {
 	// Optional fallback after dialing with S2A fails.
 	FallbackOpts *FallbackOptions
 
-	// Generates an s2AStream interface for talking to the S2A server.
-	getS2AStream func() (*s2AStream, error)
+	// Generates an S2AStream interface for talking to the S2A server.
+	getS2AStream func() (*stream.S2AStream, error)
 
 	// Serialized user specified policy for server authorization.
 	serverAuthorizationPolicy []byte
@@ -186,8 +178,8 @@ type ServerOptions struct {
 	// peer certificate chain.
 	VerificationMode VerificationModeType
 
-	// Generates an s2AStream interface for talking to the S2A server.
-	getS2AStream func() (*s2AStream, error)
+	// Generates an S2AStream interface for talking to the S2A server.
+	getS2AStream func() (*stream.S2AStream, error)
 }
 
 // DefaultServerOptions returns the default server options.

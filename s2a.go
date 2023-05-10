@@ -111,7 +111,7 @@ func NewClientCreds(opts *ClientOptions) (credentials.TransportCredentials, erro
 	if opts.FallbackOpts != nil && opts.FallbackOpts.FallbackClientHandshakeFunc != nil {
 		fallbackFunc = opts.FallbackOpts.FallbackClientHandshakeFunc
 	}
-	return v2.NewClientCreds(opts.S2AAddress, localIdentity, verificationMode, fallbackFunc)
+	return v2.NewClientCreds(opts.S2AAddress, localIdentity, verificationMode, fallbackFunc, opts.getS2AStream, opts.serverAuthorizationPolicy)
 }
 
 // NewServerCreds returns a server-side transport credentials object that uses
@@ -146,7 +146,7 @@ func NewServerCreds(opts *ServerOptions) (credentials.TransportCredentials, erro
 		}, nil
 	}
 	verificationMode := getVerificationMode(opts.VerificationMode)
-	return v2.NewServerCreds(opts.S2AAddress, localIdentities, verificationMode)
+	return v2.NewServerCreds(opts.S2AAddress, localIdentities, verificationMode, opts.getS2AStream)
 }
 
 // ClientHandshake initiates a client-side TLS handshake using the S2A.
