@@ -217,7 +217,7 @@ func TestVerifyServerCertChain(t *testing.T) {
 			log.Printf("Client: set up bidirectional streaming RPC session.")
 
 			// TODO(rmehta19): Add verificationMode to struct, and vary between tests.
-			VerifyPeerCertificateFunc := VerifyServerCertificateChain(tc.hostname, s2av2pb.ValidatePeerCertificateChainReq_CONNECT_TO_GOOGLE, cstream)
+			VerifyPeerCertificateFunc := VerifyServerCertificateChain(tc.hostname, s2av2pb.ValidatePeerCertificateChainReq_CONNECT_TO_GOOGLE, cstream, nil)
 			got, want := VerifyPeerCertificateFunc(tc.rawCerts, nil), tc.expectedErr
 			if want == nil {
 				if got != nil {
