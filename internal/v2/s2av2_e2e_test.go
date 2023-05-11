@@ -115,7 +115,7 @@ func startFakeS2AOnUDS(t *testing.T, expToken string) string {
 // on.
 func startServer(t *testing.T, s2aAddress string, localIdentities []*commonpbv1.Identity) string {
 	// TODO(rmehta19): Pass verificationMode as a parameter to startServer.
-	creds, err := NewServerCreds(s2aAddress, localIdentities, s2av2pb.ValidatePeerCertificateChainReq_CONNECT_TO_GOOGLE)
+	creds, err := NewServerCreds(s2aAddress, localIdentities, s2av2pb.ValidatePeerCertificateChainReq_CONNECT_TO_GOOGLE, nil)
 	if err != nil {
 		t.Errorf("NewServerCreds(%s) failed: %v", s2aAddress, err)
 	}
@@ -163,7 +163,7 @@ func startFallbackServer(t *testing.T) string {
 
 // runClient starts up a client and calls the server.
 func runClient(ctx context.Context, t *testing.T, clientS2AAddress, serverAddr string, localIdentity *commonpbv1.Identity, fallbackHandshake fallback.ClientHandshake) {
-	creds, err := NewClientCreds(clientS2AAddress, localIdentity, s2av2pb.ValidatePeerCertificateChainReq_CONNECT_TO_GOOGLE, fallbackHandshake)
+	creds, err := NewClientCreds(clientS2AAddress, localIdentity, s2av2pb.ValidatePeerCertificateChainReq_CONNECT_TO_GOOGLE, fallbackHandshake, nil, nil)
 	if err != nil {
 		t.Errorf("NewClientCreds(%s) failed: %v", clientS2AAddress, err)
 	}
