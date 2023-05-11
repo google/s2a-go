@@ -346,7 +346,7 @@ func TestNewClientTlsConfigWithTokenManager(t *testing.T) {
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), defaultE2ETimeout)
 	defer cancel()
-	config, err := NewClientTLSConfig(ctx, s2AAddr, accessTokenManager, s2av2pb.ValidatePeerCertificateChainReq_CONNECT_TO_GOOGLE, "test_server_name")
+	config, err := NewClientTLSConfig(ctx, s2AAddr, accessTokenManager, s2av2pb.ValidatePeerCertificateChainReq_CONNECT_TO_GOOGLE, "test_server_name", nil)
 	if err != nil {
 		t.Errorf("NewClientTLSConfig() failed: %v", err)
 	}
@@ -366,7 +366,7 @@ func TestNewClientTlsConfigWithoutTokenManager(t *testing.T) {
 	var tokenManager tokenmanager.AccessTokenManager
 	ctx, cancel := context.WithTimeout(context.Background(), defaultE2ETimeout)
 	defer cancel()
-	config, err := NewClientTLSConfig(ctx, s2AAddr, tokenManager, s2av2pb.ValidatePeerCertificateChainReq_CONNECT_TO_GOOGLE, "test_server_name")
+	config, err := NewClientTLSConfig(ctx, s2AAddr, tokenManager, s2av2pb.ValidatePeerCertificateChainReq_CONNECT_TO_GOOGLE, "test_server_name", nil)
 	if err != nil {
 		t.Errorf("NewClientTLSConfig() failed: %v", err)
 	}

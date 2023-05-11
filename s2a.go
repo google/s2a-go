@@ -311,22 +311,25 @@ func NewTLSClientConfigFactory(opts *ClientOptions) (TLSClientConfigFactory, err
 		// which is okay in environments other than serverless.
 		grpclog.Infof("Access token manager not initialized: %v", err)
 		return &s2aTLSClientConfigFactory{
-			s2av2Address:     opts.S2AAddress,
-			tokenManager:     nil,
-			verificationMode: getVerificationMode(opts.VerificationMode),
+			s2av2Address:              opts.S2AAddress,
+			tokenManager:              nil,
+			verificationMode:          getVerificationMode(opts.VerificationMode),
+			serverAuthorizationPolicy: opts.serverAuthorizationPolicy,
 		}, nil
 	}
 	return &s2aTLSClientConfigFactory{
-		s2av2Address:     opts.S2AAddress,
-		tokenManager:     tokenManager,
-		verificationMode: getVerificationMode(opts.VerificationMode),
+		s2av2Address:              opts.S2AAddress,
+		tokenManager:              tokenManager,
+		verificationMode:          getVerificationMode(opts.VerificationMode),
+		serverAuthorizationPolicy: opts.serverAuthorizationPolicy,
 	}, nil
 }
 
 type s2aTLSClientConfigFactory struct {
-	s2av2Address     string
-	tokenManager     tokenmanager.AccessTokenManager
-	verificationMode s2av2pb.ValidatePeerCertificateChainReq_VerificationMode
+	s2av2Address              string
+	tokenManager              tokenmanager.AccessTokenManager
+	verificationMode          s2av2pb.ValidatePeerCertificateChainReq_VerificationMode
+	serverAuthorizationPolicy []byte
 }
 
 func (f *s2aTLSClientConfigFactory) Build(
@@ -335,7 +338,7 @@ func (f *s2aTLSClientConfigFactory) Build(
 	if opts != nil && opts.ServerName != "" {
 		serverName = opts.ServerName
 	}
-	return v2.NewClientTLSConfig(ctx, f.s2av2Address, f.tokenManager, f.verificationMode, serverName)
+	return v2.NewClientTLSConfig(ctx, f.s2av2Address, f.tokenManager, f.verificationMode, serverName, f.serverAuthorizationPolicy)
 }
 
 func getVerificationMode(verificationMode VerificationModeType) s2av2pb.ValidatePeerCertificateChainReq_VerificationMode {
