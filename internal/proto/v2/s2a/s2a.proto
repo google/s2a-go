@@ -256,7 +256,7 @@ message ValidatePeerCertificateChainReq {
     string server_hostname = 2;
 
     // The UnrestrictedClientPolicy specified by the user.
-    bytes serialized_unrestriced_client_policy = 3;
+    bytes serialized_unrestricted_client_policy = 3;
   }
 
   // The verification mode that S2A MUST use to validate the peer certificate

@@ -76,7 +76,7 @@ func VerifyClientCertificateChain(verificationMode s2av2pb.ValidatePeerCertifica
 
 // VerifyServerCertificateChain builds a SessionReq, sends it to S2Av2 and
 // receives a SessionResp.
-func VerifyServerCertificateChain(hostname string, verificationMode s2av2pb.ValidatePeerCertificateChainReq_VerificationMode, cstream s2av2pb.S2AService_SetUpSessionClient) func(rawCerts [][]byte, verifiedChains [][]*x509.Certificate) error {
+func VerifyServerCertificateChain(hostname string, verificationMode s2av2pb.ValidatePeerCertificateChainReq_VerificationMode, cstream s2av2pb.S2AService_SetUpSessionClient, serverAuthorizationPolicy []byte) func(rawCerts [][]byte, verifiedChains [][]*x509.Certificate) error {
 	return func(rawCerts [][]byte, verifiedChains [][]*x509.Certificate) error {
 		// Offload verification to S2Av2.
 		if grpclog.V(1) {
@@ -88,8 +88,9 @@ func VerifyServerCertificateChain(hostname string, verificationMode s2av2pb.Vali
 					Mode: verificationMode,
 					PeerOneof: &s2av2pb.ValidatePeerCertificateChainReq_ServerPeer_{
 						ServerPeer: &s2av2pb.ValidatePeerCertificateChainReq_ServerPeer{
-							CertificateChain: rawCerts,
-							ServerHostname:   hostname,
+							CertificateChain:                   rawCerts,
+							ServerHostname:                     hostname,
+							SerializedUnrestrictedClientPolicy: serverAuthorizationPolicy,
 						},
 					},
 				},

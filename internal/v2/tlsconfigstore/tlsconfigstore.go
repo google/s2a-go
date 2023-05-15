@@ -43,7 +43,7 @@ const (
 )
 
 // GetTLSConfigurationForClient returns a tls.Config instance for use by a client application.
-func GetTLSConfigurationForClient(serverHostname string, cstream s2av2pb.S2AService_SetUpSessionClient, tokenManager tokenmanager.AccessTokenManager, localIdentity *commonpbv1.Identity, verificationMode s2av2pb.ValidatePeerCertificateChainReq_VerificationMode) (*tls.Config, error) {
+func GetTLSConfigurationForClient(serverHostname string, cstream s2av2pb.S2AService_SetUpSessionClient, tokenManager tokenmanager.AccessTokenManager, localIdentity *commonpbv1.Identity, verificationMode s2av2pb.ValidatePeerCertificateChainReq_VerificationMode, serverAuthorizationPolicy []byte) (*tls.Config, error) {
 	authMechanisms := getAuthMechanisms(tokenManager, []*commonpbv1.Identity{localIdentity})
 
 	if grpclog.V(1) {
@@ -109,7 +109,7 @@ func GetTLSConfigurationForClient(serverHostname string, cstream s2av2pb.S2AServ
 
 	// Create mTLS credentials for client.
 	config := &tls.Config{
-		VerifyPeerCertificate:  certverifier.VerifyServerCertificateChain(serverHostname, verificationMode, cstream),
+		VerifyPeerCertificate:  certverifier.VerifyServerCertificateChain(serverHostname, verificationMode, cstream, serverAuthorizationPolicy),
 		ServerName:             serverHostname,
 		InsecureSkipVerify:     true, // NOLINT
 		ClientSessionCache:     nil,

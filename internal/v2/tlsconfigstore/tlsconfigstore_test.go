@@ -192,7 +192,7 @@ func TestTLSConfigStoreClient(t *testing.T) {
 				t.Fatalf("Client: failed to setup bidirectional streaming RPC session: %v", err)
 			}
 			log.Printf("Client: set up bidirectional streaming RPC session.")
-			config, err := GetTLSConfigurationForClient(tc.ServerName, cstream, tc.tokenManager, nil, s2av2pb.ValidatePeerCertificateChainReq_CONNECT_TO_GOOGLE)
+			config, err := GetTLSConfigurationForClient(tc.ServerName, cstream, tc.tokenManager, nil, s2av2pb.ValidatePeerCertificateChainReq_CONNECT_TO_GOOGLE, nil)
 			if err != nil {
 				t.Errorf("GetTLSConfigurationForClient failed: %v", err)
 			}
@@ -258,7 +258,7 @@ func TestTLSConfigStoreClientWithoutCredentials(t *testing.T) {
 		t.Fatalf("Client: failed to setup bidirectional streaming RPC session: %v", err)
 	}
 	log.Printf("Client: set up bidirectional streaming RPC session.")
-	config, err := GetTLSConfigurationForClient("hostname", cstream, nil, nil, s2av2pb.ValidatePeerCertificateChainReq_CONNECT_TO_GOOGLE)
+	config, err := GetTLSConfigurationForClient("hostname", cstream, nil, nil, s2av2pb.ValidatePeerCertificateChainReq_CONNECT_TO_GOOGLE, nil)
 	if err != nil {
 		t.Errorf("GetTLSConfigurationForClient failed: %v", err)
 	}

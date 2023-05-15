@@ -21,6 +21,7 @@ package certverifier
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log"
 	"net"
 	"sync"
@@ -37,7 +38,8 @@ import (
 )
 
 const (
-	defaultTimeout = 10.0 * time.Second
+	defaultTimeout                = 10.0 * time.Second
+	fakeServerAuthorizationPolicy = "fake server authorization policy"
 )
 
 var (
@@ -55,7 +57,7 @@ var (
 	serverLeafDERCert []byte
 )
 
-func startFakeS2Av2Server(wg *sync.WaitGroup) (stop func(), address string, err error) {
+func startFakeS2Av2Server(wg *sync.WaitGroup, enableServerAuthorizationPolicyCheck bool) (stop func(), address string, err error) {
 	listener, err := net.Listen("tcp", ":0")
 	if err != nil {
 		log.Fatalf("Failed to listen on address %s: %v", address, err)
@@ -63,7 +65,13 @@ func startFakeS2Av2Server(wg *sync.WaitGroup) (stop func(), address string, err 
 	address = listener.Addr().String()
 	s := grpc.NewServer()
 	log.Printf("Server: started gRPC fake S2Av2 Server on address: %s", address)
-	s2av2pb.RegisterS2AServiceServer(s, &fakes2av2.Server{})
+	if enableServerAuthorizationPolicyCheck {
+		s2av2pb.RegisterS2AServiceServer(s, &fakes2av2.Server{
+			ServerAuthorizationPolicy: []byte(fakeServerAuthorizationPolicy),
+		})
+	} else {
+		s2av2pb.RegisterS2AServiceServer(s, &fakes2av2.Server{})
+	}
 	go func() {
 		wg.Done()
 		if err := s.Serve(listener); err != nil {
@@ -78,7 +86,7 @@ func TestVerifyClientCertChain(t *testing.T) {
 	// Start up fake S2Av2 server.
 	var wg sync.WaitGroup
 	wg.Add(1)
-	stop, address, err := startFakeS2Av2Server(&wg)
+	stop, address, err := startFakeS2Av2Server(&wg, false)
 	wg.Wait()
 	if err != nil {
 		t.Fatalf("Error starting fake S2Av2 Server: %v", err)
@@ -155,40 +163,51 @@ func TestVerifyClientCertChain(t *testing.T) {
 	stop()
 }
 
-// TestVerifyServerCertChain runs unit tests for VerifyServerCertificateChain.
-func TestVerifyServerCertChain(t *testing.T) {
+// TestVerifyServerCertChainWithServerAuthorizationPolicy runs unit tests for VerifyServerCertificateChain with server authorization policy check.
+func TestVerifyServerCertChainWithServerAuthorizationPolicy(t *testing.T) {
 	// Start up fake S2Av2 server.
 	var wg sync.WaitGroup
 	wg.Add(1)
-	stop, address, err := startFakeS2Av2Server(&wg)
+	stop, address, err := startFakeS2Av2Server(&wg, true)
 	wg.Wait()
 	if err != nil {
 		t.Fatalf("Error starting fake S2Av2 Server: %v", err)
 	}
 
 	for _, tc := range []struct {
-		description string
-		hostname    string
-		rawCerts    [][]byte
-		expectedErr error
+		description               string
+		hostname                  string
+		rawCerts                  [][]byte
+		expectedErr               error
+		serverAuthorizationPolicy []byte
 	}{
 		{
-			description: "empty chain",
-			hostname:    "host",
-			rawCerts:    nil,
-			expectedErr: errors.New("server cert verification failed: server peer verification failed: server cert chain is empty"),
+			description:               "empty chain",
+			hostname:                  "host",
+			rawCerts:                  nil,
+			expectedErr:               errors.New("server cert verification failed: server peer verification failed: server cert chain is empty"),
+			serverAuthorizationPolicy: []byte(fakeServerAuthorizationPolicy),
 		},
 		{
-			description: "chain of length 1",
-			hostname:    "host",
-			rawCerts:    [][]byte{serverRootDERCert},
-			expectedErr: nil,
+			description:               "invalid server authorization policy",
+			hostname:                  "host",
+			rawCerts:                  [][]byte{serverRootDERCert},
+			expectedErr:               errors.New(fmt.Sprintf("rpc error: code = Unknown desc = server peer verification failed: invalid server authorization policy, expected: %s, got: .", fakeServerAuthorizationPolicy)),
+			serverAuthorizationPolicy: nil,
 		},
 		{
-			description: "chain of length 2 correct",
-			hostname:    "host",
-			rawCerts:    [][]byte{serverLeafDERCert, serverIntermediateDERCert},
-			expectedErr: nil,
+			description:               "chain of length 1",
+			hostname:                  "host",
+			rawCerts:                  [][]byte{serverRootDERCert},
+			expectedErr:               nil,
+			serverAuthorizationPolicy: []byte(fakeServerAuthorizationPolicy),
+		},
+		{
+			description:               "chain of length 2 correct",
+			hostname:                  "host",
+			rawCerts:                  [][]byte{serverLeafDERCert, serverIntermediateDERCert},
+			expectedErr:               nil,
+			serverAuthorizationPolicy: []byte(fakeServerAuthorizationPolicy),
 		},
 	} {
 		t.Run(tc.description, func(t *testing.T) {
@@ -217,7 +236,91 @@ func TestVerifyServerCertChain(t *testing.T) {
 			log.Printf("Client: set up bidirectional streaming RPC session.")
 
 			// TODO(rmehta19): Add verificationMode to struct, and vary between tests.
-			VerifyPeerCertificateFunc := VerifyServerCertificateChain(tc.hostname, s2av2pb.ValidatePeerCertificateChainReq_CONNECT_TO_GOOGLE, cstream)
+			VerifyPeerCertificateFunc := VerifyServerCertificateChain(tc.hostname, s2av2pb.ValidatePeerCertificateChainReq_CONNECT_TO_GOOGLE, cstream, tc.serverAuthorizationPolicy)
+			got, want := VerifyPeerCertificateFunc(tc.rawCerts, nil), tc.expectedErr
+			if want == nil {
+				if got != nil {
+					t.Errorf("Peer certificate verification failed, got: %v, want: %v", got, want)
+				}
+			} else {
+				if got == nil {
+					t.Errorf("Peer certificate verification failed, got: %v, want: %v", got, want)
+				}
+				if got.Error() != want.Error() {
+					t.Errorf("Peer certificate verification failed, got: %v, want: %v", got, want)
+				}
+			}
+		})
+	}
+	stop()
+}
+
+// TestVerifyServerCertChainWithoutServerAuthorizationPolicy runs unit tests for VerifyServerCertificateChain without server authorization policy check.
+func TestVerifyServerCertChainWithoutServerAuthorizationPolicy(t *testing.T) {
+	// Start up fake S2Av2 server.
+	var wg sync.WaitGroup
+	wg.Add(1)
+	stop, address, err := startFakeS2Av2Server(&wg, false)
+	wg.Wait()
+	if err != nil {
+		t.Fatalf("Error starting fake S2Av2 Server: %v", err)
+	}
+
+	for _, tc := range []struct {
+		description               string
+		hostname                  string
+		rawCerts                  [][]byte
+		expectedErr               error
+		serverAuthorizationPolicy []byte
+	}{
+		{
+			description:               "empty chain",
+			hostname:                  "host",
+			rawCerts:                  nil,
+			expectedErr:               errors.New("server cert verification failed: server peer verification failed: server cert chain is empty"),
+			serverAuthorizationPolicy: []byte(fakeServerAuthorizationPolicy),
+		},
+		{
+			description:               "chain of length 1",
+			hostname:                  "host",
+			rawCerts:                  [][]byte{serverRootDERCert},
+			expectedErr:               nil,
+			serverAuthorizationPolicy: nil,
+		},
+		{
+			description:               "chain of length 2 correct",
+			hostname:                  "host",
+			rawCerts:                  [][]byte{serverLeafDERCert, serverIntermediateDERCert},
+			expectedErr:               nil,
+			serverAuthorizationPolicy: nil,
+		},
+	} {
+		t.Run(tc.description, func(t *testing.T) {
+			// Create new stream to S2Av2.
+			opts := []grpc.DialOption{
+				grpc.WithTransportCredentials(insecure.NewCredentials()),
+				grpc.WithReturnConnectionError(),
+				grpc.WithBlock(),
+			}
+			conn, err := grpc.Dial(address, opts...)
+			if err != nil {
+				t.Fatalf("Client: failed to connect: %v", err)
+			}
+			defer conn.Close()
+			c := s2av2pb.NewS2AServiceClient(conn)
+			log.Printf("Client: connected to: %s", address)
+			ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
+			defer cancel()
+
+			// Setup bidrectional streaming session.
+			callOpts := []grpc.CallOption{}
+			cstream, err := c.SetUpSession(ctx, callOpts...)
+			if err != nil {
+				t.Fatalf("Client: failed to setup bidirectional streaming RPC session: %v", err)
+			}
+			log.Printf("Client: set up bidirectional streaming RPC session.")
+
+			VerifyPeerCertificateFunc := VerifyServerCertificateChain(tc.hostname, s2av2pb.ValidatePeerCertificateChainReq_CONNECT_TO_GOOGLE, cstream, tc.serverAuthorizationPolicy)
 			got, want := VerifyPeerCertificateFunc(tc.rawCerts, nil), tc.expectedErr
 			if want == nil {
 				if got != nil {

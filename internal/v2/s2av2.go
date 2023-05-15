@@ -151,7 +151,7 @@ func (c *s2av2TransportCreds) ClientHandshake(ctx context.Context, serverAuthori
 	}
 
 	if c.serverName == "" {
-		config, err = tlsconfigstore.GetTLSConfigurationForClient(serverName, cstream, tokenManager, c.localIdentity, c.verificationMode)
+		config, err = tlsconfigstore.GetTLSConfigurationForClient(serverName, cstream, tokenManager, c.localIdentity, c.verificationMode, c.serverAuthorizationPolicy)
 		if err != nil {
 			grpclog.Info("Failed to get client TLS config from S2Av2: %v", err)
 			if c.fallbackClientHandshake != nil {
@@ -160,7 +160,7 @@ func (c *s2av2TransportCreds) ClientHandshake(ctx context.Context, serverAuthori
 			return nil, nil, err
 		}
 	} else {
-		config, err = tlsconfigstore.GetTLSConfigurationForClient(c.serverName, cstream, tokenManager, c.localIdentity, c.verificationMode)
+		config, err = tlsconfigstore.GetTLSConfigurationForClient(c.serverName, cstream, tokenManager, c.localIdentity, c.verificationMode, c.serverAuthorizationPolicy)
 		if err != nil {
 			grpclog.Info("Failed to get client TLS config from S2Av2: %v", err)
 			if c.fallbackClientHandshake != nil {
@@ -278,14 +278,15 @@ func NewClientTLSConfig(
 	s2av2Address string,
 	tokenManager tokenmanager.AccessTokenManager,
 	verificationMode s2av2pb.ValidatePeerCertificateChainReq_VerificationMode,
-	serverName string) (*tls.Config, error) {
+	serverName string,
+	serverAuthorizationPolicy []byte) (*tls.Config, error) {
 	cstream, err := createStream(ctx, s2av2Address)
 	if err != nil {
 		grpclog.Infof("Failed to connect to S2Av2: %v", err)
 		return nil, err
 	}
 
-	return tlsconfigstore.GetTLSConfigurationForClient(removeServerNamePort(serverName), cstream, tokenManager, nil, verificationMode)
+	return tlsconfigstore.GetTLSConfigurationForClient(removeServerNamePort(serverName), cstream, tokenManager, nil, verificationMode, serverAuthorizationPolicy)
 }
 
 // OverrideServerName sets the ServerName in the s2av2TransportCreds protocol

@@ -20,6 +20,7 @@
 package fakes2av2
 
 import (
+	"bytes"
 	"crypto"
 	"crypto/rand"
 	"crypto/rsa"
@@ -63,6 +64,7 @@ type Server struct {
 	// not return credentials when GetTlsConfiguration is called by a client.
 	ShouldNotReturnClientCredentials bool
 	isAssistingClientSide            bool
+	ServerAuthorizationPolicy        []byte
 	// TODO(rmehta19): Decide whether to also store validationResult (bool).
 	// Set this after validating token attached to first SessionReq. Check
 	// this field before completing subsequent SessionReq.
@@ -109,7 +111,7 @@ func (s *Server) SetUpSession(stream s2av2pb.S2AService_SetUpSessionServer) erro
 		case *s2av2pb.SessionReq_OffloadResumptionKeyOperationReq:
 			// TODO(rmehta19): Implement fake.
 		case *s2av2pb.SessionReq_ValidatePeerCertificateChainReq:
-			resp, err = validatePeerCertificateChain(req.GetValidatePeerCertificateChainReq())
+			resp, err = validatePeerCertificateChain(req.GetValidatePeerCertificateChainReq(), s.ServerAuthorizationPolicy)
 			if err != nil {
 				log.Printf("Fake S2A Service: failed to build SessionResp with ValidatePeerCertificateChainResp: %v", err)
 				return err
@@ -203,12 +205,12 @@ func offloadPrivateKeyOperation(req *s2av2pb.OffloadPrivateKeyOperationReq, isAs
 	}
 }
 
-func validatePeerCertificateChain(req *s2av2pb.ValidatePeerCertificateChainReq) (*s2av2pb.SessionResp, error) {
+func validatePeerCertificateChain(req *s2av2pb.ValidatePeerCertificateChainReq, serverAuthorizationPolicy []byte) (*s2av2pb.SessionResp, error) {
 	switch x := req.PeerOneof.(type) {
 	case *s2av2pb.ValidatePeerCertificateChainReq_ClientPeer_:
 		return verifyClientPeer(req)
 	case *s2av2pb.ValidatePeerCertificateChainReq_ServerPeer_:
-		return verifyServerPeer(req)
+		return verifyServerPeer(req, serverAuthorizationPolicy)
 	default:
 		err := fmt.Errorf("peer verification failed: invalid Peer type %T", x)
 		return buildValidatePeerCertificateChainSessionResp(uint32(codes.InvalidArgument), err.Error(), s2av2pb.ValidatePeerCertificateChainResp_FAILURE, err.Error(), &s2av2ctx.S2AContext{}), err
@@ -337,7 +339,14 @@ func verifyClientPeer(req *s2av2pb.ValidatePeerCertificateChainReq) (*s2av2pb.Se
 	return buildValidatePeerCertificateChainSessionResp(uint32(codes.OK), "", s2av2pb.ValidatePeerCertificateChainResp_SUCCESS, "client peer verification succeeded", &s2av2ctx.S2AContext{}), nil
 }
 
-func verifyServerPeer(req *s2av2pb.ValidatePeerCertificateChainReq) (*s2av2pb.SessionResp, error) {
+func verifyServerPeer(req *s2av2pb.ValidatePeerCertificateChainReq, serverAuthorizationPolicy []byte) (*s2av2pb.SessionResp, error) {
+	if serverAuthorizationPolicy != nil {
+		if got := req.GetServerPeer().SerializedUnrestrictedClientPolicy; !bytes.Equal(got, serverAuthorizationPolicy) {
+			err := errors.New(fmt.Sprintf("server peer verification failed: invalid server authorization policy, expected: %s, got: %s.",
+				serverAuthorizationPolicy, got))
+			return buildValidatePeerCertificateChainSessionResp(uint32(codes.Internal), err.Error(), s2av2pb.ValidatePeerCertificateChainResp_FAILURE, err.Error(), &s2av2ctx.S2AContext{}), err
+		}
+	}
 	derCertChain := req.GetServerPeer().CertificateChain
 	if len(derCertChain) == 0 {
 		s := "server peer verification failed: server cert chain is empty"
