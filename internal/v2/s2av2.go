@@ -311,15 +311,15 @@ type s2AGrpcStream struct {
 	stream s2av2pb.S2AService_SetUpSessionClient
 }
 
-func (x *s2AGrpcStream) Send(m *s2av2pb.SessionReq) error {
+func (x s2AGrpcStream) Send(m *s2av2pb.SessionReq) error {
 	return x.stream.Send(m)
 }
 
-func (x *s2AGrpcStream) Recv() (*s2av2pb.SessionResp, error) {
+func (x s2AGrpcStream) Recv() (*s2av2pb.SessionResp, error) {
 	return x.stream.Recv()
 }
 
-func (x *s2AGrpcStream) CloseSend() error {
+func (x s2AGrpcStream) CloseSend() error {
 	return x.stream.CloseSend()
 }
 

@@ -27,6 +27,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/s2a-go/fallback"
 	"github.com/google/s2a-go/internal/tokenmanager"
+	"github.com/google/s2a-go/stream"
 	"google.golang.org/protobuf/testing/protocmp"
 
 	commonpbv1 "github.com/google/s2a-go/internal/proto/common_go_proto"
@@ -302,6 +303,48 @@ func TestOverrideServerName(t *testing.T) {
 			}
 			if got, want := s2av2Creds.serverName, tc.wantServerName; got != want {
 				t.Errorf("c.serverName = %v, want %v", got, want)
+			}
+		})
+	}
+}
+
+type s2ATestStream struct {
+	debug string
+}
+
+func (x s2ATestStream) Send(m *s2av2pb.SessionReq) error {
+	return nil
+}
+
+func (x s2ATestStream) Recv() (*s2av2pb.SessionResp, error) {
+	return nil, nil
+}
+
+func (x s2ATestStream) CloseSend() error {
+	return nil
+}
+
+func TestCreateStream(t *testing.T) {
+	for _, tc := range []struct {
+		description string
+	}{
+		{
+			description: "static",
+		},
+	} {
+		t.Run(tc.description, func(t *testing.T) {
+			s2AStream, err := createStream(nil, "fake address", func(ctx context.Context, s2av2Address string) (stream.S2AStream, error) {
+				return s2ATestStream{debug: "test s2a stream"}, nil
+			})
+			if err != nil {
+				t.Fatalf("New S2AStream failed: %v", err)
+			}
+			testStream, ok := s2AStream.(s2ATestStream)
+			if !ok {
+				t.Fatal("The created stream is not of type s2ATestStream")
+			}
+			if testStream.debug != "test s2a stream" {
+				t.Errorf("The created stream is not the intended stream")
 			}
 		})
 	}
