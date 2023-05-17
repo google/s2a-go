@@ -192,7 +192,7 @@ func TestVerifyServerCertChainWithServerAuthorizationPolicy(t *testing.T) {
 			description:               "invalid server authorization policy",
 			hostname:                  "host",
 			rawCerts:                  [][]byte{serverRootDERCert},
-			expectedErr:               errors.New(fmt.Sprintf("rpc error: code = Unknown desc = server peer verification failed: invalid server authorization policy, expected: %s, got: .", fakeServerAuthorizationPolicy)),
+			expectedErr:               fmt.Errorf("rpc error: code = Unknown desc = server peer verification failed: invalid server authorization policy, expected: %s, got: ", fakeServerAuthorizationPolicy),
 			serverAuthorizationPolicy: nil,
 		},
 		{
