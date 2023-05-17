@@ -344,6 +344,7 @@ func createStream(ctx context.Context, s2av2Address string, getS2AStream func(ct
 	}, nil
 }
 
+// GetS2ATimeout returns the timeout enforced on the connection to the S2A service for handshake.
 func GetS2ATimeout() time.Duration {
 	timeout, err := time.ParseDuration(os.Getenv(s2aTimeoutEnv))
 	if err != nil {
