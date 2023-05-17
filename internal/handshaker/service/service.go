@@ -37,9 +37,6 @@ import (
 const enableAppEngineDialerEnv = "S2A_ENABLE_APP_ENGINE_DIALER"
 
 var (
-	// enableAppEngineDialer indicates whether an AppEngine-specific dial option
-	// should be used.
-	enableAppEngineDialer bool
 	// appEngineDialerHook is an AppEngine-specific dial option that is set
 	// during init time. If nil, then the application is not running on Google
 	// AppEngine.
@@ -54,10 +51,6 @@ var (
 )
 
 func init() {
-	enableAppEngineDialer = false
-	if strings.ToLower(os.Getenv(enableAppEngineDialerEnv)) == "true" {
-		enableAppEngineDialer = true
-	}
 	if !appengine.IsAppEngine() && !appengine.IsDevAppServer() {
 		return
 	}
@@ -82,7 +75,7 @@ func Dial(handshakerServiceAddress string) (*grpc.ClientConn, error) {
 		grpcOpts := []grpc.DialOption{
 			grpc.WithInsecure(),
 		}
-		if enableAppEngineDialer && appEngineDialerHook != nil {
+		if enableAppEngineDialer() && appEngineDialerHook != nil {
 			if grpclog.V(1) {
 				grpclog.Info("Using AppEngine-specific dialer to talk to S2A.")
 			}
@@ -96,4 +89,11 @@ func Dial(handshakerServiceAddress string) (*grpc.ClientConn, error) {
 		hsConnMap[handshakerServiceAddress] = hsConn
 	}
 	return hsConn, nil
+}
+
+func enableAppEngineDialer() bool {
+	if strings.ToLower(os.Getenv(enableAppEngineDialerEnv)) == "true" {
+		return true
+	}
+	return false
 }
