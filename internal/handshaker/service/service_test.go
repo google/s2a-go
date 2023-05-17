@@ -83,7 +83,7 @@ func TestDial(t *testing.T) {
 }
 
 func TestAppEngineSpecificDialOptions(t *testing.T) {
-	if enableAppEngineDialer {
+	if enableAppEngineDialer() {
 		t.Fatalf("expected enableAppEngineDialer to be false")
 	}
 	if appEngineDialerHook != nil {
