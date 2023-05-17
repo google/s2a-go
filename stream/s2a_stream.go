@@ -29,4 +29,6 @@ type S2AStream interface {
 	Send(*s2av2pb.SessionReq) error
 	// Recv receives the message from the S2A server.
 	Recv() (*s2av2pb.SessionResp, error)
+	// Closes the channel to the S2A server.
+	CloseSend() error
 }
