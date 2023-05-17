@@ -388,7 +388,7 @@ func NewS2ADialTLSContextFunc(opts *ClientOptions) func(ctx context.Context, net
 		if err != nil {
 			serverName = addr
 		}
-		timeoutCtx, cancel := context.WithTimeout(ctx, *v2.S2ATimeout)
+		timeoutCtx, cancel := context.WithTimeout(ctx, v2.GetS2ATimeout())
 		defer cancel()
 		s2aTLSConfig, err := factory.Build(timeoutCtx, &TLSClientConfigOptions{
 			ServerName: serverName,

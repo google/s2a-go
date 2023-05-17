@@ -21,8 +21,9 @@ package service
 
 import (
 	"context"
-	"flag"
 	"net"
+	"os"
+	"strings"
 	"sync"
 	"time"
 
@@ -31,6 +32,9 @@ import (
 	grpc "google.golang.org/grpc"
 	"google.golang.org/grpc/grpclog"
 )
+
+// An environment variable, if true, opportunistically use AppEngine-specific dialer to call S2A.
+const enableAppEngineDialerEnv = "S2A_ENABLE_APP_ENGINE_DIALER"
 
 var (
 	// enableAppEngineDialer indicates whether an AppEngine-specific dial option
@@ -50,7 +54,10 @@ var (
 )
 
 func init() {
-	flag.BoolVar(&enableAppEngineDialer, "s2a_enable_appengine_dialer", false, "If true, opportunistically use AppEngine-specific dialer to call S2A.")
+	enableAppEngineDialer = false
+	if strings.ToLower(os.Getenv(enableAppEngineDialerEnv)) == "true" {
+		enableAppEngineDialer = true
+	}
 	if !appengine.IsAppEngine() && !appengine.IsDevAppServer() {
 		return
 	}

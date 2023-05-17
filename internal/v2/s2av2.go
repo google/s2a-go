@@ -24,8 +24,8 @@ import (
 	"context"
 	"crypto/tls"
 	"errors"
-	"flag"
 	"net"
+	"os"
 	"time"
 
 	"github.com/golang/protobuf/proto"
@@ -44,9 +44,11 @@ import (
 
 const (
 	s2aSecurityProtocol = "tls"
+	defaultS2ATimeout   = 3 * time.Second
 )
 
-var S2ATimeout = flag.Duration("s2a_timeout", 3*time.Second, "Timeout enforced on the connection to the S2A service for handshake.")
+// An environment variable, which sets the timeout enforced on the connection to the S2A service for handshake.
+const s2aTimeoutEnv = "S2A_TIMEOUT"
 
 type s2av2TransportCreds struct {
 	info         *credentials.ProtocolInfo
@@ -127,7 +129,7 @@ func (c *s2av2TransportCreds) ClientHandshake(ctx context.Context, serverAuthori
 	}
 	// Remove the port from serverAuthority.
 	serverName := removeServerNamePort(serverAuthority)
-	timeoutCtx, cancel := context.WithTimeout(ctx, *S2ATimeout)
+	timeoutCtx, cancel := context.WithTimeout(ctx, GetS2ATimeout())
 	defer cancel()
 	s2AStream, err := createStream(timeoutCtx, c.s2av2Address, c.getS2AStream)
 	if err != nil {
@@ -192,7 +194,7 @@ func (c *s2av2TransportCreds) ServerHandshake(rawConn net.Conn) (net.Conn, crede
 	if c.isClient {
 		return nil, nil, errors.New("server handshake called using client transport credentials")
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), *S2ATimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), GetS2ATimeout())
 	defer cancel()
 	s2AStream, err := createStream(ctx, c.s2av2Address, c.getS2AStream)
 	if err != nil {
@@ -340,4 +342,12 @@ func createStream(ctx context.Context, s2av2Address string, getS2AStream func(ct
 	return &s2AGrpcStream{
 		stream: gRPCStream,
 	}, nil
+}
+
+func GetS2ATimeout() time.Duration {
+	timeout, err := time.ParseDuration(os.Getenv(s2aTimeoutEnv))
+	if err != nil {
+		return defaultS2ATimeout
+	}
+	return timeout
 }
