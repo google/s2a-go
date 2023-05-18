@@ -361,6 +361,12 @@ func TestGetS2ATimeout(t *testing.T) {
 		t.Fatalf("GetS2ATimeout should return default if S2A_TIMEOUT is not set")
 	}
 
+	// Set the environment var to empty string
+	os.Setenv(s2aTimeoutEnv, "")
+	if got, want := GetS2ATimeout(), defaultS2ATimeout; got != want {
+		t.Fatalf("GetS2ATimeout should return default if S2A_TIMEOUT is set to empty string")
+	}
+
 	// Set a valid duration string
 	os.Setenv(s2aTimeoutEnv, "5s")
 	if got, want := GetS2ATimeout(), 5*time.Second; got != want {
