@@ -19,6 +19,7 @@
 package service
 
 import (
+	"os"
 	"testing"
 
 	grpc "google.golang.org/grpc"
@@ -83,10 +84,51 @@ func TestDial(t *testing.T) {
 }
 
 func TestAppEngineSpecificDialOptions(t *testing.T) {
-	if enableAppEngineDialer {
+	if enableAppEngineDialer() {
 		t.Fatalf("expected enableAppEngineDialer to be false")
 	}
 	if appEngineDialerHook != nil {
 		t.Fatalf("expected appEngineDialerHook to be nil")
+	}
+}
+
+func TestEnableAppEngineDialer(t *testing.T) {
+	oldEnvValue := os.Getenv(enableAppEngineDialerEnv)
+	defer os.Setenv(enableAppEngineDialerEnv, oldEnvValue)
+
+	// Unset the environment var
+	os.Unsetenv(enableAppEngineDialerEnv)
+	if got, want := enableAppEngineDialer(), false; got != want {
+		t.Fatalf("enableAppEngineDialer should default to false")
+	}
+
+	// Set the environment var to empty string
+	os.Setenv(enableAppEngineDialerEnv, "")
+	if got, want := enableAppEngineDialer(), false; got != want {
+		t.Fatalf("enableAppEngineDialer should default to false")
+	}
+
+	// Set the environment var to true
+	os.Setenv(enableAppEngineDialerEnv, "true")
+	if got, want := enableAppEngineDialer(), true; got != want {
+		t.Fatalf("expected enableAppEngineDialer to be true")
+	}
+
+	// Set the environment var to true, with a mix of upper and lower cases
+	os.Setenv(enableAppEngineDialerEnv, "True")
+	if got, want := enableAppEngineDialer(), true; got != want {
+		t.Fatalf("expected enableAppEngineDialer to be true")
+	}
+
+	// Set the environment var to false
+	os.Setenv(enableAppEngineDialerEnv, "false")
+	if got, want := enableAppEngineDialer(), false; got != want {
+		t.Fatalf("expected enableAppEngineDialer to be false")
+	}
+
+	// Set the environment var to something irrelevant
+	os.Setenv(enableAppEngineDialerEnv, "something")
+	if got, want := enableAppEngineDialer(), false; got != want {
+		t.Fatalf("expected enableAppEngineDialer to be false")
 	}
 }
