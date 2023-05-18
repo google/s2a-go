@@ -19,6 +19,7 @@
 package service
 
 import (
+	"os"
 	"testing"
 
 	grpc "google.golang.org/grpc"
@@ -88,5 +89,19 @@ func TestAppEngineSpecificDialOptions(t *testing.T) {
 	}
 	if appEngineDialerHook != nil {
 		t.Fatalf("expected appEngineDialerHook to be nil")
+	}
+}
+
+func TestEnableAppEngineDialer(t *testing.T) {
+	if got, want := enableAppEngineDialer(), false; got != want {
+		t.Fatalf("enableAppEngineDialer should default to false")
+	}
+
+	oldEnvValue := os.Getenv(enableAppEngineDialerEnv)
+	os.Setenv(enableAppEngineDialerEnv, "true")
+	defer os.Setenv(enableAppEngineDialerEnv, oldEnvValue)
+
+	if got, want := enableAppEngineDialer(), true; got != want {
+		t.Fatalf("expected enableAppEngineDialer to be true")
 	}
 }

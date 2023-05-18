@@ -23,6 +23,7 @@ import (
 	"os"
 	"reflect"
 	"testing"
+	"time"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/s2a-go/fallback"
@@ -347,5 +348,19 @@ func TestCreateStream(t *testing.T) {
 				t.Errorf("The created stream is not the intended stream")
 			}
 		})
+	}
+}
+
+func TestGetS2ATimeout(t *testing.T) {
+	if got, want := GetS2ATimeout(), defaultS2ATimeout; got != want {
+		t.Fatalf("GetS2ATimeout should return default")
+	}
+
+	oldEnvValue := os.Getenv(s2aTimeoutEnv)
+	os.Setenv(s2aTimeoutEnv, "5s")
+	defer os.Setenv(s2aTimeoutEnv, oldEnvValue)
+
+	if got, want := GetS2ATimeout(), 5*time.Second; got != want {
+		t.Fatalf("expected timeout to be 5s")
 	}
 }
