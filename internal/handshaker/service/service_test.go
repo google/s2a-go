@@ -93,15 +93,30 @@ func TestAppEngineSpecificDialOptions(t *testing.T) {
 }
 
 func TestEnableAppEngineDialer(t *testing.T) {
+	oldEnvValue := os.Getenv(enableAppEngineDialerEnv)
+	defer os.Setenv(enableAppEngineDialerEnv, oldEnvValue)
+
+	// Unset the environment var
+	os.Unsetenv(enableAppEngineDialerEnv)
 	if got, want := enableAppEngineDialer(), false; got != want {
 		t.Fatalf("enableAppEngineDialer should default to false")
 	}
 
-	oldEnvValue := os.Getenv(enableAppEngineDialerEnv)
+	// Set the environment var to true
 	os.Setenv(enableAppEngineDialerEnv, "true")
-	defer os.Setenv(enableAppEngineDialerEnv, oldEnvValue)
-
 	if got, want := enableAppEngineDialer(), true; got != want {
 		t.Fatalf("expected enableAppEngineDialer to be true")
+	}
+
+	// Set the environment var to true, with a mix of upper and lower cases
+	os.Setenv(enableAppEngineDialerEnv, "True")
+	if got, want := enableAppEngineDialer(), true; got != want {
+		t.Fatalf("expected enableAppEngineDialer to be true")
+	}
+
+	// Set the environment var to something irrelevant
+	os.Setenv(enableAppEngineDialerEnv, "something")
+	if got, want := enableAppEngineDialer(), false; got != want {
+		t.Fatalf("expected enableAppEngineDialer to be false")
 	}
 }

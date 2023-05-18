@@ -352,15 +352,24 @@ func TestCreateStream(t *testing.T) {
 }
 
 func TestGetS2ATimeout(t *testing.T) {
-	if got, want := GetS2ATimeout(), defaultS2ATimeout; got != want {
-		t.Fatalf("GetS2ATimeout should return default")
-	}
-
 	oldEnvValue := os.Getenv(s2aTimeoutEnv)
-	os.Setenv(s2aTimeoutEnv, "5s")
 	defer os.Setenv(s2aTimeoutEnv, oldEnvValue)
 
+	// Unset the environment var
+	os.Unsetenv(s2aTimeoutEnv)
+	if got, want := GetS2ATimeout(), defaultS2ATimeout; got != want {
+		t.Fatalf("GetS2ATimeout should return default if S2A_TIMEOUT is not set")
+	}
+
+	// Set a valid duration string
+	os.Setenv(s2aTimeoutEnv, "5s")
 	if got, want := GetS2ATimeout(), 5*time.Second; got != want {
 		t.Fatalf("expected timeout to be 5s")
+	}
+
+	// Set an invalid duration string
+	os.Setenv(s2aTimeoutEnv, "5abc")
+	if got, want := GetS2ATimeout(), defaultS2ATimeout; got != want {
+		t.Fatalf("expected timeout to be default if the set timeout is invalid")
 	}
 }
