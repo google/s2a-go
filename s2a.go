@@ -35,6 +35,7 @@ import (
 	"github.com/google/s2a-go/internal/handshaker/service"
 	"github.com/google/s2a-go/internal/tokenmanager"
 	"github.com/google/s2a-go/internal/v2"
+	"github.com/google/s2a-go/retry"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/grpclog"
 
@@ -390,9 +391,21 @@ func NewS2ADialTLSContextFunc(opts *ClientOptions) func(ctx context.Context, net
 		}
 		timeoutCtx, cancel := context.WithTimeout(ctx, v2.GetS2ATimeout())
 		defer cancel()
-		s2aTLSConfig, err := factory.Build(timeoutCtx, &TLSClientConfigOptions{
-			ServerName: serverName,
-		})
+
+		var s2aTLSConfig *tls.Config
+		retryer := retry.NewRetryer()
+		for {
+			s2aTLSConfig, err = factory.Build(timeoutCtx, &TLSClientConfigOptions{
+				ServerName: serverName,
+			})
+			if backoff, shouldRetry := retryer.Retry(err); shouldRetry {
+				if sleepErr := retry.Sleep(ctx, backoff); sleepErr != nil {
+					break
+				}
+				continue
+			}
+			break
+		}
 		if err != nil {
 			grpclog.Infof("error building S2A TLS config: %v", err)
 			return fallback(err)
@@ -401,7 +414,18 @@ func NewS2ADialTLSContextFunc(opts *ClientOptions) func(ctx context.Context, net
 		s2aDialer := &tls.Dialer{
 			Config: s2aTLSConfig,
 		}
-		c, err := s2aDialer.DialContext(ctx, network, addr)
+		retryer = retry.NewRetryer()
+		var c net.Conn
+		for {
+			c, err = s2aDialer.DialContext(ctx, network, addr)
+			if backoff, shouldRetry := retryer.Retry(err); shouldRetry {
+				if sleepErr := retry.Sleep(ctx, backoff); sleepErr != nil {
+					break
+				}
+				continue
+			}
+			break
+		}
 		if err != nil {
 			grpclog.Infof("error dialing with S2A to %s: %v", addr, err)
 			return fallback(err)

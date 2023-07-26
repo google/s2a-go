@@ -33,6 +33,7 @@ import (
 	"github.com/google/s2a-go/internal/handshaker/service"
 	"github.com/google/s2a-go/internal/tokenmanager"
 	"github.com/google/s2a-go/internal/v2/tlsconfigstore"
+	"github.com/google/s2a-go/retry"
 	"github.com/google/s2a-go/stream"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
@@ -44,7 +45,7 @@ import (
 
 const (
 	s2aSecurityProtocol = "tls"
-	defaultS2ATimeout   = 3 * time.Second
+	defaultS2ATimeout   = 6 * time.Second
 )
 
 // An environment variable, which sets the timeout enforced on the connection to the S2A service for handshake.
@@ -131,7 +132,19 @@ func (c *s2av2TransportCreds) ClientHandshake(ctx context.Context, serverAuthori
 	serverName := removeServerNamePort(serverAuthority)
 	timeoutCtx, cancel := context.WithTimeout(ctx, GetS2ATimeout())
 	defer cancel()
-	s2AStream, err := createStream(timeoutCtx, c.s2av2Address, c.getS2AStream)
+	var err error
+	var s2AStream stream.S2AStream
+	retryer := retry.NewRetryer()
+	for {
+		s2AStream, err = createStream(timeoutCtx, c.s2av2Address, c.getS2AStream)
+		if backoff, shouldRetry := retryer.Retry(err); shouldRetry {
+			if sleepErr := retry.Sleep(ctx, backoff); sleepErr != nil {
+				break
+			}
+			continue
+		}
+		break
+	}
 	if err != nil {
 		grpclog.Infof("Failed to connect to S2Av2: %v", err)
 		if c.fallbackClientHandshake != nil {
@@ -152,31 +165,46 @@ func (c *s2av2TransportCreds) ClientHandshake(ctx context.Context, serverAuthori
 		tokenManager = *c.tokenManager
 	}
 
-	if c.serverName == "" {
-		config, err = tlsconfigstore.GetTLSConfigurationForClient(serverName, s2AStream, tokenManager, c.localIdentity, c.verificationMode, c.serverAuthorizationPolicy)
-		if err != nil {
-			grpclog.Info("Failed to get client TLS config from S2Av2: %v", err)
-			if c.fallbackClientHandshake != nil {
-				return c.fallbackClientHandshake(ctx, serverAuthority, rawConn, err)
+	sn := serverName
+	if c.serverName != "" {
+		sn = c.serverName
+	}
+	retryer = retry.NewRetryer()
+	for {
+		config, err = tlsconfigstore.GetTLSConfigurationForClient(sn, s2AStream, tokenManager, c.localIdentity, c.verificationMode, c.serverAuthorizationPolicy)
+		if backoff, shouldRetry := retryer.Retry(err); shouldRetry {
+			if sleepErr := retry.Sleep(ctx, backoff); sleepErr != nil {
+				break
 			}
-			return nil, nil, err
+			continue
 		}
-	} else {
-		config, err = tlsconfigstore.GetTLSConfigurationForClient(c.serverName, s2AStream, tokenManager, c.localIdentity, c.verificationMode, c.serverAuthorizationPolicy)
-		if err != nil {
-			grpclog.Info("Failed to get client TLS config from S2Av2: %v", err)
-			if c.fallbackClientHandshake != nil {
-				return c.fallbackClientHandshake(ctx, serverAuthority, rawConn, err)
-			}
-			return nil, nil, err
+		break
+	}
+	if err != nil {
+		grpclog.Info("Failed to get client TLS config from S2Av2: %v", err)
+		if c.fallbackClientHandshake != nil {
+			return c.fallbackClientHandshake(ctx, serverAuthority, rawConn, err)
 		}
+		return nil, nil, err
 	}
 	if grpclog.V(1) {
 		grpclog.Infof("Got client TLS config from S2Av2.")
 	}
-	creds := credentials.NewTLS(config)
 
-	conn, authInfo, err := creds.ClientHandshake(ctx, serverName, rawConn)
+	creds := credentials.NewTLS(config)
+	var conn net.Conn
+	var authInfo credentials.AuthInfo
+	retryer = retry.NewRetryer()
+	for {
+		conn, authInfo, err = creds.ClientHandshake(ctx, serverName, rawConn)
+		if backoff, shouldRetry := retryer.Retry(err); shouldRetry {
+			if sleepErr := retry.Sleep(ctx, backoff); sleepErr != nil {
+				break
+			}
+			continue
+		}
+		break
+	}
 	if err != nil {
 		grpclog.Infof("Failed to do client handshake using S2Av2: %v", err)
 		if c.fallbackClientHandshake != nil {
@@ -196,7 +224,20 @@ func (c *s2av2TransportCreds) ServerHandshake(rawConn net.Conn) (net.Conn, crede
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), GetS2ATimeout())
 	defer cancel()
-	s2AStream, err := createStream(ctx, c.s2av2Address, c.getS2AStream)
+
+	var err error
+	var s2AStream stream.S2AStream
+	retryer := retry.NewRetryer()
+	for {
+		s2AStream, err = createStream(ctx, c.s2av2Address, c.getS2AStream)
+		if backoff, shouldRetry := retryer.Retry(err); shouldRetry {
+			if sleepErr := retry.Sleep(ctx, backoff); sleepErr != nil {
+				break
+			}
+			continue
+		}
+		break
+	}
 	if err != nil {
 		grpclog.Infof("Failed to connect to S2Av2: %v", err)
 		return nil, nil, err
@@ -213,7 +254,18 @@ func (c *s2av2TransportCreds) ServerHandshake(rawConn net.Conn) (net.Conn, crede
 		tokenManager = *c.tokenManager
 	}
 
-	config, err := tlsconfigstore.GetTLSConfigurationForServer(s2AStream, tokenManager, c.localIdentities, c.verificationMode)
+	var config *tls.Config
+	retryer = retry.NewRetryer()
+	for {
+		config, err = tlsconfigstore.GetTLSConfigurationForServer(s2AStream, tokenManager, c.localIdentities, c.verificationMode)
+		if backoff, shouldRetry := retryer.Retry(err); shouldRetry {
+			if sleepErr := retry.Sleep(ctx, backoff); sleepErr != nil {
+				break
+			}
+			continue
+		}
+		break
+	}
 	if err != nil {
 		grpclog.Infof("Failed to get server TLS config from S2Av2: %v", err)
 		return nil, nil, err
@@ -221,8 +273,26 @@ func (c *s2av2TransportCreds) ServerHandshake(rawConn net.Conn) (net.Conn, crede
 	if grpclog.V(1) {
 		grpclog.Infof("Got server TLS config from S2Av2.")
 	}
+
+	var conn net.Conn
+	var authInfo credentials.AuthInfo
 	creds := credentials.NewTLS(config)
-	return creds.ServerHandshake(rawConn)
+	retryer = retry.NewRetryer()
+	for {
+		conn, authInfo, err = creds.ServerHandshake(rawConn)
+		if backoff, shouldRetry := retryer.Retry(err); shouldRetry {
+			if sleepErr := retry.Sleep(ctx, backoff); sleepErr != nil {
+				break
+			}
+			continue
+		}
+		break
+	}
+	if err != nil {
+		grpclog.Infof("Failed to do server handshake using S2Av2: %v", err)
+		return nil, nil, err
+	}
+	return conn, authInfo, err
 }
 
 // Info returns protocol info of s2av2TransportCreds.
