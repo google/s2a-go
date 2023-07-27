@@ -81,6 +81,11 @@ type S2ARetryer struct {
 	attempts int
 }
 
+// Attempts return the number of retries attempted.
+func (r *S2ARetryer) Attempts() int {
+	return r.attempts
+}
+
 // Retry returns a boolean indicating whether retry should be performed
 // and the backoff duration.
 func (r *S2ARetryer) Retry(err error) (time.Duration, bool) {

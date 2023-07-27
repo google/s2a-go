@@ -393,8 +393,11 @@ func NewS2ADialTLSContextFunc(opts *ClientOptions) func(ctx context.Context, net
 		defer cancel()
 
 		var s2aTLSConfig *tls.Config
-		retryer := retry.NewRetryer()
+		retryer := v2.NewRetryer()
 		for {
+			if err = ctx.Err(); err != nil {
+				break
+			}
 			s2aTLSConfig, err = factory.Build(timeoutCtx, &TLSClientConfigOptions{
 				ServerName: serverName,
 			})
@@ -414,9 +417,12 @@ func NewS2ADialTLSContextFunc(opts *ClientOptions) func(ctx context.Context, net
 		s2aDialer := &tls.Dialer{
 			Config: s2aTLSConfig,
 		}
-		retryer = retry.NewRetryer()
+		retryer = v2.NewRetryer()
 		var c net.Conn
 		for {
+			if err = ctx.Err(); err != nil {
+				break
+			}
 			c, err = s2aDialer.DialContext(ctx, network, addr)
 			if backoff, shouldRetry := retryer.Retry(err); shouldRetry {
 				if sleepErr := retry.Sleep(ctx, backoff); sleepErr != nil {

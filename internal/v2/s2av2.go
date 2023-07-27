@@ -134,8 +134,11 @@ func (c *s2av2TransportCreds) ClientHandshake(ctx context.Context, serverAuthori
 	defer cancel()
 	var err error
 	var s2AStream stream.S2AStream
-	retryer := retry.NewRetryer()
+	retryer := NewRetryer()
 	for {
+		if err = ctx.Err(); err != nil {
+			break
+		}
 		s2AStream, err = createStream(timeoutCtx, c.s2av2Address, c.getS2AStream)
 		if backoff, shouldRetry := retryer.Retry(err); shouldRetry {
 			if sleepErr := retry.Sleep(ctx, backoff); sleepErr != nil {
@@ -169,8 +172,11 @@ func (c *s2av2TransportCreds) ClientHandshake(ctx context.Context, serverAuthori
 	if c.serverName != "" {
 		sn = c.serverName
 	}
-	retryer = retry.NewRetryer()
+	retryer = NewRetryer()
 	for {
+		if err = ctx.Err(); err != nil {
+			break
+		}
 		config, err = tlsconfigstore.GetTLSConfigurationForClient(sn, s2AStream, tokenManager, c.localIdentity, c.verificationMode, c.serverAuthorizationPolicy)
 		if backoff, shouldRetry := retryer.Retry(err); shouldRetry {
 			if sleepErr := retry.Sleep(ctx, backoff); sleepErr != nil {
@@ -194,8 +200,11 @@ func (c *s2av2TransportCreds) ClientHandshake(ctx context.Context, serverAuthori
 	creds := credentials.NewTLS(config)
 	var conn net.Conn
 	var authInfo credentials.AuthInfo
-	retryer = retry.NewRetryer()
+	retryer = NewRetryer()
 	for {
+		if err = ctx.Err(); err != nil {
+			break
+		}
 		conn, authInfo, err = creds.ClientHandshake(ctx, serverName, rawConn)
 		if backoff, shouldRetry := retryer.Retry(err); shouldRetry {
 			if sleepErr := retry.Sleep(ctx, backoff); sleepErr != nil {
@@ -227,8 +236,11 @@ func (c *s2av2TransportCreds) ServerHandshake(rawConn net.Conn) (net.Conn, crede
 
 	var err error
 	var s2AStream stream.S2AStream
-	retryer := retry.NewRetryer()
+	retryer := NewRetryer()
 	for {
+		if err = ctx.Err(); err != nil {
+			break
+		}
 		s2AStream, err = createStream(ctx, c.s2av2Address, c.getS2AStream)
 		if backoff, shouldRetry := retryer.Retry(err); shouldRetry {
 			if sleepErr := retry.Sleep(ctx, backoff); sleepErr != nil {
@@ -255,8 +267,11 @@ func (c *s2av2TransportCreds) ServerHandshake(rawConn net.Conn) (net.Conn, crede
 	}
 
 	var config *tls.Config
-	retryer = retry.NewRetryer()
+	retryer = NewRetryer()
 	for {
+		if err = ctx.Err(); err != nil {
+			break
+		}
 		config, err = tlsconfigstore.GetTLSConfigurationForServer(s2AStream, tokenManager, c.localIdentities, c.verificationMode)
 		if backoff, shouldRetry := retryer.Retry(err); shouldRetry {
 			if sleepErr := retry.Sleep(ctx, backoff); sleepErr != nil {
@@ -277,8 +292,11 @@ func (c *s2av2TransportCreds) ServerHandshake(rawConn net.Conn) (net.Conn, crede
 	var conn net.Conn
 	var authInfo credentials.AuthInfo
 	creds := credentials.NewTLS(config)
-	retryer = retry.NewRetryer()
+	retryer = NewRetryer()
 	for {
+		if err = ctx.Err(); err != nil {
+			break
+		}
 		conn, authInfo, err = creds.ServerHandshake(rawConn)
 		if backoff, shouldRetry := retryer.Retry(err); shouldRetry {
 			if sleepErr := retry.Sleep(ctx, backoff); sleepErr != nil {
@@ -422,3 +440,5 @@ func GetS2ATimeout() time.Duration {
 	}
 	return timeout
 }
+
+var NewRetryer = func() *retry.S2ARetryer { return retry.NewRetryer() }

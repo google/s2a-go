@@ -35,6 +35,7 @@ import (
 	"github.com/google/s2a-go/fallback"
 	"github.com/google/s2a-go/internal/tokenmanager"
 	"github.com/google/s2a-go/internal/v2/fakes2av2"
+	"github.com/google/s2a-go/retry"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/grpclog"
 
@@ -196,6 +197,10 @@ func runClient(ctx context.Context, t *testing.T, clientS2AAddress, serverAddr s
 
 func TestEndToEndUsingFakeS2AOverTCP(t *testing.T) {
 	os.Setenv(accessTokenEnvVariable, "TestE2ETCP_token")
+	testRetryer := retry.NewRetryer()
+	NewRetryer = func() *retry.S2ARetryer {
+		return testRetryer
+	}
 	// Start the fake S2As for the client and server.
 	serverS2AAddr := startFakeS2A(t, "TestE2ETCP_token")
 	grpclog.Infof("Fake handshaker for server running at address: %v", serverS2AAddr)
@@ -221,6 +226,9 @@ func TestEndToEndUsingFakeS2AOverTCP(t *testing.T) {
 			Hostname: "test_rsa_client_identity",
 		},
 	}, nil)
+	if got, want := testRetryer.Attempts(), 0; got != want {
+		t.Errorf("expecting retryer attempts count:[%v], got [%v]", want, got)
+	}
 }
 
 func TestEndToEndUsingFakeS2AOverTCPEmptyId(t *testing.T) {
@@ -296,6 +304,11 @@ func TestGRPCFallbackEndToEndUsingFakeS2AOverTCP(t *testing.T) {
 	// Set for testing only.
 	fallback.FallbackTLSConfigGRPC.InsecureSkipVerify = true
 	os.Setenv(accessTokenEnvVariable, "TestE2ETCP_token")
+	testRetryer := retry.NewRetryer()
+	NewRetryer = func() *retry.S2ARetryer {
+		return testRetryer
+	}
+
 	// Start the fake S2A for the server.
 	serverS2AAddr := startFakeS2A(t, "TestE2ETCP_token")
 	t.Logf("Fake handshaker for server running at address: %v", serverS2AAddr)
@@ -334,6 +347,63 @@ func TestGRPCFallbackEndToEndUsingFakeS2AOverTCP(t *testing.T) {
 
 	if !fallbackCalled {
 		t.Errorf("fallbackHandshake is not called")
+	}
+	if got, want := testRetryer.Attempts(), 5; got != want {
+		t.Errorf("expecting retryer attempts count:[%v], got [%v]", want, got)
+	}
+}
+
+func TestGRPCRetryAndFallbackEndToEndUsingFakeS2AOverTCP(t *testing.T) {
+	// Set for testing only.
+	fallback.FallbackTLSConfigGRPC.InsecureSkipVerify = true
+	// Set an invalid token to trigger failures and retries when talking to S2A.
+	os.Setenv(accessTokenEnvVariable, "invalid_token")
+	testRetryer := retry.NewRetryer()
+	NewRetryer = func() *retry.S2ARetryer {
+		return testRetryer
+	}
+
+	clientS2AAddr := startFakeS2A(t, "TestE2ETCP_token")
+	grpclog.Infof("Fake handshaker for client running at address: %v", clientS2AAddr)
+	serverS2AAddr := startFakeS2A(t, "TestE2ETCP_token")
+	grpclog.Infof("Fake handshaker for server running at address: %v", serverS2AAddr)
+
+	// Start the server.
+	localIdentities := []*commonpbv1.Identity{
+		{
+			IdentityOneof: &commonpbv1.Identity_Hostname{
+				Hostname: "test_rsa_server_identity",
+			},
+		},
+	}
+	serverAddr := startServer(t, serverS2AAddr, localIdentities)
+	fallbackServerAddr := startFallbackServer(t)
+	t.Logf("server running at address: %v", serverAddr)
+	t.Logf("fallback server running at address: %v", fallbackServerAddr)
+
+	// Finally, start up the client.
+	ctx, cancel := context.WithTimeout(context.Background(), defaultE2ETimeout)
+	defer cancel()
+	fallbackHandshake, err := fallback.DefaultFallbackClientHandshakeFunc(fallbackServerAddr)
+	if err != nil {
+		t.Errorf("error creating fallback handshake function: %v", err)
+	}
+	fallbackCalled := false
+	fallbackHandshakeWrapper := func(ctx context.Context, targetServer string, conn net.Conn, err error) (net.Conn, credentials.AuthInfo, error) {
+		fallbackCalled = true
+		return fallbackHandshake(ctx, targetServer, conn, err)
+	}
+	runClient(ctx, t, clientS2AAddr, serverAddr, &commonpbv1.Identity{
+		IdentityOneof: &commonpbv1.Identity_Hostname{
+			Hostname: "test_rsa_client_identity",
+		},
+	}, fallbackHandshakeWrapper)
+
+	if !fallbackCalled {
+		t.Errorf("fallbackHandshake is not called")
+	}
+	if got, want := testRetryer.Attempts(), 5; got != want {
+		t.Errorf("expecting retryer attempts count:[%v], got [%v]", want, got)
 	}
 }
 

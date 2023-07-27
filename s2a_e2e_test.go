@@ -36,7 +36,9 @@ import (
 
 	"github.com/google/s2a-go/fallback"
 	"github.com/google/s2a-go/internal/fakehandshaker/service"
+	"github.com/google/s2a-go/internal/v2"
 	"github.com/google/s2a-go/internal/v2/fakes2av2"
+	"github.com/google/s2a-go/retry"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/grpclog"
 	"google.golang.org/grpc/peer"
@@ -248,7 +250,10 @@ func TestV1EndToEndUsingFakeS2AOverTCP(t *testing.T) {
 
 func TestV2EndToEndUsingFakeS2AOverTCP(t *testing.T) {
 	os.Setenv(accessTokenEnvVariable, testV2AccessToken)
-
+	testRetryer := retry.NewRetryer()
+	v2.NewRetryer = func() *retry.S2ARetryer {
+		return testRetryer
+	}
 	// Start the fake S2As for the client and server.
 	serverHandshakerAddr := startFakeS2A(t, false, testV2AccessToken)
 	grpclog.Infof("Fake handshaker for server running at address: %v", serverHandshakerAddr)
@@ -263,6 +268,9 @@ func TestV2EndToEndUsingFakeS2AOverTCP(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), defaultE2ETestTimeout)
 	defer cancel()
 	runClient(ctx, t, clientHandshakerAddr, serverAddr, false, nil)
+	if got, want := testRetryer.Attempts(), 0; got != want {
+		t.Errorf("expecting retryer attempts count:[%v], got [%v]", want, got)
+	}
 }
 
 // startFallbackServer runs a GRPC echo testing server and returns the address.
@@ -295,7 +303,10 @@ func TestV2GRPCFallbackEndToEndUsingFakeS2AOverTCP(t *testing.T) {
 	// Set for testing only.
 	fallback.FallbackTLSConfigGRPC.InsecureSkipVerify = true
 	os.Setenv(accessTokenEnvVariable, testV2AccessToken)
-
+	testRetryer := retry.NewRetryer()
+	v2.NewRetryer = func() *retry.S2ARetryer {
+		return testRetryer
+	}
 	// Start the fake S2A for the server.
 	serverHandshakerAddr := startFakeS2A(t, false, testV2AccessToken)
 	grpclog.Infof("fake handshaker for server running at address: %v", serverHandshakerAddr)
@@ -322,7 +333,53 @@ func TestV2GRPCFallbackEndToEndUsingFakeS2AOverTCP(t *testing.T) {
 	if !fallbackCalled {
 		t.Errorf("fallbackHandshake is not called")
 	}
+	if got, want := testRetryer.Attempts(), 5; got != want {
+		t.Errorf("expecting retryer attempts count:[%v], got [%v]", want, got)
+	}
 }
+
+func TestV2GRPCRetryAndFallbackEndToEndUsingFakeS2AOverTCP(t *testing.T) {
+	// Set for testing only.
+	fallback.FallbackTLSConfigGRPC.InsecureSkipVerify = true
+	// Set an invalid token to trigger failures and retries when talking to S2A.
+	os.Setenv(accessTokenEnvVariable, "invalid_token")
+	testRetryer := retry.NewRetryer()
+	v2.NewRetryer = func() *retry.S2ARetryer {
+		return testRetryer
+	}
+	// Start the fake S2A for the server and client.
+	serverHandshakerAddr := startFakeS2A(t, false, testV2AccessToken)
+	grpclog.Infof("fake handshaker for server running at address: %v", serverHandshakerAddr)
+	clientHandshakerAddr := startFakeS2A(t, false, testV2AccessToken)
+	grpclog.Infof("Fake handshaker for client running at address: %v", clientHandshakerAddr)
+
+	// Start the server.
+	serverAddr := startServer(t, serverHandshakerAddr, false)
+	fallbackServerAddr := startFallbackServer(t)
+	t.Logf("server running at address: %v", serverAddr)
+	t.Logf("fallback server running at address: %v", fallbackServerAddr)
+
+	// Finally, start up the client.
+	ctx, cancel := context.WithTimeout(context.Background(), defaultE2ETestTimeout)
+	defer cancel()
+	fallbackHandshake, err := fallback.DefaultFallbackClientHandshakeFunc(fallbackServerAddr)
+	if err != nil {
+		t.Errorf("error creating fallback handshake function: %v", err)
+	}
+	fallbackCalled := false
+	fallbackHandshakeWrapper := func(ctx context.Context, targetServer string, conn net.Conn, err error) (net.Conn, credentials.AuthInfo, error) {
+		fallbackCalled = true
+		return fallbackHandshake(ctx, targetServer, conn, err)
+	}
+	runClient(ctx, t, clientHandshakerAddr, serverAddr, false, fallbackHandshakeWrapper)
+	if !fallbackCalled {
+		t.Errorf("fallbackHandshake is not called")
+	}
+	if got, want := testRetryer.Attempts(), 5; got != want {
+		t.Errorf("expecting retryer attempts count:[%v], got [%v]", want, got)
+	}
+}
+
 func TestV1EndToEndUsingTokens(t *testing.T) {
 	os.Setenv(accessTokenEnvVariable, testAccessToken)
 
@@ -528,7 +585,10 @@ func runHTTPClient(t *testing.T, clientS2AAddress, serverAddr string, fallbackOp
 }
 func TestHTTPEndToEndUsingFakeS2AOverTCP(t *testing.T) {
 	os.Setenv(accessTokenEnvVariable, testV2AccessToken)
-
+	testRetryer := retry.NewRetryer()
+	v2.NewRetryer = func() *retry.S2ARetryer {
+		return testRetryer
+	}
 	// Start the fake S2As for the client.
 	clientHandshakerAddr := startFakeS2A(t, false, testV2AccessToken)
 	t.Logf("fake handshaker for client running at address: %v", clientHandshakerAddr)
@@ -543,11 +603,18 @@ func TestHTTPEndToEndUsingFakeS2AOverTCP(t *testing.T) {
 	if got, want := resp, "hello"; got != want {
 		t.Errorf("expecting HTTP response:[%s], got [%s]", want, got)
 	}
+	if got, want := testRetryer.Attempts(), 0; got != want {
+		t.Errorf("expecting retryer attempts count:[%v], got [%v]", want, got)
+	}
 }
 
 func TestHTTPFallbackEndToEndUsingFakeS2AOverTCP(t *testing.T) {
 	fallback.FallbackTLSConfigHTTP.InsecureSkipVerify = true
 	os.Setenv(accessTokenEnvVariable, testV2AccessToken)
+	testRetryer := retry.NewRetryer()
+	v2.NewRetryer = func() *retry.S2ARetryer {
+		return testRetryer
+	}
 
 	// Start the server.
 	serverAddr := startHTTPServer(t, "hello")
@@ -573,5 +640,52 @@ func TestHTTPFallbackEndToEndUsingFakeS2AOverTCP(t *testing.T) {
 
 	if got, want := resp, "hello fallback"; got != want {
 		t.Errorf("expecting HTTP response:[%s], got [%s]", want, got)
+	}
+
+	if got, want := testRetryer.Attempts(), 5; got != want {
+		t.Errorf("expecting retryer attempts count:[%v], got [%v]", want, got)
+	}
+}
+
+func TestHTTPRetryAndFallbackEndToEndUsingFakeS2AOverTCP(t *testing.T) {
+	fallback.FallbackTLSConfigHTTP.InsecureSkipVerify = true
+	// Set an invalid token to trigger failures and retries when talking to S2A.
+	os.Setenv(accessTokenEnvVariable, "invalid_token")
+	testRetryer := retry.NewRetryer()
+	v2.NewRetryer = func() *retry.S2ARetryer {
+		return testRetryer
+	}
+
+	// Start the fake S2As for the client.
+	clientHandshakerAddr := startFakeS2A(t, false, testV2AccessToken)
+	t.Logf("fake handshaker for client running at address: %v", clientHandshakerAddr)
+
+	serverAddr := startHTTPServer(t, "hello")
+	t.Logf("HTTP server running at address: %v", serverAddr)
+
+	fallbackServerAddr := startHTTPServer(t, "hello fallback")
+	t.Logf("fallback HTTP server running at address: %v", fallbackServerAddr)
+
+	// Configure fallback options.
+	fbDialer, fbAddr, err := fallback.DefaultFallbackDialerAndAddress(fallbackServerAddr)
+	if err != nil {
+		t.Errorf("error creating fallback dialer: %v", err)
+	}
+
+	fallbackOpts := &FallbackOptions{
+		FallbackDialer: &FallbackDialer{
+			Dialer:     fbDialer,
+			ServerAddr: fbAddr,
+		},
+	}
+
+	resp := runHTTPClient(t, clientHandshakerAddr, serverAddr, fallbackOpts)
+
+	if got, want := resp, "hello fallback"; got != want {
+		t.Errorf("expecting HTTP response:[%s], got [%s]", want, got)
+	}
+
+	if got, want := testRetryer.Attempts(), 5; got != want {
+		t.Errorf("expecting retryer attempts count:[%v], got [%v]", want, got)
 	}
 }
