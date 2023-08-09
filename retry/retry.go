@@ -23,12 +23,14 @@ package retry
 
 import (
 	"context"
+	"google.golang.org/grpc/grpclog"
 	"math/rand"
 	"time"
 )
 
 const (
 	maxRetryAttempts = 5
+	maxRetryForLoops = 10
 )
 
 type defaultBackoff struct {
@@ -63,7 +65,7 @@ func Sleep(ctx context.Context, d time.Duration) error {
 
 // NewRetryer creates an instance of S2ARetryer using the defaultBackoff
 // implementation.
-func NewRetryer() *S2ARetryer {
+var NewRetryer = func() *S2ARetryer {
 	return &S2ARetryer{bo: &defaultBackoff{
 		cur: 100 * time.Millisecond,
 		max: 30 * time.Second,
@@ -97,4 +99,45 @@ func (r *S2ARetryer) Retry(err error) (time.Duration, bool) {
 	}
 	r.attempts++
 	return r.bo.Pause(), true
+}
+
+// Run uses S2ARetryer to execute the function passed in, until success or reaching
+// max number of retry attempts.
+func Run(ctx context.Context, f func() error) {
+	retryer := NewRetryer()
+	forLoopCnt := 0
+	var err error
+	for {
+		err = f()
+		if bo, shouldRetry := retryer.Retry(err); shouldRetry {
+			if grpclog.V(1) {
+				grpclog.Infof("will attempt retry: %v", err)
+			}
+			if ctx.Err() != nil {
+				if grpclog.V(1) {
+					grpclog.Infof("exit retry loop due to context error: %v", ctx.Err())
+				}
+				break
+			}
+			if sleepErr := Sleep(ctx, bo); sleepErr != nil {
+				if grpclog.V(1) {
+					grpclog.Infof("exit retry loop due to sleep error: %v", sleepErr)
+				}
+				break
+			}
+			// This shouldn't happen, just make sure we are not stuck in the for loops.
+			forLoopCnt++
+			if forLoopCnt > maxRetryForLoops {
+				if grpclog.V(1) {
+					grpclog.Infof("exit the for loop after too many retries")
+				}
+				break
+			}
+			continue
+		}
+		if grpclog.V(1) {
+			grpclog.Infof("retry conditions not met, exit the loop")
+		}
+		break
+	}
 }

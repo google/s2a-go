@@ -19,6 +19,7 @@
 package retry
 
 import (
+	"context"
 	"errors"
 	"testing"
 	"time"
@@ -92,5 +93,32 @@ func TestDefaultBackoff(t *testing.T) {
 	}
 	if pauseTwo > 2*100*time.Millisecond {
 		t.Fatal("second backoff should be less than 200 milli seconds")
+	}
+}
+
+func TestSuccessAfterRetry(t *testing.T) {
+	oldRetry := NewRetryer
+	defer func() { NewRetryer = oldRetry }()
+	testRetryer := NewRetryer()
+	NewRetryer = func() *S2ARetryer {
+		return testRetryer
+	}
+
+	cnt := 1
+	f := func() error {
+		if cnt == 1 {
+			cnt++
+			return testErr
+		}
+		return nil
+	}
+	if testRetryer.Attempts() != 0 {
+		t.Fatal("before execution, retry attempt count should be 0")
+	}
+
+	Run(context.Background(), f)
+
+	if testRetryer.Attempts() != 1 {
+		t.Fatal("execution should've succeeded after 1 retry")
 	}
 }

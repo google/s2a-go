@@ -36,7 +36,6 @@ import (
 
 	"github.com/google/s2a-go/fallback"
 	"github.com/google/s2a-go/internal/fakehandshaker/service"
-	"github.com/google/s2a-go/internal/v2"
 	"github.com/google/s2a-go/internal/v2/fakes2av2"
 	"github.com/google/s2a-go/retry"
 	"google.golang.org/grpc/credentials"
@@ -250,8 +249,10 @@ func TestV1EndToEndUsingFakeS2AOverTCP(t *testing.T) {
 
 func TestV2EndToEndUsingFakeS2AOverTCP(t *testing.T) {
 	os.Setenv(accessTokenEnvVariable, testV2AccessToken)
+	oldRetry := retry.NewRetryer
+	defer func() { retry.NewRetryer = oldRetry }()
 	testRetryer := retry.NewRetryer()
-	v2.NewRetryer = func() *retry.S2ARetryer {
+	retry.NewRetryer = func() *retry.S2ARetryer {
 		return testRetryer
 	}
 	// Start the fake S2As for the client and server.
@@ -303,8 +304,10 @@ func TestV2GRPCFallbackEndToEndUsingFakeS2AOverTCP(t *testing.T) {
 	// Set for testing only.
 	fallback.FallbackTLSConfigGRPC.InsecureSkipVerify = true
 	os.Setenv(accessTokenEnvVariable, testV2AccessToken)
+	oldRetry := retry.NewRetryer
+	defer func() { retry.NewRetryer = oldRetry }()
 	testRetryer := retry.NewRetryer()
-	v2.NewRetryer = func() *retry.S2ARetryer {
+	retry.NewRetryer = func() *retry.S2ARetryer {
 		return testRetryer
 	}
 	// Start the fake S2A for the server.
@@ -343,8 +346,10 @@ func TestV2GRPCRetryAndFallbackEndToEndUsingFakeS2AOverTCP(t *testing.T) {
 	fallback.FallbackTLSConfigGRPC.InsecureSkipVerify = true
 	// Set an invalid token to trigger failures and retries when talking to S2A.
 	os.Setenv(accessTokenEnvVariable, "invalid_token")
+	oldRetry := retry.NewRetryer
+	defer func() { retry.NewRetryer = oldRetry }()
 	testRetryer := retry.NewRetryer()
-	v2.NewRetryer = func() *retry.S2ARetryer {
+	retry.NewRetryer = func() *retry.S2ARetryer {
 		return testRetryer
 	}
 	// Start the fake S2A for the server and client.
@@ -585,10 +590,13 @@ func runHTTPClient(t *testing.T, clientS2AAddress, serverAddr string, fallbackOp
 }
 func TestHTTPEndToEndUsingFakeS2AOverTCP(t *testing.T) {
 	os.Setenv(accessTokenEnvVariable, testV2AccessToken)
+	oldRetry := retry.NewRetryer
+	defer func() { retry.NewRetryer = oldRetry }()
 	testRetryer := retry.NewRetryer()
-	v2.NewRetryer = func() *retry.S2ARetryer {
+	retry.NewRetryer = func() *retry.S2ARetryer {
 		return testRetryer
 	}
+
 	// Start the fake S2As for the client.
 	clientHandshakerAddr := startFakeS2A(t, false, testV2AccessToken)
 	t.Logf("fake handshaker for client running at address: %v", clientHandshakerAddr)
@@ -611,8 +619,10 @@ func TestHTTPEndToEndUsingFakeS2AOverTCP(t *testing.T) {
 func TestHTTPFallbackEndToEndUsingFakeS2AOverTCP(t *testing.T) {
 	fallback.FallbackTLSConfigHTTP.InsecureSkipVerify = true
 	os.Setenv(accessTokenEnvVariable, testV2AccessToken)
+	oldRetry := retry.NewRetryer
+	defer func() { retry.NewRetryer = oldRetry }()
 	testRetryer := retry.NewRetryer()
-	v2.NewRetryer = func() *retry.S2ARetryer {
+	retry.NewRetryer = func() *retry.S2ARetryer {
 		return testRetryer
 	}
 
@@ -651,8 +661,10 @@ func TestHTTPRetryAndFallbackEndToEndUsingFakeS2AOverTCP(t *testing.T) {
 	fallback.FallbackTLSConfigHTTP.InsecureSkipVerify = true
 	// Set an invalid token to trigger failures and retries when talking to S2A.
 	os.Setenv(accessTokenEnvVariable, "invalid_token")
+	oldRetry := retry.NewRetryer
+	defer func() { retry.NewRetryer = oldRetry }()
 	testRetryer := retry.NewRetryer()
-	v2.NewRetryer = func() *retry.S2ARetryer {
+	retry.NewRetryer = func() *retry.S2ARetryer {
 		return testRetryer
 	}
 

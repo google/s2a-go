@@ -197,8 +197,10 @@ func runClient(ctx context.Context, t *testing.T, clientS2AAddress, serverAddr s
 
 func TestEndToEndUsingFakeS2AOverTCP(t *testing.T) {
 	os.Setenv(accessTokenEnvVariable, "TestE2ETCP_token")
+	oldRetry := retry.NewRetryer
+	defer func() { retry.NewRetryer = oldRetry }()
 	testRetryer := retry.NewRetryer()
-	NewRetryer = func() *retry.S2ARetryer {
+	retry.NewRetryer = func() *retry.S2ARetryer {
 		return testRetryer
 	}
 	// Start the fake S2As for the client and server.
@@ -304,8 +306,10 @@ func TestGRPCFallbackEndToEndUsingFakeS2AOverTCP(t *testing.T) {
 	// Set for testing only.
 	fallback.FallbackTLSConfigGRPC.InsecureSkipVerify = true
 	os.Setenv(accessTokenEnvVariable, "TestE2ETCP_token")
+	oldRetry := retry.NewRetryer
+	defer func() { retry.NewRetryer = oldRetry }()
 	testRetryer := retry.NewRetryer()
-	NewRetryer = func() *retry.S2ARetryer {
+	retry.NewRetryer = func() *retry.S2ARetryer {
 		return testRetryer
 	}
 
@@ -358,8 +362,10 @@ func TestGRPCRetryAndFallbackEndToEndUsingFakeS2AOverTCP(t *testing.T) {
 	fallback.FallbackTLSConfigGRPC.InsecureSkipVerify = true
 	// Set an invalid token to trigger failures and retries when talking to S2A.
 	os.Setenv(accessTokenEnvVariable, "invalid_token")
+	oldRetry := retry.NewRetryer
+	defer func() { retry.NewRetryer = oldRetry }()
 	testRetryer := retry.NewRetryer()
-	NewRetryer = func() *retry.S2ARetryer {
+	retry.NewRetryer = func() *retry.S2ARetryer {
 		return testRetryer
 	}
 
