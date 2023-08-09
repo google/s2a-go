@@ -23,9 +23,10 @@ package retry
 
 import (
 	"context"
-	"google.golang.org/grpc/grpclog"
 	"math/rand"
 	"time"
+
+	"google.golang.org/grpc/grpclog"
 )
 
 const (
