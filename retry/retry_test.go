@@ -25,7 +25,7 @@ import (
 	"time"
 )
 
-var testErr error = errors.New("test error")
+var errTest error = errors.New("test error")
 
 type constantBackoff struct{}
 
@@ -40,7 +40,7 @@ func TestS2ARetryer(t *testing.T) {
 	}{
 		{
 			name:            "retry on err",
-			err:             testErr,
+			err:             errTest,
 			wantDelay:       100,
 			wantShouldRetry: true,
 		},
@@ -69,12 +69,12 @@ func TestS2ARetryer(t *testing.T) {
 func TestS2ARetryerAttempts(t *testing.T) {
 	retryer := S2ARetryer{bo: constantBackoff{}}
 	for i := 1; i <= 5; i++ {
-		_, shouldRetry := retryer.Retry(testErr)
+		_, shouldRetry := retryer.Retry(errTest)
 		if !shouldRetry {
-			t.Fatalf("retryer.Retry(testErr) = false, want true")
+			t.Fatalf("retryer.Retry(errTest) = false, want true")
 		}
 	}
-	_, shouldRetry := retryer.Retry(testErr)
+	_, shouldRetry := retryer.Retry(errTest)
 	if shouldRetry {
 		t.Fatal("an error should only be retried 5 times")
 	}
@@ -108,7 +108,7 @@ func TestSuccessAfterRetry(t *testing.T) {
 	f := func() error {
 		if cnt == 1 {
 			cnt++
-			return testErr
+			return errTest
 		}
 		return nil
 	}
