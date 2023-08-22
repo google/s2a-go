@@ -186,22 +186,22 @@ func TestNewClientCreds(t *testing.T) {
 				t.Fatal("The created creds is not of type s2aTransportCreds")
 			}
 			if got, want := s2aCreds.minTLSVersion, tc.outMinTLSVersion; got != want {
-				t.Errorf("s2aCreds.minTLSVersion = %v, want %v", got, want)
+				t.Errorf("transportCreds.minTLSVersion = %v, want %v", got, want)
 			}
 			if got, want := s2aCreds.maxTLSVersion, tc.outMaxTLSVersion; got != want {
-				t.Errorf("s2aCreds.maxTLSVersion = %v, want %v", got, want)
+				t.Errorf("transportCreds.maxTLSVersion = %v, want %v", got, want)
 			}
 			if got, want := s2aCreds.tlsCiphersuites, tc.outTLSCiphersuites; !cmp.Equal(got, want) {
-				t.Errorf("s2aCreds.tlsCiphersuites = %v, want %v", got, want)
+				t.Errorf("transportCreds.tlsCiphersuites = %v, want %v", got, want)
 			}
 			if got, want := s2aCreds.targetIdentities, tc.outTargetIdentities; !cmp.Equal(got, want, protocmp.Transform()) {
-				t.Errorf("s2aCreds.targetIdentities = %v, want %v", got, want)
+				t.Errorf("transportCreds.targetIdentities = %v, want %v", got, want)
 			}
 			if got, want := s2aCreds.localIdentity, tc.outLocalIdentity; !cmp.Equal(got, want, protocmp.Transform()) {
-				t.Errorf("s2aCreds.localIdentity = %v, want %v", got, want)
+				t.Errorf("transportCreds.localIdentity = %v, want %v", got, want)
 			}
 			if got, want := s2aCreds.s2aAddr, tc.outS2AAddress; got != want {
-				t.Errorf("s2aCreds.s2aAddr = %v, want %v", got, want)
+				t.Errorf("transportCreds.s2aAddr = %v, want %v", got, want)
 			}
 		})
 	}
@@ -339,19 +339,19 @@ func TestNewServerCreds(t *testing.T) {
 				t.Fatal("The created creds is not of type s2aTransportCreds")
 			}
 			if got, want := s2aCreds.minTLSVersion, tc.outMinTLSVersion; got != want {
-				t.Errorf("s2aCreds.minTLSVersion = %v, want %v", got, want)
+				t.Errorf("transportCreds.minTLSVersion = %v, want %v", got, want)
 			}
 			if got, want := s2aCreds.maxTLSVersion, tc.outMaxTLSVersion; got != want {
-				t.Errorf("s2aCreds.maxTLSVersion = %v, want %v", got, want)
+				t.Errorf("transportCreds.maxTLSVersion = %v, want %v", got, want)
 			}
 			if got, want := s2aCreds.tlsCiphersuites, tc.outTLSCiphersuites; !cmp.Equal(got, want) {
-				t.Errorf("s2aCreds.tlsCiphersuites = %v, want %v", got, want)
+				t.Errorf("transportCreds.tlsCiphersuites = %v, want %v", got, want)
 			}
 			if got, want := s2aCreds.localIdentities, tc.outLocalIdentities; !cmp.Equal(got, want, protocmp.Transform()) {
-				t.Errorf("s2aCreds.localIdentities = %v, want %v", got, want)
+				t.Errorf("transportCreds.localIdentities = %v, want %v", got, want)
 			}
 			if got, want := s2aCreds.s2aAddr, tc.outS2AAddress; got != want {
-				t.Errorf("s2aCreds.s2aAddr = %v, want %v", got, want)
+				t.Errorf("transportCreds.s2aAddr = %v, want %v", got, want)
 			}
 		})
 	}

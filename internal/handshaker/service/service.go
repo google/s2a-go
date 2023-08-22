@@ -65,7 +65,7 @@ func init() {
 // Dial dials the S2A handshaker service. If a connection has already been
 // established, this function returns it. Otherwise, a new connection is
 // created.
-func Dial(ctx context.Context, handshakerServiceAddress string, creds credentials.TransportCredentials) (*grpc.ClientConn, error) {
+func Dial(ctx context.Context, handshakerServiceAddress string, transportCreds credentials.TransportCredentials) (*grpc.ClientConn, error) {
 	mu.Lock()
 	defer mu.Unlock()
 
@@ -74,8 +74,8 @@ func Dial(ctx context.Context, handshakerServiceAddress string, creds credential
 		// Create a new connection to the S2A handshaker service. Note that
 		// this connection stays open until the application is closed.
 		var grpcOpts []grpc.DialOption
-		if creds != nil {
-			grpcOpts = append(grpcOpts, grpc.WithTransportCredentials(creds))
+		if transportCreds != nil {
+			grpcOpts = append(grpcOpts, grpc.WithTransportCredentials(transportCreds))
 		} else {
 			grpcOpts = append(grpcOpts, grpc.WithInsecure())
 		}

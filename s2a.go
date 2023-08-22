@@ -112,7 +112,7 @@ func NewClientCreds(opts *ClientOptions) (credentials.TransportCredentials, erro
 	if opts.FallbackOpts != nil && opts.FallbackOpts.FallbackClientHandshakeFunc != nil {
 		fallbackFunc = opts.FallbackOpts.FallbackClientHandshakeFunc
 	}
-	return v2.NewClientCreds(opts.S2AAddress, opts.S2ACreds, localIdentity, verificationMode, fallbackFunc, opts.getS2AStream, opts.serverAuthorizationPolicy)
+	return v2.NewClientCreds(opts.S2AAddress, opts.TransportCreds, localIdentity, verificationMode, fallbackFunc, opts.getS2AStream, opts.serverAuthorizationPolicy)
 }
 
 // NewServerCreds returns a server-side transport credentials object that uses
@@ -147,7 +147,7 @@ func NewServerCreds(opts *ServerOptions) (credentials.TransportCredentials, erro
 		}, nil
 	}
 	verificationMode := getVerificationMode(opts.VerificationMode)
-	return v2.NewServerCreds(opts.S2AAddress, opts.S2ACreds, localIdentities, verificationMode, opts.getS2AStream)
+	return v2.NewServerCreds(opts.S2AAddress, opts.TransportCreds, localIdentities, verificationMode, opts.getS2AStream)
 }
 
 // ClientHandshake initiates a client-side TLS handshake using the S2A.
@@ -313,7 +313,7 @@ func NewTLSClientConfigFactory(opts *ClientOptions) (TLSClientConfigFactory, err
 		grpclog.Infof("Access token manager not initialized: %v", err)
 		return &s2aTLSClientConfigFactory{
 			s2av2Address:              opts.S2AAddress,
-			s2aCreds:                  opts.S2ACreds,
+			transportCreds:            opts.TransportCreds,
 			tokenManager:              nil,
 			verificationMode:          getVerificationMode(opts.VerificationMode),
 			serverAuthorizationPolicy: opts.serverAuthorizationPolicy,
@@ -321,7 +321,7 @@ func NewTLSClientConfigFactory(opts *ClientOptions) (TLSClientConfigFactory, err
 	}
 	return &s2aTLSClientConfigFactory{
 		s2av2Address:              opts.S2AAddress,
-		s2aCreds:                  opts.S2ACreds,
+		transportCreds:            opts.TransportCreds,
 		tokenManager:              tokenManager,
 		verificationMode:          getVerificationMode(opts.VerificationMode),
 		serverAuthorizationPolicy: opts.serverAuthorizationPolicy,
@@ -330,7 +330,7 @@ func NewTLSClientConfigFactory(opts *ClientOptions) (TLSClientConfigFactory, err
 
 type s2aTLSClientConfigFactory struct {
 	s2av2Address              string
-	s2aCreds                  credentials.TransportCredentials
+	transportCreds            credentials.TransportCredentials
 	tokenManager              tokenmanager.AccessTokenManager
 	verificationMode          s2av2pb.ValidatePeerCertificateChainReq_VerificationMode
 	serverAuthorizationPolicy []byte
@@ -342,7 +342,7 @@ func (f *s2aTLSClientConfigFactory) Build(
 	if opts != nil && opts.ServerName != "" {
 		serverName = opts.ServerName
 	}
-	return v2.NewClientTLSConfig(ctx, f.s2av2Address, f.s2aCreds, f.tokenManager, f.verificationMode, serverName, f.serverAuthorizationPolicy)
+	return v2.NewClientTLSConfig(ctx, f.s2av2Address, f.transportCreds, f.tokenManager, f.verificationMode, serverName, f.serverAuthorizationPolicy)
 }
 
 func getVerificationMode(verificationMode VerificationModeType) s2av2pb.ValidatePeerCertificateChainReq_VerificationMode {

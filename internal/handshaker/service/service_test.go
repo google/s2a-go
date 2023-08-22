@@ -20,6 +20,8 @@ package service
 
 import (
 	"context"
+	"crypto/tls"
+	"google.golang.org/grpc/credentials"
 	"os"
 	"testing"
 
@@ -29,6 +31,7 @@ import (
 const (
 	testAddress1 = "test_address_1"
 	testAddress2 = "test_address_2"
+	testAddress3 = "test_address_3"
 )
 
 func TestDial(t *testing.T) {
@@ -83,6 +86,18 @@ func TestDial(t *testing.T) {
 	}
 	if got, want := conn2 == conn3, false; got != want {
 		t.Fatalf("(conn2 == conn3) = %v, want %v", got, want)
+	}
+
+	// Connect to an address with transportCredentials.
+	conn4, err := Dial(ctx, testAddress3, credentials.NewTLS(&tls.Config{}))
+	if err != nil {
+		t.Fatalf("first call to Dial(%v) failed: %v", testAddress3, err)
+	}
+	if conn4 == nil {
+		t.Fatalf("first call to Dial(%v)=(nil, _), want not nil", testAddress3)
+	}
+	if got, want := hsConnMap[testAddress3], conn4; got != want {
+		t.Fatalf("hsConnMap[%v] = %v, want %v", testAddress3, got, want)
 	}
 }
 

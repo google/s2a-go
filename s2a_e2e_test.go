@@ -160,7 +160,7 @@ func startServer(t *testing.T, s2aAddress string, s2aCreds credentials.Transport
 	serverOpts := &ServerOptions{
 		LocalIdentities:  []Identity{NewSpiffeID(serverSpiffeID)},
 		S2AAddress:       s2aAddress,
-		S2ACreds:         s2aCreds,
+		TransportCreds:   s2aCreds,
 		EnableLegacyMode: enableLegacyMode,
 	}
 	creds, err := NewServerCreds(serverOpts)
@@ -188,7 +188,7 @@ func runClient(ctx context.Context, t *testing.T, clientS2AAddress string, s2aCr
 		TargetIdentities: []Identity{NewSpiffeID(serverSpiffeID)},
 		LocalIdentity:    NewHostname(clientHostname),
 		S2AAddress:       clientS2AAddress,
-		S2ACreds:         s2aCreds,
+		TransportCreds:   s2aCreds,
 		EnableLegacyMode: enableLegacyMode,
 		FallbackOpts: &FallbackOptions{
 			FallbackClientHandshakeFunc: fallbackHandshake,
@@ -699,9 +699,9 @@ func startHTTPServer(t *testing.T, resp string) string {
 // It returns the response from the /hello endpoint.
 func runHTTPClient(t *testing.T, clientS2AAddress string, s2aCreds credentials.TransportCredentials, serverAddr string, fallbackOpts *FallbackOptions) string {
 	dialTLSContext := NewS2ADialTLSContextFunc(&ClientOptions{
-		S2AAddress:   clientS2AAddress,
-		S2ACreds:     s2aCreds,
-		FallbackOpts: fallbackOpts,
+		S2AAddress:     clientS2AAddress,
+		TransportCreds: s2aCreds,
+		FallbackOpts:   fallbackOpts,
 	})
 
 	tr := http.Transport{

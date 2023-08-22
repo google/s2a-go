@@ -95,7 +95,7 @@ type ClientOptions struct {
 	S2AAddress string
 	// Optional transport credentials.
 	// If set, this will be used for the gRPC connection to the S2A server.
-	S2ACreds credentials.TransportCredentials
+	TransportCreds credentials.TransportCredentials
 	// EnsureProcessSessionTickets waits for all session tickets to be sent to
 	// S2A before a process completes.
 	//
@@ -179,7 +179,7 @@ type ServerOptions struct {
 	S2AAddress string
 	// Optional transport credentials.
 	// If set, this will be used for the gRPC connection to the S2A server.
-	S2ACreds credentials.TransportCredentials
+	TransportCreds credentials.TransportCredentials
 	// If true, enables the use of legacy S2Av1.
 	EnableLegacyMode bool
 	// VerificationMode specifies the mode that S2A must use to verify the
