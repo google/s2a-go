@@ -83,7 +83,7 @@ func (t *ticketSender) sendTicketsToS2A(sessionTickets [][]byte, callComplete ch
 					t.ensureProcessSessionTickets.Done()
 				}
 			}()
-			hsConn, err := service.Dial(t.hsAddr)
+			hsConn, err := service.Dial(context.Background(), t.hsAddr, nil)
 			if err != nil {
 				return err
 			}

@@ -19,6 +19,7 @@
 package service
 
 import (
+	"context"
 	"os"
 	"testing"
 
@@ -33,7 +34,7 @@ const (
 func TestDial(t *testing.T) {
 	defer func() func() {
 		temp := hsDialer
-		hsDialer = func(target string, opts ...grpc.DialOption) (*grpc.ClientConn, error) {
+		hsDialer = func(ctx context.Context, target string, opts ...grpc.DialOption) (*grpc.ClientConn, error) {
 			return &grpc.ClientConn{}, nil
 		}
 		return func() {
@@ -41,9 +42,11 @@ func TestDial(t *testing.T) {
 		}
 	}()
 
+	ctx := context.Background()
+
 	// First call to Dial, it should create a connection to the server running
 	// at the given address.
-	conn1, err := Dial(testAddress1)
+	conn1, err := Dial(ctx, testAddress1, nil)
 	if err != nil {
 		t.Fatalf("first call to Dial(%v) failed: %v", testAddress1, err)
 	}
@@ -55,7 +58,7 @@ func TestDial(t *testing.T) {
 	}
 
 	// Second call to Dial should return conn1 above.
-	conn2, err := Dial(testAddress1)
+	conn2, err := Dial(ctx, testAddress1, nil)
 	if err != nil {
 		t.Fatalf("second call to Dial(%v) failed: %v", testAddress1, err)
 	}
@@ -68,7 +71,7 @@ func TestDial(t *testing.T) {
 
 	// Third call to Dial using a different address should create a new
 	// connection.
-	conn3, err := Dial(testAddress2)
+	conn3, err := Dial(ctx, testAddress2, nil)
 	if err != nil {
 		t.Fatalf("third call to Dial(%v) failed: %v", testAddress2, err)
 	}

@@ -49,7 +49,7 @@ func TestNewClientCreds(t *testing.T) {
 		},
 	} {
 		t.Run(tc.description, func(t *testing.T) {
-			c, err := NewClientCreds(fakes2av2Address, &commonpbv1.Identity{
+			c, err := NewClientCreds(fakes2av2Address, nil, &commonpbv1.Identity{
 				IdentityOneof: &commonpbv1.Identity_Hostname{
 					Hostname: "test_rsa_client_identity",
 				},
@@ -85,7 +85,7 @@ func TestNewServerCreds(t *testing.T) {
 					},
 				},
 			}
-			c, err := NewServerCreds(fakes2av2Address, localIdentities, s2av2pb.ValidatePeerCertificateChainReq_CONNECT_TO_GOOGLE, nil)
+			c, err := NewServerCreds(fakes2av2Address, nil, localIdentities, s2av2pb.ValidatePeerCertificateChainReq_CONNECT_TO_GOOGLE, nil)
 			if err != nil {
 				t.Fatalf("NewServerCreds() failed: %v", err)
 			}
@@ -116,7 +116,7 @@ func TestServerHandshakeFail(t *testing.T) {
 
 func TestInfo(t *testing.T) {
 	os.Setenv("S2A_ACCESS_TOKEN", "TestInfo_s2a_access_token")
-	c, err := NewClientCreds(fakes2av2Address, &commonpbv1.Identity{
+	c, err := NewClientCreds(fakes2av2Address, nil, &commonpbv1.Identity{
 		IdentityOneof: &commonpbv1.Identity_Hostname{
 			Hostname: "test_rsa_client_identity",
 		},
@@ -136,7 +136,7 @@ func TestCloneClient(t *testing.T) {
 	if err != nil {
 		t.Errorf("error creating fallback handshake function: %v", err)
 	}
-	c, err := NewClientCreds(fakes2av2Address, &commonpbv1.Identity{
+	c, err := NewClientCreds(fakes2av2Address, nil, &commonpbv1.Identity{
 		IdentityOneof: &commonpbv1.Identity_Hostname{
 			Hostname: "test_rsa_client_identity",
 		},
@@ -200,7 +200,7 @@ func TestCloneServer(t *testing.T) {
 			},
 		},
 	}
-	c, err := NewServerCreds(fakes2av2Address, localIdentities, s2av2pb.ValidatePeerCertificateChainReq_CONNECT_TO_GOOGLE, nil)
+	c, err := NewServerCreds(fakes2av2Address, nil, localIdentities, s2av2pb.ValidatePeerCertificateChainReq_CONNECT_TO_GOOGLE, nil)
 	if err != nil {
 		t.Fatalf("NewServerCreds() failed: %v", err)
 	}
@@ -252,7 +252,7 @@ func TestCloneServer(t *testing.T) {
 func TestOverrideServerName(t *testing.T) {
 	// Setup test.
 	os.Setenv("S2A_ACCESS_TOKEN", "TestOverrideServerName_s2a_access_token")
-	c, err := NewClientCreds(fakes2av2Address, &commonpbv1.Identity{
+	c, err := NewClientCreds(fakes2av2Address, nil, &commonpbv1.Identity{
 		IdentityOneof: &commonpbv1.Identity_Hostname{
 			Hostname: "test_rsa_client_identity",
 		},
@@ -334,7 +334,7 @@ func TestCreateStream(t *testing.T) {
 		},
 	} {
 		t.Run(tc.description, func(t *testing.T) {
-			s2AStream, err := createStream(context.TODO(), "fake address", func(ctx context.Context, s2av2Address string) (stream.S2AStream, error) {
+			s2AStream, err := createStream(context.TODO(), "fake address", nil, func(ctx context.Context, s2av2Address string) (stream.S2AStream, error) {
 				return s2ATestStream{debug: "test s2a stream"}, nil
 			})
 			if err != nil {
