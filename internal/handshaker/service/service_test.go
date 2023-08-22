@@ -21,9 +21,10 @@ package service
 import (
 	"context"
 	"crypto/tls"
-	"google.golang.org/grpc/credentials"
 	"os"
 	"testing"
+
+	"google.golang.org/grpc/credentials"
 
 	grpc "google.golang.org/grpc"
 )
