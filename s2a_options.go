@@ -22,11 +22,11 @@ import (
 	"context"
 	"crypto/tls"
 	"errors"
-	"google.golang.org/grpc/credentials"
 	"sync"
 
 	"github.com/google/s2a-go/fallback"
 	"github.com/google/s2a-go/stream"
+	"google.golang.org/grpc/credentials"
 
 	s2apb "github.com/google/s2a-go/internal/proto/common_go_proto"
 )
