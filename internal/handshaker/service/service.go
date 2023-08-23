@@ -31,6 +31,7 @@ import (
 	"google.golang.org/appengine/socket"
 	grpc "google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
+	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/grpclog"
 )
 
@@ -77,7 +78,7 @@ func Dial(ctx context.Context, handshakerServiceAddress string, transportCreds c
 		if transportCreds != nil {
 			grpcOpts = append(grpcOpts, grpc.WithTransportCredentials(transportCreds))
 		} else {
-			grpcOpts = append(grpcOpts, grpc.WithInsecure())
+			grpcOpts = append(grpcOpts, grpc.WithTransportCredentials(insecure.NewCredentials()))
 		}
 		if enableAppEngineDialer() && appEngineDialerHook != nil {
 			if grpclog.V(1) {

@@ -44,6 +44,6 @@ openssl verify -CAfile mds_root_cert.pem mds_client_cert.pem
 Create self-signed key/cert to test failure case
 ```
 openssl genrsa -out self_signed_key.pem 2048
-openssl req -new -key self_signed_key.pem -out self_signed.csr 
+openssl req -new -key self_signed_key.pem -out self_signed.csr
 openssl x509 -req -in self_signed.csr -signkey self_signed_key.pem -out self_signed_cert.pem -days 7305
 ```
