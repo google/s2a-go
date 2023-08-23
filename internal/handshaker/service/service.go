@@ -30,6 +30,7 @@ import (
 	"google.golang.org/appengine"
 	"google.golang.org/appengine/socket"
 	grpc "google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/grpclog"
 )
 
@@ -47,7 +48,7 @@ var (
 	// to a corresponding connection to an S2A handshaker service instance.
 	hsConnMap = make(map[string]*grpc.ClientConn)
 	// hsDialer will be reassigned in tests.
-	hsDialer = grpc.Dial
+	hsDialer = grpc.DialContext
 )
 
 func init() {
@@ -64,7 +65,7 @@ func init() {
 // Dial dials the S2A handshaker service. If a connection has already been
 // established, this function returns it. Otherwise, a new connection is
 // created.
-func Dial(handshakerServiceAddress string) (*grpc.ClientConn, error) {
+func Dial(ctx context.Context, handshakerServiceAddress string, transportCreds credentials.TransportCredentials) (*grpc.ClientConn, error) {
 	mu.Lock()
 	defer mu.Unlock()
 
@@ -72,17 +73,20 @@ func Dial(handshakerServiceAddress string) (*grpc.ClientConn, error) {
 	if !ok {
 		// Create a new connection to the S2A handshaker service. Note that
 		// this connection stays open until the application is closed.
-		grpcOpts := []grpc.DialOption{
-			grpc.WithInsecure(),
+		var grpcOpts []grpc.DialOption
+		if transportCreds != nil {
+			grpcOpts = append(grpcOpts, grpc.WithTransportCredentials(transportCreds))
+		} else {
+			grpcOpts = append(grpcOpts, grpc.WithInsecure())
 		}
 		if enableAppEngineDialer() && appEngineDialerHook != nil {
 			if grpclog.V(1) {
 				grpclog.Info("Using AppEngine-specific dialer to talk to S2A.")
 			}
-			grpcOpts = append(grpcOpts, appEngineDialerHook(context.Background()))
+			grpcOpts = append(grpcOpts, appEngineDialerHook(ctx))
 		}
 		var err error
-		hsConn, err = hsDialer(handshakerServiceAddress, grpcOpts...)
+		hsConn, err = hsDialer(ctx, handshakerServiceAddress, grpcOpts...)
 		if err != nil {
 			return nil, err
 		}

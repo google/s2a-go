@@ -116,7 +116,7 @@ func startFakeS2AOnUDS(t *testing.T, expToken string) string {
 // on.
 func startServer(t *testing.T, s2aAddress string, localIdentities []*commonpbv1.Identity) string {
 	// TODO(rmehta19): Pass verificationMode as a parameter to startServer.
-	creds, err := NewServerCreds(s2aAddress, localIdentities, s2av2pb.ValidatePeerCertificateChainReq_CONNECT_TO_GOOGLE, nil)
+	creds, err := NewServerCreds(s2aAddress, nil, localIdentities, s2av2pb.ValidatePeerCertificateChainReq_CONNECT_TO_GOOGLE, nil)
 	if err != nil {
 		t.Errorf("NewServerCreds(%s) failed: %v", s2aAddress, err)
 	}
@@ -164,7 +164,7 @@ func startFallbackServer(t *testing.T) string {
 
 // runClient starts up a client and calls the server.
 func runClient(ctx context.Context, t *testing.T, clientS2AAddress, serverAddr string, localIdentity *commonpbv1.Identity, fallbackHandshake fallback.ClientHandshake) {
-	creds, err := NewClientCreds(clientS2AAddress, localIdentity, s2av2pb.ValidatePeerCertificateChainReq_CONNECT_TO_GOOGLE, fallbackHandshake, nil, nil)
+	creds, err := NewClientCreds(clientS2AAddress, nil, localIdentity, s2av2pb.ValidatePeerCertificateChainReq_CONNECT_TO_GOOGLE, fallbackHandshake, nil, nil)
 	if err != nil {
 		t.Errorf("NewClientCreds(%s) failed: %v", clientS2AAddress, err)
 	}
@@ -422,7 +422,7 @@ func TestNewClientTlsConfigWithTokenManager(t *testing.T) {
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), defaultE2ETimeout)
 	defer cancel()
-	config, err := NewClientTLSConfig(ctx, s2AAddr, accessTokenManager, s2av2pb.ValidatePeerCertificateChainReq_CONNECT_TO_GOOGLE, "test_server_name", nil)
+	config, err := NewClientTLSConfig(ctx, s2AAddr, nil, accessTokenManager, s2av2pb.ValidatePeerCertificateChainReq_CONNECT_TO_GOOGLE, "test_server_name", nil)
 	if err != nil {
 		t.Errorf("NewClientTLSConfig() failed: %v", err)
 	}
@@ -442,7 +442,7 @@ func TestNewClientTlsConfigWithoutTokenManager(t *testing.T) {
 	var tokenManager tokenmanager.AccessTokenManager
 	ctx, cancel := context.WithTimeout(context.Background(), defaultE2ETimeout)
 	defer cancel()
-	config, err := NewClientTLSConfig(ctx, s2AAddr, tokenManager, s2av2pb.ValidatePeerCertificateChainReq_CONNECT_TO_GOOGLE, "test_server_name", nil)
+	config, err := NewClientTLSConfig(ctx, s2AAddr, nil, tokenManager, s2av2pb.ValidatePeerCertificateChainReq_CONNECT_TO_GOOGLE, "test_server_name", nil)
 	if err != nil {
 		t.Errorf("NewClientTLSConfig() failed: %v", err)
 	}

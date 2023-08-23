@@ -19,8 +19,12 @@
 package service
 
 import (
+	"context"
+	"crypto/tls"
 	"os"
 	"testing"
+
+	"google.golang.org/grpc/credentials"
 
 	grpc "google.golang.org/grpc"
 )
@@ -28,12 +32,13 @@ import (
 const (
 	testAddress1 = "test_address_1"
 	testAddress2 = "test_address_2"
+	testAddress3 = "test_address_3"
 )
 
 func TestDial(t *testing.T) {
 	defer func() func() {
 		temp := hsDialer
-		hsDialer = func(target string, opts ...grpc.DialOption) (*grpc.ClientConn, error) {
+		hsDialer = func(ctx context.Context, target string, opts ...grpc.DialOption) (*grpc.ClientConn, error) {
 			return &grpc.ClientConn{}, nil
 		}
 		return func() {
@@ -41,9 +46,11 @@ func TestDial(t *testing.T) {
 		}
 	}()
 
+	ctx := context.Background()
+
 	// First call to Dial, it should create a connection to the server running
 	// at the given address.
-	conn1, err := Dial(testAddress1)
+	conn1, err := Dial(ctx, testAddress1, nil)
 	if err != nil {
 		t.Fatalf("first call to Dial(%v) failed: %v", testAddress1, err)
 	}
@@ -55,7 +62,7 @@ func TestDial(t *testing.T) {
 	}
 
 	// Second call to Dial should return conn1 above.
-	conn2, err := Dial(testAddress1)
+	conn2, err := Dial(ctx, testAddress1, nil)
 	if err != nil {
 		t.Fatalf("second call to Dial(%v) failed: %v", testAddress1, err)
 	}
@@ -68,7 +75,7 @@ func TestDial(t *testing.T) {
 
 	// Third call to Dial using a different address should create a new
 	// connection.
-	conn3, err := Dial(testAddress2)
+	conn3, err := Dial(ctx, testAddress2, nil)
 	if err != nil {
 		t.Fatalf("third call to Dial(%v) failed: %v", testAddress2, err)
 	}
@@ -80,6 +87,18 @@ func TestDial(t *testing.T) {
 	}
 	if got, want := conn2 == conn3, false; got != want {
 		t.Fatalf("(conn2 == conn3) = %v, want %v", got, want)
+	}
+
+	// Connect to an address with transportCredentials.
+	conn4, err := Dial(ctx, testAddress3, credentials.NewTLS(&tls.Config{}))
+	if err != nil {
+		t.Fatalf("first call to Dial(%v) failed: %v", testAddress3, err)
+	}
+	if conn4 == nil {
+		t.Fatalf("first call to Dial(%v)=(nil, _), want not nil", testAddress3)
+	}
+	if got, want := hsConnMap[testAddress3], conn4; got != want {
+		t.Fatalf("hsConnMap[%v] = %v, want %v", testAddress3, got, want)
 	}
 }
 
