@@ -29,7 +29,7 @@ fail_with_debug_output() {
 }
 
 run_tests() {
-  time go build ./... || fail_with_debug_output
+  time go build ./... -buildvcs=false || fail_with_debug_output
   time go test ./... || fail_with_debug_output
 }
 
