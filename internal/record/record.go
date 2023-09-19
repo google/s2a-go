@@ -495,7 +495,7 @@ func (p *conn) buildRecord(plaintext []byte, recordType byte, recordStartIndex i
 }
 
 func (p *conn) Close() error {
-	// Clost the connection immediately.
+	// Close the connection immediately.
 	return p.Conn.Close()
 }
 
