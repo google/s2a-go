@@ -7,7 +7,7 @@ require (
 	github.com/google/go-cmp v0.5.9
 	golang.org/x/crypto v0.12.0
 	golang.org/x/sync v0.2.0
-	google.golang.org/grpc v1.57.0
+	google.golang.org/grpc v1.57.1
 	google.golang.org/protobuf v1.31.0
 )
 
