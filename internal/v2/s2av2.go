@@ -183,13 +183,7 @@ func (c *s2av2TransportCreds) ClientHandshake(ctx context.Context, serverAuthori
 	}
 
 	creds := credentials.NewTLS(config)
-	var conn net.Conn
-	var authInfo credentials.AuthInfo
-	retry.Run(timeoutCtx,
-		func() error {
-			conn, authInfo, err = creds.ClientHandshake(timeoutCtx, serverName, rawConn)
-			return err
-		})
+	conn, authInfo, err := creds.ClientHandshake(timeoutCtx, serverName, rawConn)
 	if err != nil {
 		grpclog.Infof("Failed to do client handshake using S2Av2: %v", err)
 		if c.fallbackClientHandshake != nil {
@@ -247,13 +241,7 @@ func (c *s2av2TransportCreds) ServerHandshake(rawConn net.Conn) (net.Conn, crede
 	}
 
 	creds := credentials.NewTLS(config)
-	var conn net.Conn
-	var authInfo credentials.AuthInfo
-	retry.Run(ctx,
-		func() error {
-			conn, authInfo, err = creds.ServerHandshake(rawConn)
-			return err
-		})
+	conn, authInfo, err := creds.ServerHandshake(rawConn)
 	if err != nil {
 		grpclog.Infof("Failed to do server handshake using S2Av2: %v", err)
 		return nil, nil, err
