@@ -396,24 +396,20 @@ func NewS2ADialTLSContextFunc(opts *ClientOptions) func(ctx context.Context, net
 		defer cancel()
 
 		var s2aTLSConfig *tls.Config
+		var c net.Conn
 		retry.Run(timeoutCtx,
 			func() error {
 				s2aTLSConfig, err = factory.Build(timeoutCtx, &TLSClientConfigOptions{
 					ServerName: serverName,
 				})
-				return err
-			})
-		if err != nil {
-			grpclog.Infof("error building S2A TLS config: %v", err)
-			return fallback(err)
-		}
+				if err != nil {
+					grpclog.Infof("error building S2A TLS config: %v", err)
+					return err
+				}
 
-		s2aDialer := &tls.Dialer{
-			Config: s2aTLSConfig,
-		}
-		var c net.Conn
-		retry.Run(timeoutCtx,
-			func() error {
+				s2aDialer := &tls.Dialer{
+					Config: s2aTLSConfig,
+				}
 				c, err = s2aDialer.DialContext(timeoutCtx, network, addr)
 				return err
 			})
