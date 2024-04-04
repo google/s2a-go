@@ -351,6 +351,8 @@ func getVerificationMode(verificationMode VerificationModeType) s2av2pb.Validate
 		return s2av2pb.ValidatePeerCertificateChainReq_CONNECT_TO_GOOGLE
 	case Spiffe:
 		return s2av2pb.ValidatePeerCertificateChainReq_SPIFFE
+	case ReservedCustomVerificationMode5:
+		return s2av2pb.ValidatePeerCertificateChainReq_RESERVED_CUSTOM_VERIFICATION_MODE_5
 	default:
 		return s2av2pb.ValidatePeerCertificateChainReq_UNSPECIFIED
 	}

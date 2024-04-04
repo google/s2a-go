@@ -79,6 +79,7 @@ const (
 	Unspecified = iota
 	ConnectToGoogle
 	Spiffe
+	ReservedCustomVerificationMode5
 )
 
 // ClientOptions contains the client-side options used to establish a secure

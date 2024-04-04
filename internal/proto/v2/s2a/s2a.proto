@@ -239,6 +239,8 @@ message ValidatePeerCertificateChainReq {
     // The connect-to-Google verification mode uses the trust bundle for
     // connecting to Google, e.g. *.mtls.googleapis.com endpoints.
     CONNECT_TO_GOOGLE = 2;
+    // Internal use only.
+    RESERVED_CUSTOM_VERIFICATION_MODE_5 = 5;
   }
 
   message ClientPeer {
