@@ -77,8 +77,10 @@ type VerificationModeType int
 // Three types of verification modes.
 const (
 	Unspecified VerificationModeType = iota
-	ConnectToGoogle
 	Spiffe
+	ConnectToGoogle
+	ReservedCustomVerificationMode3
+	ReservedCustomVerificationMode4
 	ReservedCustomVerificationMode5
 )
 
