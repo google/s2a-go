@@ -240,6 +240,10 @@ message ValidatePeerCertificateChainReq {
     // connecting to Google, e.g. *.mtls.googleapis.com endpoints.
     CONNECT_TO_GOOGLE = 2;
     // Internal use only.
+    RESERVED_CUSTOM_VERIFICATION_MODE_3 = 3;
+    // Internal use only.
+    RESERVED_CUSTOM_VERIFICATION_MODE_4 = 4;
+    // Internal use only.
     RESERVED_CUSTOM_VERIFICATION_MODE_5 = 5;
   }
 
