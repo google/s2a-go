@@ -18,7 +18,7 @@ package s2a.proto.v2;
 
 option go_package = "github.com/google/s2a/internal/proto/v2/s2a_context_go_proto";
 
-import "internal/proto/common/common.proto";
+import "internal/proto/v2/common/common.proto";
 
 message S2AContext {
   // The SPIFFE ID from the peer leaf certificate, if present.
@@ -49,7 +49,7 @@ message S2AContext {
   repeated string peer_certificate_chain_fingerprints = 4;
 
   // The local identity used during session setup.
-  s2a.proto.Identity local_identity = 5;
+  Identity local_identity = 5;
 
   // The SHA256 hash of the DER-encoding of the local leaf certificate used in
   // the handshake.

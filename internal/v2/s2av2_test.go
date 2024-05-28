@@ -31,7 +31,7 @@ import (
 	"github.com/google/s2a-go/stream"
 	"google.golang.org/protobuf/testing/protocmp"
 
-	commonpbv1 "github.com/google/s2a-go/internal/proto/common_go_proto"
+	commonpb "github.com/google/s2a-go/internal/proto/v2/common_go_proto"
 	s2av2pb "github.com/google/s2a-go/internal/proto/v2/s2a_go_proto"
 )
 
@@ -49,8 +49,8 @@ func TestNewClientCreds(t *testing.T) {
 		},
 	} {
 		t.Run(tc.description, func(t *testing.T) {
-			c, err := NewClientCreds(fakes2av2Address, nil, &commonpbv1.Identity{
-				IdentityOneof: &commonpbv1.Identity_Hostname{
+			c, err := NewClientCreds(fakes2av2Address, nil, &commonpb.Identity{
+				IdentityOneof: &commonpb.Identity_Hostname{
 					Hostname: "test_rsa_client_identity",
 				},
 			}, s2av2pb.ValidatePeerCertificateChainReq_CONNECT_TO_GOOGLE, nil, nil, nil)
@@ -78,9 +78,9 @@ func TestNewServerCreds(t *testing.T) {
 		},
 	} {
 		t.Run(tc.description, func(t *testing.T) {
-			localIdentities := []*commonpbv1.Identity{
+			localIdentities := []*commonpb.Identity{
 				{
-					IdentityOneof: &commonpbv1.Identity_Hostname{
+					IdentityOneof: &commonpb.Identity_Hostname{
 						Hostname: "test_rsa_server_identity",
 					},
 				},
@@ -116,8 +116,8 @@ func TestServerHandshakeFail(t *testing.T) {
 
 func TestInfo(t *testing.T) {
 	os.Setenv("S2A_ACCESS_TOKEN", "TestInfo_s2a_access_token")
-	c, err := NewClientCreds(fakes2av2Address, nil, &commonpbv1.Identity{
-		IdentityOneof: &commonpbv1.Identity_Hostname{
+	c, err := NewClientCreds(fakes2av2Address, nil, &commonpb.Identity{
+		IdentityOneof: &commonpb.Identity_Hostname{
 			Hostname: "test_rsa_client_identity",
 		},
 	}, s2av2pb.ValidatePeerCertificateChainReq_CONNECT_TO_GOOGLE, nil, nil, nil)
@@ -136,8 +136,8 @@ func TestCloneClient(t *testing.T) {
 	if err != nil {
 		t.Errorf("error creating fallback handshake function: %v", err)
 	}
-	c, err := NewClientCreds(fakes2av2Address, nil, &commonpbv1.Identity{
-		IdentityOneof: &commonpbv1.Identity_Hostname{
+	c, err := NewClientCreds(fakes2av2Address, nil, &commonpb.Identity{
+		IdentityOneof: &commonpb.Identity_Hostname{
 			Hostname: "test_rsa_client_identity",
 		},
 	}, s2av2pb.ValidatePeerCertificateChainReq_CONNECT_TO_GOOGLE, fallbackFunc, nil, nil)
@@ -193,9 +193,9 @@ func TestCloneClient(t *testing.T) {
 
 func TestCloneServer(t *testing.T) {
 	os.Setenv("S2A_ACCESS_TOKEN", "TestCloneServer_s2a_access_token")
-	localIdentities := []*commonpbv1.Identity{
+	localIdentities := []*commonpb.Identity{
 		{
-			IdentityOneof: &commonpbv1.Identity_Hostname{
+			IdentityOneof: &commonpb.Identity_Hostname{
 				Hostname: "test_rsa_server_identity",
 			},
 		},
@@ -252,8 +252,8 @@ func TestCloneServer(t *testing.T) {
 func TestOverrideServerName(t *testing.T) {
 	// Setup test.
 	os.Setenv("S2A_ACCESS_TOKEN", "TestOverrideServerName_s2a_access_token")
-	c, err := NewClientCreds(fakes2av2Address, nil, &commonpbv1.Identity{
-		IdentityOneof: &commonpbv1.Identity_Hostname{
+	c, err := NewClientCreds(fakes2av2Address, nil, &commonpb.Identity{
+		IdentityOneof: &commonpb.Identity_Hostname{
 			Hostname: "test_rsa_client_identity",
 		},
 	}, s2av2pb.ValidatePeerCertificateChainReq_CONNECT_TO_GOOGLE, nil, nil, nil)

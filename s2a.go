@@ -39,7 +39,8 @@ import (
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/grpclog"
 
-	commonpb "github.com/google/s2a-go/internal/proto/common_go_proto"
+	commonpbv1 "github.com/google/s2a-go/internal/proto/common_go_proto"
+	commonpb "github.com/google/s2a-go/internal/proto/v2/common_go_proto"
 	s2av2pb "github.com/google/s2a-go/internal/proto/v2/s2a_go_proto"
 )
 
@@ -54,17 +55,17 @@ const (
 // credentials.TransportCredentials interface.
 type s2aTransportCreds struct {
 	info          *credentials.ProtocolInfo
-	minTLSVersion commonpb.TLSVersion
-	maxTLSVersion commonpb.TLSVersion
+	minTLSVersion commonpbv1.TLSVersion
+	maxTLSVersion commonpbv1.TLSVersion
 	// tlsCiphersuites contains the ciphersuites used in the S2A connection.
 	// Note that these are currently unconfigurable.
-	tlsCiphersuites []commonpb.Ciphersuite
+	tlsCiphersuites []commonpbv1.Ciphersuite
 	// localIdentity should only be used by the client.
-	localIdentity *commonpb.Identity
+	localIdentity *commonpbv1.Identity
 	// localIdentities should only be used by the server.
-	localIdentities []*commonpb.Identity
+	localIdentities []*commonpbv1.Identity
 	// targetIdentities should only be used by the client.
-	targetIdentities            []*commonpb.Identity
+	targetIdentities            []*commonpbv1.Identity
 	isClient                    bool
 	s2aAddr                     string
 	ensureProcessSessionTickets *sync.WaitGroup
@@ -76,7 +77,7 @@ func NewClientCreds(opts *ClientOptions) (credentials.TransportCredentials, erro
 	if opts == nil {
 		return nil, errors.New("nil client options")
 	}
-	var targetIdentities []*commonpb.Identity
+	var targetIdentities []*commonpbv1.Identity
 	for _, targetIdentity := range opts.TargetIdentities {
 		protoTargetIdentity, err := toProtoIdentity(targetIdentity)
 		if err != nil {
@@ -93,12 +94,12 @@ func NewClientCreds(opts *ClientOptions) (credentials.TransportCredentials, erro
 			info: &credentials.ProtocolInfo{
 				SecurityProtocol: s2aSecurityProtocol,
 			},
-			minTLSVersion: commonpb.TLSVersion_TLS1_3,
-			maxTLSVersion: commonpb.TLSVersion_TLS1_3,
-			tlsCiphersuites: []commonpb.Ciphersuite{
-				commonpb.Ciphersuite_AES_128_GCM_SHA256,
-				commonpb.Ciphersuite_AES_256_GCM_SHA384,
-				commonpb.Ciphersuite_CHACHA20_POLY1305_SHA256,
+			minTLSVersion: commonpbv1.TLSVersion_TLS1_3,
+			maxTLSVersion: commonpbv1.TLSVersion_TLS1_3,
+			tlsCiphersuites: []commonpbv1.Ciphersuite{
+				commonpbv1.Ciphersuite_AES_128_GCM_SHA256,
+				commonpbv1.Ciphersuite_AES_256_GCM_SHA384,
+				commonpbv1.Ciphersuite_CHACHA20_POLY1305_SHA256,
 			},
 			localIdentity:               localIdentity,
 			targetIdentities:            targetIdentities,
@@ -112,7 +113,16 @@ func NewClientCreds(opts *ClientOptions) (credentials.TransportCredentials, erro
 	if opts.FallbackOpts != nil && opts.FallbackOpts.FallbackClientHandshakeFunc != nil {
 		fallbackFunc = opts.FallbackOpts.FallbackClientHandshakeFunc
 	}
-	return v2.NewClientCreds(opts.S2AAddress, opts.TransportCreds, localIdentity, verificationMode, fallbackFunc, opts.getS2AStream, opts.serverAuthorizationPolicy)
+	marshalledLocalIdentity, err := proto.Marshal(localIdentity)
+	if err != nil {
+		return nil, err
+	}
+	v2LocalIdentity := &commonpb.Identity{}
+	err = proto.Unmarshal(marshalledLocalIdentity, v2LocalIdentity)
+	if err != nil {
+		return nil, err
+	}
+	return v2.NewClientCreds(opts.S2AAddress, opts.TransportCreds, v2LocalIdentity, verificationMode, fallbackFunc, opts.getS2AStream, opts.serverAuthorizationPolicy)
 }
 
 // NewServerCreds returns a server-side transport credentials object that uses
@@ -121,7 +131,7 @@ func NewServerCreds(opts *ServerOptions) (credentials.TransportCredentials, erro
 	if opts == nil {
 		return nil, errors.New("nil server options")
 	}
-	var localIdentities []*commonpb.Identity
+	var localIdentities []*commonpbv1.Identity
 	for _, localIdentity := range opts.LocalIdentities {
 		protoLocalIdentity, err := toProtoIdentity(localIdentity)
 		if err != nil {
@@ -134,12 +144,12 @@ func NewServerCreds(opts *ServerOptions) (credentials.TransportCredentials, erro
 			info: &credentials.ProtocolInfo{
 				SecurityProtocol: s2aSecurityProtocol,
 			},
-			minTLSVersion: commonpb.TLSVersion_TLS1_3,
-			maxTLSVersion: commonpb.TLSVersion_TLS1_3,
-			tlsCiphersuites: []commonpb.Ciphersuite{
-				commonpb.Ciphersuite_AES_128_GCM_SHA256,
-				commonpb.Ciphersuite_AES_256_GCM_SHA384,
-				commonpb.Ciphersuite_CHACHA20_POLY1305_SHA256,
+			minTLSVersion: commonpbv1.TLSVersion_TLS1_3,
+			maxTLSVersion: commonpbv1.TLSVersion_TLS1_3,
+			tlsCiphersuites: []commonpbv1.Ciphersuite{
+				commonpbv1.Ciphersuite_AES_128_GCM_SHA256,
+				commonpbv1.Ciphersuite_AES_256_GCM_SHA384,
+				commonpbv1.Ciphersuite_CHACHA20_POLY1305_SHA256,
 			},
 			localIdentities: localIdentities,
 			isClient:        false,
@@ -147,7 +157,25 @@ func NewServerCreds(opts *ServerOptions) (credentials.TransportCredentials, erro
 		}, nil
 	}
 	verificationMode := getVerificationMode(opts.VerificationMode)
-	return v2.NewServerCreds(opts.S2AAddress, opts.TransportCreds, localIdentities, verificationMode, opts.getS2AStream)
+	var marshalledLocalIdentities [][]byte
+	for _, localIdentity := range localIdentities {
+		marshalledLocalIdentity, err := proto.Marshal(localIdentity)
+		if err != nil {
+			return nil, err
+		}
+		marshalledLocalIdentities = append(marshalledLocalIdentities, marshalledLocalIdentity)
+	}
+	var v2LocalIdentities []*commonpb.Identity
+	for _, marshalledLocalIdentity := range marshalledLocalIdentities {
+		v2LocalIdentity := &commonpb.Identity{}
+		err := proto.Unmarshal(marshalledLocalIdentity, v2LocalIdentity)
+		if err != nil {
+			return nil, err
+		}
+		v2LocalIdentities = append(v2LocalIdentities, v2LocalIdentity)
+	}
+
+	return v2.NewServerCreds(opts.S2AAddress, opts.TransportCreds, v2LocalIdentities, verificationMode, opts.getS2AStream)
 }
 
 // ClientHandshake initiates a client-side TLS handshake using the S2A.
@@ -248,22 +276,22 @@ func (c *s2aTransportCreds) Info() credentials.ProtocolInfo {
 
 func (c *s2aTransportCreds) Clone() credentials.TransportCredentials {
 	info := *c.info
-	var localIdentity *commonpb.Identity
+	var localIdentity *commonpbv1.Identity
 	if c.localIdentity != nil {
-		localIdentity = proto.Clone(c.localIdentity).(*commonpb.Identity)
+		localIdentity = proto.Clone(c.localIdentity).(*commonpbv1.Identity)
 	}
-	var localIdentities []*commonpb.Identity
+	var localIdentities []*commonpbv1.Identity
 	if c.localIdentities != nil {
-		localIdentities = make([]*commonpb.Identity, len(c.localIdentities))
+		localIdentities = make([]*commonpbv1.Identity, len(c.localIdentities))
 		for i, localIdentity := range c.localIdentities {
-			localIdentities[i] = proto.Clone(localIdentity).(*commonpb.Identity)
+			localIdentities[i] = proto.Clone(localIdentity).(*commonpbv1.Identity)
 		}
 	}
-	var targetIdentities []*commonpb.Identity
+	var targetIdentities []*commonpbv1.Identity
 	if c.targetIdentities != nil {
-		targetIdentities = make([]*commonpb.Identity, len(c.targetIdentities))
+		targetIdentities = make([]*commonpbv1.Identity, len(c.targetIdentities))
 		for i, targetIdentity := range c.targetIdentities {
-			targetIdentities[i] = proto.Clone(targetIdentity).(*commonpb.Identity)
+			targetIdentities[i] = proto.Clone(targetIdentity).(*commonpbv1.Identity)
 		}
 	}
 	return &s2aTransportCreds{

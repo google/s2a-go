@@ -62,7 +62,7 @@ var (
 
 // fakeAccessTokenManager implements the AccessTokenManager interface.
 type fakeAccessTokenManager struct {
-	acceptedIdentity   *commonpbv1.Identity
+	acceptedIdentity   *commonpb.Identity
 	accessToken        string
 	allowEmptyIdentity bool
 }
@@ -76,8 +76,16 @@ func (m *fakeAccessTokenManager) DefaultToken() (string, error) {
 }
 
 // Token returns the token managed by the fakeAccessTokenManager.
-func (m *fakeAccessTokenManager) Token(identity *commonpbv1.Identity) (string, error) {
-	if identity == nil || cmp.Equal(identity, &commonpbv1.Identity{}, protocmp.Transform()) {
+func (m *fakeAccessTokenManager) Token(identity interface{}) (string, error) {
+	switch v := identity.(type) {
+	case *commonpbv1.Identity:
+		// valid type.
+	case *commonpb.Identity:
+		// valid type.
+	default:
+		return "", fmt.Errorf("Incorrect identity type: %v", v)
+	}
+	if identity == nil || cmp.Equal(identity, &commonpb.Identity{}, protocmp.Transform()) {
 		if !m.allowEmptyIdentity {
 			return "", fmt.Errorf("not allowed to get token for empty identity")
 		}
@@ -306,7 +314,7 @@ func TestTLSConfigStoreServer(t *testing.T) {
 		allowEmptyIdentity: true,
 		accessToken:        "TestTlsConfigStoreServer_token",
 	}
-	var identities []*commonpbv1.Identity
+	var identities []*commonpb.Identity
 	identities = append(identities, nil)
 	for _, tc := range []struct {
 		description            string
@@ -518,7 +526,7 @@ func TestGetAuthMechanisms(t *testing.T) {
 	for _, tc := range []struct {
 		description            string
 		tokenManager           tokenmanager.AccessTokenManager
-		localIdentities        []*commonpbv1.Identity
+		localIdentities        []*commonpb.Identity
 		expectedAuthMechanisms []*s2av2pb.AuthenticationMechanism
 	}{
 		{
@@ -573,7 +581,7 @@ func TestGetServerConfigFromS2Av2(t *testing.T) {
 	for _, tc := range []struct {
 		description     string
 		tokenManager    tokenmanager.AccessTokenManager
-		localIdentities []*commonpbv1.Identity
+		localIdentities []*commonpb.Identity
 		expTLSConfig    *s2av2pb.GetTlsConfigurationResp_ServerTlsConfiguration
 		expErr          error
 	}{
@@ -589,17 +597,17 @@ func TestGetServerConfigFromS2Av2(t *testing.T) {
 		{
 			description: "invalid accessToken",
 			tokenManager: &fakeAccessTokenManager{
-				acceptedIdentity: &commonpbv1.Identity{
-					IdentityOneof: &commonpbv1.Identity_Hostname{
+				acceptedIdentity: &commonpb.Identity{
+					IdentityOneof: &commonpb.Identity_Hostname{
 						Hostname: "server_hostname",
 					},
 				},
 				allowEmptyIdentity: true,
 				accessToken:        "invalid_access_token",
 			},
-			localIdentities: []*commonpbv1.Identity{
+			localIdentities: []*commonpb.Identity{
 				{
-					IdentityOneof: &commonpbv1.Identity_Hostname{
+					IdentityOneof: &commonpb.Identity_Hostname{
 						Hostname: "server_hostname",
 					},
 				},
@@ -609,17 +617,17 @@ func TestGetServerConfigFromS2Av2(t *testing.T) {
 		{
 			description: "correct accessToken and non - empty localIdentities",
 			tokenManager: &fakeAccessTokenManager{
-				acceptedIdentity: &commonpbv1.Identity{
-					IdentityOneof: &commonpbv1.Identity_Hostname{
+				acceptedIdentity: &commonpb.Identity{
+					IdentityOneof: &commonpb.Identity_Hostname{
 						Hostname: "server_hostname",
 					},
 				},
 				allowEmptyIdentity: true,
 				accessToken:        "TestGetServerConfigFromS2Av2_token",
 			},
-			localIdentities: []*commonpbv1.Identity{
+			localIdentities: []*commonpb.Identity{
 				{
-					IdentityOneof: &commonpbv1.Identity_Hostname{
+					IdentityOneof: &commonpb.Identity_Hostname{
 						Hostname: "server_hostname",
 					},
 				},
@@ -698,7 +706,7 @@ func TestGetClientConfig(t *testing.T) {
 		accessToken:        "TestGetClientConfig_token",
 		allowEmptyIdentity: true,
 	}
-	var identities []*commonpbv1.Identity
+	var identities []*commonpb.Identity
 	identities = append(identities, nil)
 	for _, tc := range []struct {
 		description            string
