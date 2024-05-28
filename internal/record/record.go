@@ -667,7 +667,6 @@ func (p *conn) handleHandshakeMessage() error {
 			}
 		case tlsHandshakeNewSessionTicketType:
 			// Do nothing for session ticket.
-			break
 		default:
 			return errors.New("unknown handshake message type")
 		}
