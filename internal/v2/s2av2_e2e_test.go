@@ -41,8 +41,8 @@ import (
 
 	grpc "google.golang.org/grpc"
 
-	commonpbv1 "github.com/google/s2a-go/internal/proto/common_go_proto"
 	helloworldpb "github.com/google/s2a-go/internal/proto/examples/helloworld_go_proto"
+	commonpb "github.com/google/s2a-go/internal/proto/v2/common_go_proto"
 	s2av2pb "github.com/google/s2a-go/internal/proto/v2/s2a_go_proto"
 )
 
@@ -114,7 +114,7 @@ func startFakeS2AOnUDS(t *testing.T, expToken string) string {
 
 // startServer starts up a server and returns the address that it is listening
 // on.
-func startServer(t *testing.T, s2aAddress string, localIdentities []*commonpbv1.Identity) string {
+func startServer(t *testing.T, s2aAddress string, localIdentities []*commonpb.Identity) string {
 	// TODO(rmehta19): Pass verificationMode as a parameter to startServer.
 	creds, err := NewServerCreds(s2aAddress, nil, localIdentities, s2av2pb.ValidatePeerCertificateChainReq_CONNECT_TO_GOOGLE, nil)
 	if err != nil {
@@ -163,7 +163,7 @@ func startFallbackServer(t *testing.T) string {
 }
 
 // runClient starts up a client and calls the server.
-func runClient(ctx context.Context, t *testing.T, clientS2AAddress, serverAddr string, localIdentity *commonpbv1.Identity, fallbackHandshake fallback.ClientHandshake) {
+func runClient(ctx context.Context, t *testing.T, clientS2AAddress, serverAddr string, localIdentity *commonpb.Identity, fallbackHandshake fallback.ClientHandshake) {
 	creds, err := NewClientCreds(clientS2AAddress, nil, localIdentity, s2av2pb.ValidatePeerCertificateChainReq_CONNECT_TO_GOOGLE, fallbackHandshake, nil, nil)
 	if err != nil {
 		t.Errorf("NewClientCreds(%s) failed: %v", clientS2AAddress, err)
@@ -210,9 +210,9 @@ func TestEndToEndUsingFakeS2AOverTCP(t *testing.T) {
 	grpclog.Infof("Fake handshaker for client running at address: %v", clientS2AAddr)
 
 	// Start the server.
-	localIdentities := []*commonpbv1.Identity{
+	localIdentities := []*commonpb.Identity{
 		{
-			IdentityOneof: &commonpbv1.Identity_Hostname{
+			IdentityOneof: &commonpb.Identity_Hostname{
 				Hostname: "test_rsa_server_identity",
 			},
 		},
@@ -223,8 +223,8 @@ func TestEndToEndUsingFakeS2AOverTCP(t *testing.T) {
 	// Finally, start up the client.
 	ctx, cancel := context.WithTimeout(context.Background(), defaultE2ETimeout)
 	defer cancel()
-	runClient(ctx, t, clientS2AAddr, serverAddr, &commonpbv1.Identity{
-		IdentityOneof: &commonpbv1.Identity_Hostname{
+	runClient(ctx, t, clientS2AAddr, serverAddr, &commonpb.Identity{
+		IdentityOneof: &commonpb.Identity_Hostname{
 			Hostname: "test_rsa_client_identity",
 		},
 	}, nil)
@@ -242,7 +242,7 @@ func TestEndToEndUsingFakeS2AOverTCPEmptyId(t *testing.T) {
 	grpclog.Infof("Fake handshaker for client running at address: %v", clientS2AAddr)
 
 	// Start the server.
-	var localIdentities []*commonpbv1.Identity
+	var localIdentities []*commonpb.Identity
 	localIdentities = append(localIdentities, nil)
 	serverAddr := startServer(t, serverS2AAddr, localIdentities)
 	grpclog.Infof("Server running at address: %v", serverAddr)
@@ -262,9 +262,9 @@ func TestEndToEndUsingFakeS2AOnUDS(t *testing.T) {
 	grpclog.Infof("Fake S2A for client listening on UDS at address: %v", clientS2AAddr)
 
 	// Start the server.
-	localIdentities := []*commonpbv1.Identity{
+	localIdentities := []*commonpb.Identity{
 		{
-			IdentityOneof: &commonpbv1.Identity_Hostname{
+			IdentityOneof: &commonpb.Identity_Hostname{
 				Hostname: "test_rsa_server_identity",
 			},
 		},
@@ -275,8 +275,8 @@ func TestEndToEndUsingFakeS2AOnUDS(t *testing.T) {
 	// Finally, start up the client.
 	ctx, cancel := context.WithTimeout(context.Background(), defaultE2ETimeout)
 	defer cancel()
-	runClient(ctx, t, clientS2AAddr, serverAddr, &commonpbv1.Identity{
-		IdentityOneof: &commonpbv1.Identity_Hostname{
+	runClient(ctx, t, clientS2AAddr, serverAddr, &commonpb.Identity{
+		IdentityOneof: &commonpb.Identity_Hostname{
 			Hostname: "test_rsa_client_identity",
 		},
 	}, nil)
@@ -291,7 +291,7 @@ func TestEndToEndUsingFakeS2AOnUDSEmptyId(t *testing.T) {
 	grpclog.Infof("Fake S2A for client listening on UDS at address: %v", clientS2AAddr)
 
 	// Start the server.
-	var localIdentities []*commonpbv1.Identity
+	var localIdentities []*commonpb.Identity
 	localIdentities = append(localIdentities, nil)
 	serverAddr := startServer(t, serverS2AAddr, localIdentities)
 	grpclog.Infof("Server running at address: %v", serverAddr)
@@ -318,9 +318,9 @@ func TestGRPCFallbackEndToEndUsingFakeS2AOverTCP(t *testing.T) {
 	t.Logf("Fake handshaker for server running at address: %v", serverS2AAddr)
 
 	// Start the server.
-	localIdentities := []*commonpbv1.Identity{
+	localIdentities := []*commonpb.Identity{
 		{
-			IdentityOneof: &commonpbv1.Identity_Hostname{
+			IdentityOneof: &commonpb.Identity_Hostname{
 				Hostname: "test_rsa_server_identity",
 			},
 		},
@@ -343,8 +343,8 @@ func TestGRPCFallbackEndToEndUsingFakeS2AOverTCP(t *testing.T) {
 		return fallbackHandshake(ctx, targetServer, conn, err)
 	}
 	// Set wrong S2A address for client to trigger S2A failure and fallback.
-	runClient(ctx, t, "not_exist", serverAddr, &commonpbv1.Identity{
-		IdentityOneof: &commonpbv1.Identity_Hostname{
+	runClient(ctx, t, "not_exist", serverAddr, &commonpb.Identity{
+		IdentityOneof: &commonpb.Identity_Hostname{
 			Hostname: "test_rsa_client_identity",
 		},
 	}, fallbackHandshakeWrapper)
@@ -375,9 +375,9 @@ func TestGRPCRetryAndFallbackEndToEndUsingFakeS2AOverTCP(t *testing.T) {
 	grpclog.Infof("Fake handshaker for server running at address: %v", serverS2AAddr)
 
 	// Start the server.
-	localIdentities := []*commonpbv1.Identity{
+	localIdentities := []*commonpb.Identity{
 		{
-			IdentityOneof: &commonpbv1.Identity_Hostname{
+			IdentityOneof: &commonpb.Identity_Hostname{
 				Hostname: "test_rsa_server_identity",
 			},
 		},
@@ -399,8 +399,8 @@ func TestGRPCRetryAndFallbackEndToEndUsingFakeS2AOverTCP(t *testing.T) {
 		fallbackCalled = true
 		return fallbackHandshake(ctx, targetServer, conn, err)
 	}
-	runClient(ctx, t, clientS2AAddr, serverAddr, &commonpbv1.Identity{
-		IdentityOneof: &commonpbv1.Identity_Hostname{
+	runClient(ctx, t, clientS2AAddr, serverAddr, &commonpb.Identity{
+		IdentityOneof: &commonpb.Identity_Hostname{
 			Hostname: "test_rsa_client_identity",
 		},
 	}, fallbackHandshakeWrapper)

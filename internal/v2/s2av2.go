@@ -39,7 +39,7 @@ import (
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/grpclog"
 
-	commonpbv1 "github.com/google/s2a-go/internal/proto/common_go_proto"
+	commonpb "github.com/google/s2a-go/internal/proto/v2/common_go_proto"
 	s2av2pb "github.com/google/s2a-go/internal/proto/v2/s2a_go_proto"
 )
 
@@ -59,9 +59,9 @@ type s2av2TransportCreds struct {
 	transportCreds credentials.TransportCredentials
 	tokenManager   *tokenmanager.AccessTokenManager
 	// localIdentity should only be used by the client.
-	localIdentity *commonpbv1.Identity
+	localIdentity *commonpb.Identity
 	// localIdentities should only be used by the server.
-	localIdentities           []*commonpbv1.Identity
+	localIdentities           []*commonpb.Identity
 	verificationMode          s2av2pb.ValidatePeerCertificateChainReq_VerificationMode
 	fallbackClientHandshake   fallback.ClientHandshake
 	getS2AStream              func(ctx context.Context, s2av2Address string) (stream.S2AStream, error)
@@ -70,7 +70,7 @@ type s2av2TransportCreds struct {
 
 // NewClientCreds returns a client-side transport credentials object that uses
 // the S2Av2 to establish a secure connection with a server.
-func NewClientCreds(s2av2Address string, transportCreds credentials.TransportCredentials, localIdentity *commonpbv1.Identity, verificationMode s2av2pb.ValidatePeerCertificateChainReq_VerificationMode, fallbackClientHandshakeFunc fallback.ClientHandshake, getS2AStream func(ctx context.Context, s2av2Address string) (stream.S2AStream, error), serverAuthorizationPolicy []byte) (credentials.TransportCredentials, error) {
+func NewClientCreds(s2av2Address string, transportCreds credentials.TransportCredentials, localIdentity *commonpb.Identity, verificationMode s2av2pb.ValidatePeerCertificateChainReq_VerificationMode, fallbackClientHandshakeFunc fallback.ClientHandshake, getS2AStream func(ctx context.Context, s2av2Address string) (stream.S2AStream, error), serverAuthorizationPolicy []byte) (credentials.TransportCredentials, error) {
 	// Create an AccessTokenManager instance to use to authenticate to S2Av2.
 	accessTokenManager, err := tokenmanager.NewSingleTokenAccessTokenManager()
 
@@ -101,7 +101,7 @@ func NewClientCreds(s2av2Address string, transportCreds credentials.TransportCre
 
 // NewServerCreds returns a server-side transport credentials object that uses
 // the S2Av2 to establish a secure connection with a client.
-func NewServerCreds(s2av2Address string, transportCreds credentials.TransportCredentials, localIdentities []*commonpbv1.Identity, verificationMode s2av2pb.ValidatePeerCertificateChainReq_VerificationMode, getS2AStream func(ctx context.Context, s2av2Address string) (stream.S2AStream, error)) (credentials.TransportCredentials, error) {
+func NewServerCreds(s2av2Address string, transportCreds credentials.TransportCredentials, localIdentities []*commonpb.Identity, verificationMode s2av2pb.ValidatePeerCertificateChainReq_VerificationMode, getS2AStream func(ctx context.Context, s2av2Address string) (stream.S2AStream, error)) (credentials.TransportCredentials, error) {
 	// Create an AccessTokenManager instance to use to authenticate to S2Av2.
 	accessTokenManager, err := tokenmanager.NewSingleTokenAccessTokenManager()
 	creds := &s2av2TransportCreds{
@@ -268,15 +268,15 @@ func (c *s2av2TransportCreds) Clone() credentials.TransportCredentials {
 		tokenManager = *c.tokenManager
 	}
 	verificationMode := c.verificationMode
-	var localIdentity *commonpbv1.Identity
+	var localIdentity *commonpb.Identity
 	if c.localIdentity != nil {
-		localIdentity = proto.Clone(c.localIdentity).(*commonpbv1.Identity)
+		localIdentity = proto.Clone(c.localIdentity).(*commonpb.Identity)
 	}
-	var localIdentities []*commonpbv1.Identity
+	var localIdentities []*commonpb.Identity
 	if c.localIdentities != nil {
-		localIdentities = make([]*commonpbv1.Identity, len(c.localIdentities))
+		localIdentities = make([]*commonpb.Identity, len(c.localIdentities))
 		for i, localIdentity := range c.localIdentities {
-			localIdentities[i] = proto.Clone(localIdentity).(*commonpbv1.Identity)
+			localIdentities[i] = proto.Clone(localIdentity).(*commonpb.Identity)
 		}
 	}
 	creds := &s2av2TransportCreds{

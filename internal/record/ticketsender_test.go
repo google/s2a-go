@@ -25,8 +25,9 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
-	commonpb "github.com/google/s2a-go/internal/proto/common_go_proto"
+	commonpbv1 "github.com/google/s2a-go/internal/proto/common_go_proto"
 	s2apb "github.com/google/s2a-go/internal/proto/s2a_go_proto"
+	commonpb "github.com/google/s2a-go/internal/proto/v2/common_go_proto"
 	"github.com/google/s2a-go/internal/tokenmanager"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/protobuf/testing/protocmp"
@@ -73,7 +74,7 @@ func (fs *fakeStream) Recv() (*s2apb.SessionResp, error) {
 }
 
 type fakeAccessTokenManager struct {
-	acceptedIdentity   *commonpb.Identity
+	acceptedIdentity   *commonpbv1.Identity
 	accessToken        string
 	allowEmptyIdentity bool
 }
@@ -85,8 +86,16 @@ func (m *fakeAccessTokenManager) DefaultToken() (string, error) {
 	return m.accessToken, nil
 }
 
-func (m *fakeAccessTokenManager) Token(identity *commonpb.Identity) (string, error) {
-	if identity == nil || cmp.Equal(identity, &commonpb.Identity{}, protocmp.Transform()) {
+func (m *fakeAccessTokenManager) Token(identity interface{}) (string, error) {
+	switch v := identity.(type) {
+	case *commonpbv1.Identity:
+		// valid type.
+	case *commonpb.Identity:
+		// valid type.
+	default:
+		return "", fmt.Errorf("Incorrect identity type: %v", v)
+	}
+	if identity == nil || cmp.Equal(identity, &commonpbv1.Identity{}, protocmp.Transform()) || cmp.Equal(identity, &commonpb.Identity{}, protocmp.Transform()) {
 		if !m.allowEmptyIdentity {
 			return "", fmt.Errorf("not allowed to get token for empty identity")
 		}
@@ -115,8 +124,8 @@ func TestWriteTicketsToStream(t *testing.T) {
 	} {
 		sender := ticketSender{
 			connectionID: 1,
-			localIdentity: &commonpb.Identity{
-				IdentityOneof: &commonpb.Identity_SpiffeId{
+			localIdentity: &commonpbv1.Identity{
+				IdentityOneof: &commonpbv1.Identity_SpiffeId{
 					SpiffeId: "test_spiffe_id",
 				},
 			},
@@ -132,7 +141,7 @@ func TestGetAuthMechanism(t *testing.T) {
 	sortProtos := cmpopts.SortSlices(func(m1, m2 *s2apb.AuthenticationMechanism) bool { return m1.String() < m2.String() })
 	for _, tc := range []struct {
 		description            string
-		localIdentity          *commonpb.Identity
+		localIdentity          *commonpbv1.Identity
 		tokenManager           tokenmanager.AccessTokenManager
 		expectedAuthMechanisms []*s2apb.AuthenticationMechanism
 	}{
@@ -164,23 +173,23 @@ func TestGetAuthMechanism(t *testing.T) {
 		},
 		{
 			description: "token manager expects SPIFFE ID",
-			localIdentity: &commonpb.Identity{
-				IdentityOneof: &commonpb.Identity_SpiffeId{
+			localIdentity: &commonpbv1.Identity{
+				IdentityOneof: &commonpbv1.Identity_SpiffeId{
 					SpiffeId: "allowed_spiffe_id",
 				},
 			},
 			tokenManager: &fakeAccessTokenManager{
 				accessToken: testAccessToken,
-				acceptedIdentity: &commonpb.Identity{
-					IdentityOneof: &commonpb.Identity_SpiffeId{
+				acceptedIdentity: &commonpbv1.Identity{
+					IdentityOneof: &commonpbv1.Identity_SpiffeId{
 						SpiffeId: "allowed_spiffe_id",
 					},
 				},
 			},
 			expectedAuthMechanisms: []*s2apb.AuthenticationMechanism{
 				{
-					Identity: &commonpb.Identity{
-						IdentityOneof: &commonpb.Identity_SpiffeId{
+					Identity: &commonpbv1.Identity{
+						IdentityOneof: &commonpbv1.Identity_SpiffeId{
 							SpiffeId: "allowed_spiffe_id",
 						},
 					},
@@ -193,8 +202,8 @@ func TestGetAuthMechanism(t *testing.T) {
 		{
 			description: "token manager does not expect hostname",
 
-			localIdentity: &commonpb.Identity{
-				IdentityOneof: &commonpb.Identity_Hostname{
+			localIdentity: &commonpbv1.Identity{
+				IdentityOneof: &commonpbv1.Identity_Hostname{
 					Hostname: "disallowed_hostname",
 				},
 			},

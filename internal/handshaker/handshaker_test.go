@@ -30,8 +30,9 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
-	commonpb "github.com/google/s2a-go/internal/proto/common_go_proto"
+	commonpbv1 "github.com/google/s2a-go/internal/proto/common_go_proto"
 	s2apb "github.com/google/s2a-go/internal/proto/s2a_go_proto"
+	commonpb "github.com/google/s2a-go/internal/proto/v2/common_go_proto"
 	"github.com/google/s2a-go/internal/tokenmanager"
 	"golang.org/x/sync/errgroup"
 	grpc "google.golang.org/grpc"
@@ -50,27 +51,27 @@ var (
 	// testClientHandshakerOptions are the client-side handshaker options used for
 	// testing.
 	testClientHandshakerOptions = &ClientHandshakerOptions{
-		MinTLSVersion: commonpb.TLSVersion_TLS1_2,
-		MaxTLSVersion: commonpb.TLSVersion_TLS1_3,
-		TLSCiphersuites: []commonpb.Ciphersuite{
-			commonpb.Ciphersuite_AES_128_GCM_SHA256,
-			commonpb.Ciphersuite_AES_256_GCM_SHA384,
-			commonpb.Ciphersuite_CHACHA20_POLY1305_SHA256,
+		MinTLSVersion: commonpbv1.TLSVersion_TLS1_2,
+		MaxTLSVersion: commonpbv1.TLSVersion_TLS1_3,
+		TLSCiphersuites: []commonpbv1.Ciphersuite{
+			commonpbv1.Ciphersuite_AES_128_GCM_SHA256,
+			commonpbv1.Ciphersuite_AES_256_GCM_SHA384,
+			commonpbv1.Ciphersuite_CHACHA20_POLY1305_SHA256,
 		},
-		TargetIdentities: []*commonpb.Identity{
+		TargetIdentities: []*commonpbv1.Identity{
 			{
-				IdentityOneof: &commonpb.Identity_SpiffeId{
+				IdentityOneof: &commonpbv1.Identity_SpiffeId{
 					SpiffeId: "target_spiffe_id",
 				},
 			},
 			{
-				IdentityOneof: &commonpb.Identity_Hostname{
+				IdentityOneof: &commonpbv1.Identity_Hostname{
 					Hostname: "target_hostname",
 				},
 			},
 		},
-		LocalIdentity: &commonpb.Identity{
-			IdentityOneof: &commonpb.Identity_SpiffeId{
+		LocalIdentity: &commonpbv1.Identity{
+			IdentityOneof: &commonpbv1.Identity_SpiffeId{
 				SpiffeId: "client_local_spiffe_id",
 			},
 		},
@@ -81,27 +82,27 @@ var (
 	// to receive first from the test client.
 	testClientStart = &s2apb.ClientSessionStartReq{
 		ApplicationProtocols: []string{"grpc"},
-		MinTlsVersion:        commonpb.TLSVersion_TLS1_2,
-		MaxTlsVersion:        commonpb.TLSVersion_TLS1_3,
-		TlsCiphersuites: []commonpb.Ciphersuite{
-			commonpb.Ciphersuite_AES_128_GCM_SHA256,
-			commonpb.Ciphersuite_AES_256_GCM_SHA384,
-			commonpb.Ciphersuite_CHACHA20_POLY1305_SHA256,
+		MinTlsVersion:        commonpbv1.TLSVersion_TLS1_2,
+		MaxTlsVersion:        commonpbv1.TLSVersion_TLS1_3,
+		TlsCiphersuites: []commonpbv1.Ciphersuite{
+			commonpbv1.Ciphersuite_AES_128_GCM_SHA256,
+			commonpbv1.Ciphersuite_AES_256_GCM_SHA384,
+			commonpbv1.Ciphersuite_CHACHA20_POLY1305_SHA256,
 		},
-		TargetIdentities: []*commonpb.Identity{
+		TargetIdentities: []*commonpbv1.Identity{
 			{
-				IdentityOneof: &commonpb.Identity_SpiffeId{
+				IdentityOneof: &commonpbv1.Identity_SpiffeId{
 					SpiffeId: "target_spiffe_id",
 				},
 			},
 			{
-				IdentityOneof: &commonpb.Identity_Hostname{
+				IdentityOneof: &commonpbv1.Identity_Hostname{
 					Hostname: "target_hostname",
 				},
 			},
 		},
-		LocalIdentity: &commonpb.Identity{
-			IdentityOneof: &commonpb.Identity_SpiffeId{
+		LocalIdentity: &commonpbv1.Identity{
+			IdentityOneof: &commonpbv1.Identity_SpiffeId{
 				SpiffeId: "client_local_spiffe_id",
 			},
 		},
@@ -117,21 +118,21 @@ var (
 	// testServerHandshakerOptions are the server-side handshaker options used
 	// for testing.
 	testServerHandshakerOptions = &ServerHandshakerOptions{
-		MinTLSVersion: commonpb.TLSVersion_TLS1_2,
-		MaxTLSVersion: commonpb.TLSVersion_TLS1_3,
-		TLSCiphersuites: []commonpb.Ciphersuite{
-			commonpb.Ciphersuite_AES_128_GCM_SHA256,
-			commonpb.Ciphersuite_AES_256_GCM_SHA384,
-			commonpb.Ciphersuite_CHACHA20_POLY1305_SHA256,
+		MinTLSVersion: commonpbv1.TLSVersion_TLS1_2,
+		MaxTLSVersion: commonpbv1.TLSVersion_TLS1_3,
+		TLSCiphersuites: []commonpbv1.Ciphersuite{
+			commonpbv1.Ciphersuite_AES_128_GCM_SHA256,
+			commonpbv1.Ciphersuite_AES_256_GCM_SHA384,
+			commonpbv1.Ciphersuite_CHACHA20_POLY1305_SHA256,
 		},
-		LocalIdentities: []*commonpb.Identity{
+		LocalIdentities: []*commonpbv1.Identity{
 			{
-				IdentityOneof: &commonpb.Identity_SpiffeId{
+				IdentityOneof: &commonpbv1.Identity_SpiffeId{
 					SpiffeId: "server_local_spiffe_id",
 				},
 			},
 			{
-				IdentityOneof: &commonpb.Identity_Hostname{
+				IdentityOneof: &commonpbv1.Identity_Hostname{
 					Hostname: "server_local_hostname",
 				},
 			},
@@ -142,21 +143,21 @@ var (
 	// to receive from the test server.
 	testServerStart = &s2apb.ServerSessionStartReq{
 		ApplicationProtocols: []string{"grpc"},
-		MinTlsVersion:        commonpb.TLSVersion_TLS1_2,
-		MaxTlsVersion:        commonpb.TLSVersion_TLS1_3,
-		TlsCiphersuites: []commonpb.Ciphersuite{
-			commonpb.Ciphersuite_AES_128_GCM_SHA256,
-			commonpb.Ciphersuite_AES_256_GCM_SHA384,
-			commonpb.Ciphersuite_CHACHA20_POLY1305_SHA256,
+		MinTlsVersion:        commonpbv1.TLSVersion_TLS1_2,
+		MaxTlsVersion:        commonpbv1.TLSVersion_TLS1_3,
+		TlsCiphersuites: []commonpbv1.Ciphersuite{
+			commonpbv1.Ciphersuite_AES_128_GCM_SHA256,
+			commonpbv1.Ciphersuite_AES_256_GCM_SHA384,
+			commonpbv1.Ciphersuite_CHACHA20_POLY1305_SHA256,
 		},
-		LocalIdentities: []*commonpb.Identity{
+		LocalIdentities: []*commonpbv1.Identity{
 			{
-				IdentityOneof: &commonpb.Identity_SpiffeId{
+				IdentityOneof: &commonpbv1.Identity_SpiffeId{
 					SpiffeId: "server_local_spiffe_id",
 				},
 			},
 			{
-				IdentityOneof: &commonpb.Identity_Hostname{
+				IdentityOneof: &commonpbv1.Identity_Hostname{
 					Hostname: "server_local_hostname",
 				},
 			},
@@ -173,20 +174,20 @@ var (
 	testClientSessionResult = &s2apb.SessionResult{
 		ApplicationProtocol: "grpc",
 		State: &s2apb.SessionState{
-			TlsVersion:     commonpb.TLSVersion_TLS1_3,
-			TlsCiphersuite: commonpb.Ciphersuite_AES_128_GCM_SHA256,
+			TlsVersion:     commonpbv1.TLSVersion_TLS1_3,
+			TlsCiphersuite: commonpbv1.Ciphersuite_AES_128_GCM_SHA256,
 			InSequence:     0,
 			OutSequence:    0,
 			InKey:          make([]byte, 32),
 			OutKey:         make([]byte, 32),
 		},
-		PeerIdentity: &commonpb.Identity{
-			IdentityOneof: &commonpb.Identity_SpiffeId{
+		PeerIdentity: &commonpbv1.Identity{
+			IdentityOneof: &commonpbv1.Identity_SpiffeId{
 				SpiffeId: "client_local_spiffe_id",
 			},
 		},
-		LocalIdentity: &commonpb.Identity{
-			IdentityOneof: &commonpb.Identity_SpiffeId{
+		LocalIdentity: &commonpbv1.Identity{
+			IdentityOneof: &commonpbv1.Identity_SpiffeId{
 				SpiffeId: "server_local_spiffe_id",
 			},
 		},
@@ -197,20 +198,20 @@ var (
 	testServerSessionResult = &s2apb.SessionResult{
 		ApplicationProtocol: "grpc",
 		State: &s2apb.SessionState{
-			TlsVersion:     commonpb.TLSVersion_TLS1_3,
-			TlsCiphersuite: commonpb.Ciphersuite_AES_128_GCM_SHA256,
+			TlsVersion:     commonpbv1.TLSVersion_TLS1_3,
+			TlsCiphersuite: commonpbv1.Ciphersuite_AES_128_GCM_SHA256,
 			InSequence:     0,
 			OutSequence:    0,
 			InKey:          make([]byte, 32),
 			OutKey:         make([]byte, 32),
 		},
-		PeerIdentity: &commonpb.Identity{
-			IdentityOneof: &commonpb.Identity_SpiffeId{
+		PeerIdentity: &commonpbv1.Identity{
+			IdentityOneof: &commonpbv1.Identity_SpiffeId{
 				SpiffeId: "server_local_spiffe_id",
 			},
 		},
-		LocalIdentity: &commonpb.Identity{
-			IdentityOneof: &commonpb.Identity_SpiffeId{
+		LocalIdentity: &commonpbv1.Identity{
+			IdentityOneof: &commonpbv1.Identity_SpiffeId{
 				SpiffeId: "client_local_spiffe_id",
 			},
 		},
@@ -220,15 +221,15 @@ var (
 	testResultWithoutLocalIdentity = &s2apb.SessionResult{
 		ApplicationProtocol: "grpc",
 		State: &s2apb.SessionState{
-			TlsVersion:     commonpb.TLSVersion_TLS1_3,
-			TlsCiphersuite: commonpb.Ciphersuite_AES_128_GCM_SHA256,
+			TlsVersion:     commonpbv1.TLSVersion_TLS1_3,
+			TlsCiphersuite: commonpbv1.Ciphersuite_AES_128_GCM_SHA256,
 			InSequence:     0,
 			OutSequence:    0,
 			InKey:          make([]byte, 32),
 			OutKey:         make([]byte, 32),
 		},
-		PeerIdentity: &commonpb.Identity{
-			IdentityOneof: &commonpb.Identity_SpiffeId{
+		PeerIdentity: &commonpbv1.Identity{
+			IdentityOneof: &commonpbv1.Identity_SpiffeId{
 				SpiffeId: "server_local_spiffe_id",
 			},
 		},
@@ -383,7 +384,7 @@ func (*fakeInvalidStream) Send(*s2apb.SessionReq) error      { return nil }
 func (*fakeInvalidStream) CloseSend() error                  { return nil }
 
 type fakeAccessTokenManager struct {
-	acceptedIdentity   *commonpb.Identity
+	acceptedIdentity   *commonpbv1.Identity
 	accessToken        string
 	allowEmptyIdentity bool
 }
@@ -395,8 +396,16 @@ func (m *fakeAccessTokenManager) DefaultToken() (string, error) {
 	return m.accessToken, nil
 }
 
-func (m *fakeAccessTokenManager) Token(identity *commonpb.Identity) (string, error) {
-	if identity == nil || cmp.Equal(identity, &commonpb.Identity{}, protocmp.Transform()) {
+func (m *fakeAccessTokenManager) Token(identity interface{}) (string, error) {
+	switch v := identity.(type) {
+	case *commonpbv1.Identity:
+		// valid type.
+	case *commonpb.Identity:
+		// valid type.
+	default:
+		return "", fmt.Errorf("Incorrect identity type: %v", v)
+	}
+	if identity == nil || cmp.Equal(identity, &commonpbv1.Identity{}, protocmp.Transform()) {
 		if !m.allowEmptyIdentity {
 			return "", fmt.Errorf("not allowed to get token for empty identity")
 		}
@@ -445,27 +454,27 @@ func TestClientHandshakeSuccess(t *testing.T) {
 		{
 			description: "full client options with no port in target name",
 			options: &ClientHandshakerOptions{
-				MinTLSVersion: commonpb.TLSVersion_TLS1_2,
-				MaxTLSVersion: commonpb.TLSVersion_TLS1_3,
-				TLSCiphersuites: []commonpb.Ciphersuite{
-					commonpb.Ciphersuite_AES_128_GCM_SHA256,
-					commonpb.Ciphersuite_AES_256_GCM_SHA384,
-					commonpb.Ciphersuite_CHACHA20_POLY1305_SHA256,
+				MinTLSVersion: commonpbv1.TLSVersion_TLS1_2,
+				MaxTLSVersion: commonpbv1.TLSVersion_TLS1_3,
+				TLSCiphersuites: []commonpbv1.Ciphersuite{
+					commonpbv1.Ciphersuite_AES_128_GCM_SHA256,
+					commonpbv1.Ciphersuite_AES_256_GCM_SHA384,
+					commonpbv1.Ciphersuite_CHACHA20_POLY1305_SHA256,
 				},
-				TargetIdentities: []*commonpb.Identity{
+				TargetIdentities: []*commonpbv1.Identity{
 					{
-						IdentityOneof: &commonpb.Identity_SpiffeId{
+						IdentityOneof: &commonpbv1.Identity_SpiffeId{
 							SpiffeId: "target_spiffe_id",
 						},
 					},
 					{
-						IdentityOneof: &commonpb.Identity_Hostname{
+						IdentityOneof: &commonpbv1.Identity_Hostname{
 							Hostname: "target_hostname",
 						},
 					},
 				},
-				LocalIdentity: &commonpb.Identity{
-					IdentityOneof: &commonpb.Identity_SpiffeId{
+				LocalIdentity: &commonpbv1.Identity{
+					IdentityOneof: &commonpbv1.Identity_SpiffeId{
 						SpiffeId: "client_local_spiffe_id",
 					},
 				},
@@ -473,27 +482,27 @@ func TestClientHandshakeSuccess(t *testing.T) {
 			},
 			expectedClientStart: &s2apb.ClientSessionStartReq{
 				ApplicationProtocols: []string{"grpc"},
-				MinTlsVersion:        commonpb.TLSVersion_TLS1_2,
-				MaxTlsVersion:        commonpb.TLSVersion_TLS1_3,
-				TlsCiphersuites: []commonpb.Ciphersuite{
-					commonpb.Ciphersuite_AES_128_GCM_SHA256,
-					commonpb.Ciphersuite_AES_256_GCM_SHA384,
-					commonpb.Ciphersuite_CHACHA20_POLY1305_SHA256,
+				MinTlsVersion:        commonpbv1.TLSVersion_TLS1_2,
+				MaxTlsVersion:        commonpbv1.TLSVersion_TLS1_3,
+				TlsCiphersuites: []commonpbv1.Ciphersuite{
+					commonpbv1.Ciphersuite_AES_128_GCM_SHA256,
+					commonpbv1.Ciphersuite_AES_256_GCM_SHA384,
+					commonpbv1.Ciphersuite_CHACHA20_POLY1305_SHA256,
 				},
-				TargetIdentities: []*commonpb.Identity{
+				TargetIdentities: []*commonpbv1.Identity{
 					{
-						IdentityOneof: &commonpb.Identity_SpiffeId{
+						IdentityOneof: &commonpbv1.Identity_SpiffeId{
 							SpiffeId: "target_spiffe_id",
 						},
 					},
 					{
-						IdentityOneof: &commonpb.Identity_Hostname{
+						IdentityOneof: &commonpbv1.Identity_Hostname{
 							Hostname: "target_hostname",
 						},
 					},
 				},
-				LocalIdentity: &commonpb.Identity{
-					IdentityOneof: &commonpb.Identity_SpiffeId{
+				LocalIdentity: &commonpbv1.Identity{
+					IdentityOneof: &commonpbv1.Identity_SpiffeId{
 						SpiffeId: "client_local_spiffe_id",
 					},
 				},
@@ -503,21 +512,21 @@ func TestClientHandshakeSuccess(t *testing.T) {
 		{
 			description: "full client options with no local identity",
 			options: &ClientHandshakerOptions{
-				MinTLSVersion: commonpb.TLSVersion_TLS1_2,
-				MaxTLSVersion: commonpb.TLSVersion_TLS1_3,
-				TLSCiphersuites: []commonpb.Ciphersuite{
-					commonpb.Ciphersuite_AES_128_GCM_SHA256,
-					commonpb.Ciphersuite_AES_256_GCM_SHA384,
-					commonpb.Ciphersuite_CHACHA20_POLY1305_SHA256,
+				MinTLSVersion: commonpbv1.TLSVersion_TLS1_2,
+				MaxTLSVersion: commonpbv1.TLSVersion_TLS1_3,
+				TLSCiphersuites: []commonpbv1.Ciphersuite{
+					commonpbv1.Ciphersuite_AES_128_GCM_SHA256,
+					commonpbv1.Ciphersuite_AES_256_GCM_SHA384,
+					commonpbv1.Ciphersuite_CHACHA20_POLY1305_SHA256,
 				},
-				TargetIdentities: []*commonpb.Identity{
+				TargetIdentities: []*commonpbv1.Identity{
 					{
-						IdentityOneof: &commonpb.Identity_SpiffeId{
+						IdentityOneof: &commonpbv1.Identity_SpiffeId{
 							SpiffeId: "target_spiffe_id",
 						},
 					},
 					{
-						IdentityOneof: &commonpb.Identity_Hostname{
+						IdentityOneof: &commonpbv1.Identity_Hostname{
 							Hostname: "target_hostname",
 						},
 					},
@@ -526,21 +535,21 @@ func TestClientHandshakeSuccess(t *testing.T) {
 			},
 			expectedClientStart: &s2apb.ClientSessionStartReq{
 				ApplicationProtocols: []string{"grpc"},
-				MinTlsVersion:        commonpb.TLSVersion_TLS1_2,
-				MaxTlsVersion:        commonpb.TLSVersion_TLS1_3,
-				TlsCiphersuites: []commonpb.Ciphersuite{
-					commonpb.Ciphersuite_AES_128_GCM_SHA256,
-					commonpb.Ciphersuite_AES_256_GCM_SHA384,
-					commonpb.Ciphersuite_CHACHA20_POLY1305_SHA256,
+				MinTlsVersion:        commonpbv1.TLSVersion_TLS1_2,
+				MaxTlsVersion:        commonpbv1.TLSVersion_TLS1_3,
+				TlsCiphersuites: []commonpbv1.Ciphersuite{
+					commonpbv1.Ciphersuite_AES_128_GCM_SHA256,
+					commonpbv1.Ciphersuite_AES_256_GCM_SHA384,
+					commonpbv1.Ciphersuite_CHACHA20_POLY1305_SHA256,
 				},
-				TargetIdentities: []*commonpb.Identity{
+				TargetIdentities: []*commonpbv1.Identity{
 					{
-						IdentityOneof: &commonpb.Identity_SpiffeId{
+						IdentityOneof: &commonpbv1.Identity_SpiffeId{
 							SpiffeId: "target_spiffe_id",
 						},
 					},
 					{
-						IdentityOneof: &commonpb.Identity_Hostname{
+						IdentityOneof: &commonpbv1.Identity_Hostname{
 							Hostname: "target_hostname",
 						},
 					},
@@ -554,8 +563,8 @@ func TestClientHandshakeSuccess(t *testing.T) {
 			expectedClientStart: testClientStart,
 			tokenManager: &fakeAccessTokenManager{
 				accessToken: testAccessToken,
-				acceptedIdentity: &commonpb.Identity{
-					IdentityOneof: &commonpb.Identity_SpiffeId{
+				acceptedIdentity: &commonpbv1.Identity{
+					IdentityOneof: &commonpbv1.Identity_SpiffeId{
 						SpiffeId: "client_local_spiffe_id",
 					},
 				},
@@ -564,21 +573,21 @@ func TestClientHandshakeSuccess(t *testing.T) {
 		{
 			description: "full client options with no local identity, sending tokens",
 			options: &ClientHandshakerOptions{
-				MinTLSVersion: commonpb.TLSVersion_TLS1_2,
-				MaxTLSVersion: commonpb.TLSVersion_TLS1_3,
-				TLSCiphersuites: []commonpb.Ciphersuite{
-					commonpb.Ciphersuite_AES_128_GCM_SHA256,
-					commonpb.Ciphersuite_AES_256_GCM_SHA384,
-					commonpb.Ciphersuite_CHACHA20_POLY1305_SHA256,
+				MinTLSVersion: commonpbv1.TLSVersion_TLS1_2,
+				MaxTLSVersion: commonpbv1.TLSVersion_TLS1_3,
+				TLSCiphersuites: []commonpbv1.Ciphersuite{
+					commonpbv1.Ciphersuite_AES_128_GCM_SHA256,
+					commonpbv1.Ciphersuite_AES_256_GCM_SHA384,
+					commonpbv1.Ciphersuite_CHACHA20_POLY1305_SHA256,
 				},
-				TargetIdentities: []*commonpb.Identity{
+				TargetIdentities: []*commonpbv1.Identity{
 					{
-						IdentityOneof: &commonpb.Identity_SpiffeId{
+						IdentityOneof: &commonpbv1.Identity_SpiffeId{
 							SpiffeId: "target_spiffe_id",
 						},
 					},
 					{
-						IdentityOneof: &commonpb.Identity_Hostname{
+						IdentityOneof: &commonpbv1.Identity_Hostname{
 							Hostname: "target_hostname",
 						},
 					},
@@ -587,21 +596,21 @@ func TestClientHandshakeSuccess(t *testing.T) {
 			},
 			expectedClientStart: &s2apb.ClientSessionStartReq{
 				ApplicationProtocols: []string{"grpc"},
-				MinTlsVersion:        commonpb.TLSVersion_TLS1_2,
-				MaxTlsVersion:        commonpb.TLSVersion_TLS1_3,
-				TlsCiphersuites: []commonpb.Ciphersuite{
-					commonpb.Ciphersuite_AES_128_GCM_SHA256,
-					commonpb.Ciphersuite_AES_256_GCM_SHA384,
-					commonpb.Ciphersuite_CHACHA20_POLY1305_SHA256,
+				MinTlsVersion:        commonpbv1.TLSVersion_TLS1_2,
+				MaxTlsVersion:        commonpbv1.TLSVersion_TLS1_3,
+				TlsCiphersuites: []commonpbv1.Ciphersuite{
+					commonpbv1.Ciphersuite_AES_128_GCM_SHA256,
+					commonpbv1.Ciphersuite_AES_256_GCM_SHA384,
+					commonpbv1.Ciphersuite_CHACHA20_POLY1305_SHA256,
 				},
-				TargetIdentities: []*commonpb.Identity{
+				TargetIdentities: []*commonpbv1.Identity{
 					{
-						IdentityOneof: &commonpb.Identity_SpiffeId{
+						IdentityOneof: &commonpbv1.Identity_SpiffeId{
 							SpiffeId: "target_spiffe_id",
 						},
 					},
 					{
-						IdentityOneof: &commonpb.Identity_Hostname{
+						IdentityOneof: &commonpbv1.Identity_Hostname{
 							Hostname: "target_hostname",
 						},
 					},
@@ -670,22 +679,22 @@ func TestServerHandshakeSuccess(t *testing.T) {
 		{
 			description: "full server options with no local identities",
 			options: &ServerHandshakerOptions{
-				MinTLSVersion: commonpb.TLSVersion_TLS1_2,
-				MaxTLSVersion: commonpb.TLSVersion_TLS1_3,
-				TLSCiphersuites: []commonpb.Ciphersuite{
-					commonpb.Ciphersuite_AES_128_GCM_SHA256,
-					commonpb.Ciphersuite_AES_256_GCM_SHA384,
-					commonpb.Ciphersuite_CHACHA20_POLY1305_SHA256,
+				MinTLSVersion: commonpbv1.TLSVersion_TLS1_2,
+				MaxTLSVersion: commonpbv1.TLSVersion_TLS1_3,
+				TLSCiphersuites: []commonpbv1.Ciphersuite{
+					commonpbv1.Ciphersuite_AES_128_GCM_SHA256,
+					commonpbv1.Ciphersuite_AES_256_GCM_SHA384,
+					commonpbv1.Ciphersuite_CHACHA20_POLY1305_SHA256,
 				},
 			},
 			expectedServerStart: &s2apb.ServerSessionStartReq{
 				ApplicationProtocols: []string{"grpc"},
-				MinTlsVersion:        commonpb.TLSVersion_TLS1_2,
-				MaxTlsVersion:        commonpb.TLSVersion_TLS1_3,
-				TlsCiphersuites: []commonpb.Ciphersuite{
-					commonpb.Ciphersuite_AES_128_GCM_SHA256,
-					commonpb.Ciphersuite_AES_256_GCM_SHA384,
-					commonpb.Ciphersuite_CHACHA20_POLY1305_SHA256,
+				MinTlsVersion:        commonpbv1.TLSVersion_TLS1_2,
+				MaxTlsVersion:        commonpbv1.TLSVersion_TLS1_3,
+				TlsCiphersuites: []commonpbv1.Ciphersuite{
+					commonpbv1.Ciphersuite_AES_128_GCM_SHA256,
+					commonpbv1.Ciphersuite_AES_256_GCM_SHA384,
+					commonpbv1.Ciphersuite_CHACHA20_POLY1305_SHA256,
 				},
 				InBytes: []byte("ClientHello"),
 			},
@@ -696,8 +705,8 @@ func TestServerHandshakeSuccess(t *testing.T) {
 			expectedServerStart: testServerStart,
 			tokenManager: &fakeAccessTokenManager{
 				accessToken: testAccessToken,
-				acceptedIdentity: &commonpb.Identity{
-					IdentityOneof: &commonpb.Identity_SpiffeId{
+				acceptedIdentity: &commonpbv1.Identity{
+					IdentityOneof: &commonpbv1.Identity_SpiffeId{
 						SpiffeId: "server_local_spiffe_id",
 					},
 				},
@@ -706,22 +715,22 @@ func TestServerHandshakeSuccess(t *testing.T) {
 		{
 			description: "full server options with no local identity, sending tokens",
 			options: &ServerHandshakerOptions{
-				MinTLSVersion: commonpb.TLSVersion_TLS1_2,
-				MaxTLSVersion: commonpb.TLSVersion_TLS1_3,
-				TLSCiphersuites: []commonpb.Ciphersuite{
-					commonpb.Ciphersuite_AES_128_GCM_SHA256,
-					commonpb.Ciphersuite_AES_256_GCM_SHA384,
-					commonpb.Ciphersuite_CHACHA20_POLY1305_SHA256,
+				MinTLSVersion: commonpbv1.TLSVersion_TLS1_2,
+				MaxTLSVersion: commonpbv1.TLSVersion_TLS1_3,
+				TLSCiphersuites: []commonpbv1.Ciphersuite{
+					commonpbv1.Ciphersuite_AES_128_GCM_SHA256,
+					commonpbv1.Ciphersuite_AES_256_GCM_SHA384,
+					commonpbv1.Ciphersuite_CHACHA20_POLY1305_SHA256,
 				},
 			},
 			expectedServerStart: &s2apb.ServerSessionStartReq{
 				ApplicationProtocols: []string{"grpc"},
-				MinTlsVersion:        commonpb.TLSVersion_TLS1_2,
-				MaxTlsVersion:        commonpb.TLSVersion_TLS1_3,
-				TlsCiphersuites: []commonpb.Ciphersuite{
-					commonpb.Ciphersuite_AES_128_GCM_SHA256,
-					commonpb.Ciphersuite_AES_256_GCM_SHA384,
-					commonpb.Ciphersuite_CHACHA20_POLY1305_SHA256,
+				MinTlsVersion:        commonpbv1.TLSVersion_TLS1_2,
+				MaxTlsVersion:        commonpbv1.TLSVersion_TLS1_3,
+				TlsCiphersuites: []commonpbv1.Ciphersuite{
+					commonpbv1.Ciphersuite_AES_128_GCM_SHA256,
+					commonpbv1.Ciphersuite_AES_256_GCM_SHA384,
+					commonpbv1.Ciphersuite_CHACHA20_POLY1305_SHA256,
 				},
 				InBytes: []byte("ClientHello"),
 			},
@@ -789,8 +798,8 @@ func TestS2ARejectsTokenFromClient(t *testing.T) {
 	}
 	tokenManager := &fakeAccessTokenManager{
 		accessToken: "bad_access_token",
-		acceptedIdentity: &commonpb.Identity{
-			IdentityOneof: &commonpb.Identity_SpiffeId{
+		acceptedIdentity: &commonpbv1.Identity{
+			IdentityOneof: &commonpbv1.Identity_SpiffeId{
 				SpiffeId: "client_local_spiffe_id",
 			},
 		},
@@ -819,8 +828,8 @@ func TestS2ARejectsTokenFromServer(t *testing.T) {
 	}
 	tokenManager := &fakeAccessTokenManager{
 		accessToken: "bad_access_token",
-		acceptedIdentity: &commonpb.Identity{
-			IdentityOneof: &commonpb.Identity_SpiffeId{
+		acceptedIdentity: &commonpbv1.Identity{
+			IdentityOneof: &commonpbv1.Identity_SpiffeId{
 				SpiffeId: "server_local_spiffe_id",
 			},
 		},
@@ -954,24 +963,24 @@ func TestGetAuthMechanismsForClient(t *testing.T) {
 		{
 			description: "token manager expects SPIFFE ID",
 			options: &ClientHandshakerOptions{
-				LocalIdentity: &commonpb.Identity{
-					IdentityOneof: &commonpb.Identity_SpiffeId{
+				LocalIdentity: &commonpbv1.Identity{
+					IdentityOneof: &commonpbv1.Identity_SpiffeId{
 						SpiffeId: "allowed_spiffe_id",
 					},
 				},
 			},
 			tokenManager: &fakeAccessTokenManager{
 				accessToken: testAccessToken,
-				acceptedIdentity: &commonpb.Identity{
-					IdentityOneof: &commonpb.Identity_SpiffeId{
+				acceptedIdentity: &commonpbv1.Identity{
+					IdentityOneof: &commonpbv1.Identity_SpiffeId{
 						SpiffeId: "allowed_spiffe_id",
 					},
 				},
 			},
 			expectedAuthMechanisms: []*s2apb.AuthenticationMechanism{
 				{
-					Identity: &commonpb.Identity{
-						IdentityOneof: &commonpb.Identity_SpiffeId{
+					Identity: &commonpbv1.Identity{
+						IdentityOneof: &commonpbv1.Identity_SpiffeId{
 							SpiffeId: "allowed_spiffe_id",
 						},
 					},
@@ -984,8 +993,8 @@ func TestGetAuthMechanismsForClient(t *testing.T) {
 		{
 			description: "token manager does not expect hostname",
 			options: &ClientHandshakerOptions{
-				LocalIdentity: &commonpb.Identity{
-					IdentityOneof: &commonpb.Identity_Hostname{
+				LocalIdentity: &commonpbv1.Identity{
+					IdentityOneof: &commonpbv1.Identity_Hostname{
 						Hostname: "disallowed_hostname",
 					},
 				},
@@ -1046,14 +1055,14 @@ func TestGetAuthMechanismsForServer(t *testing.T) {
 		{
 			description: "token manager expects 2 SPIFFE IDs",
 			options: &ServerHandshakerOptions{
-				LocalIdentities: []*commonpb.Identity{
+				LocalIdentities: []*commonpbv1.Identity{
 					{
-						IdentityOneof: &commonpb.Identity_SpiffeId{
+						IdentityOneof: &commonpbv1.Identity_SpiffeId{
 							SpiffeId: "allowed_spiffe_id",
 						},
 					},
 					{
-						IdentityOneof: &commonpb.Identity_SpiffeId{
+						IdentityOneof: &commonpbv1.Identity_SpiffeId{
 							SpiffeId: "allowed_spiffe_id",
 						},
 					},
@@ -1061,16 +1070,16 @@ func TestGetAuthMechanismsForServer(t *testing.T) {
 			},
 			tokenManager: &fakeAccessTokenManager{
 				accessToken: testAccessToken,
-				acceptedIdentity: &commonpb.Identity{
-					IdentityOneof: &commonpb.Identity_SpiffeId{
+				acceptedIdentity: &commonpbv1.Identity{
+					IdentityOneof: &commonpbv1.Identity_SpiffeId{
 						SpiffeId: "allowed_spiffe_id",
 					},
 				},
 			},
 			expectedAuthMechanisms: []*s2apb.AuthenticationMechanism{
 				{
-					Identity: &commonpb.Identity{
-						IdentityOneof: &commonpb.Identity_SpiffeId{
+					Identity: &commonpbv1.Identity{
+						IdentityOneof: &commonpbv1.Identity_SpiffeId{
 							SpiffeId: "allowed_spiffe_id",
 						},
 					},
@@ -1079,8 +1088,8 @@ func TestGetAuthMechanismsForServer(t *testing.T) {
 					},
 				},
 				{
-					Identity: &commonpb.Identity{
-						IdentityOneof: &commonpb.Identity_SpiffeId{
+					Identity: &commonpbv1.Identity{
+						IdentityOneof: &commonpbv1.Identity_SpiffeId{
 							SpiffeId: "allowed_spiffe_id",
 						},
 					},
@@ -1093,14 +1102,14 @@ func TestGetAuthMechanismsForServer(t *testing.T) {
 		{
 			description: "token manager expects a SPIFFE ID but does not expect hostname",
 			options: &ServerHandshakerOptions{
-				LocalIdentities: []*commonpb.Identity{
+				LocalIdentities: []*commonpbv1.Identity{
 					{
-						IdentityOneof: &commonpb.Identity_SpiffeId{
+						IdentityOneof: &commonpbv1.Identity_SpiffeId{
 							SpiffeId: "allowed_spiffe_id",
 						},
 					},
 					{
-						IdentityOneof: &commonpb.Identity_Hostname{
+						IdentityOneof: &commonpbv1.Identity_Hostname{
 							Hostname: "disallowed_hostname",
 						},
 					},
@@ -1108,16 +1117,16 @@ func TestGetAuthMechanismsForServer(t *testing.T) {
 			},
 			tokenManager: &fakeAccessTokenManager{
 				accessToken: testAccessToken,
-				acceptedIdentity: &commonpb.Identity{
-					IdentityOneof: &commonpb.Identity_SpiffeId{
+				acceptedIdentity: &commonpbv1.Identity{
+					IdentityOneof: &commonpbv1.Identity_SpiffeId{
 						SpiffeId: "allowed_spiffe_id",
 					},
 				},
 			},
 			expectedAuthMechanisms: []*s2apb.AuthenticationMechanism{
 				{
-					Identity: &commonpb.Identity{
-						IdentityOneof: &commonpb.Identity_SpiffeId{
+					Identity: &commonpbv1.Identity{
+						IdentityOneof: &commonpbv1.Identity_SpiffeId{
 							SpiffeId: "allowed_spiffe_id",
 						},
 					},
