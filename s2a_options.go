@@ -28,7 +28,8 @@ import (
 	"github.com/google/s2a-go/stream"
 	"google.golang.org/grpc/credentials"
 
-	s2apb "github.com/google/s2a-go/internal/proto/common_go_proto"
+	s2apbv1 "github.com/google/s2a-go/internal/proto/common_go_proto"
+	s2apb "github.com/google/s2a-go/internal/proto/v2/common_go_proto"
 )
 
 // Identity is the interface for S2A identities.
@@ -201,7 +202,23 @@ func DefaultServerOptions(s2aAddress string) *ServerOptions {
 	}
 }
 
-func toProtoIdentity(identity Identity) (*s2apb.Identity, error) {
+func toProtoIdentity(identity Identity) (*s2apbv1.Identity, error) {
+	if identity == nil {
+		return nil, nil
+	}
+	switch id := identity.(type) {
+	case *spiffeID:
+		return &s2apbv1.Identity{IdentityOneof: &s2apbv1.Identity_SpiffeId{SpiffeId: id.Name()}}, nil
+	case *hostname:
+		return &s2apbv1.Identity{IdentityOneof: &s2apbv1.Identity_Hostname{Hostname: id.Name()}}, nil
+	case *uid:
+		return &s2apbv1.Identity{IdentityOneof: &s2apbv1.Identity_Uid{Uid: id.Name()}}, nil
+	default:
+		return nil, errors.New("unrecognized identity type")
+	}
+}
+
+func toV2ProtoIdentity(identity Identity) (*s2apb.Identity, error) {
 	if identity == nil {
 		return nil, nil
 	}

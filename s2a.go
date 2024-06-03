@@ -113,12 +113,7 @@ func NewClientCreds(opts *ClientOptions) (credentials.TransportCredentials, erro
 	if opts.FallbackOpts != nil && opts.FallbackOpts.FallbackClientHandshakeFunc != nil {
 		fallbackFunc = opts.FallbackOpts.FallbackClientHandshakeFunc
 	}
-	marshalledLocalIdentity, err := proto.Marshal(localIdentity)
-	if err != nil {
-		return nil, err
-	}
-	v2LocalIdentity := &commonpb.Identity{}
-	err = proto.Unmarshal(marshalledLocalIdentity, v2LocalIdentity)
+	v2LocalIdentity, err := toV2ProtoIdentity(opts.LocalIdentity)
 	if err != nil {
 		return nil, err
 	}
@@ -157,24 +152,14 @@ func NewServerCreds(opts *ServerOptions) (credentials.TransportCredentials, erro
 		}, nil
 	}
 	verificationMode := getVerificationMode(opts.VerificationMode)
-	var marshalledLocalIdentities [][]byte
-	for _, localIdentity := range localIdentities {
-		marshalledLocalIdentity, err := proto.Marshal(localIdentity)
-		if err != nil {
-			return nil, err
-		}
-		marshalledLocalIdentities = append(marshalledLocalIdentities, marshalledLocalIdentity)
-	}
 	var v2LocalIdentities []*commonpb.Identity
-	for _, marshalledLocalIdentity := range marshalledLocalIdentities {
-		v2LocalIdentity := &commonpb.Identity{}
-		err := proto.Unmarshal(marshalledLocalIdentity, v2LocalIdentity)
+	for _, localIdentity := range opts.LocalIdentities {
+		protoLocalIdentity, err := toV2ProtoIdentity(localIdentity)
 		if err != nil {
 			return nil, err
 		}
-		v2LocalIdentities = append(v2LocalIdentities, v2LocalIdentity)
+		v2LocalIdentities = append(v2LocalIdentities, protoLocalIdentity)
 	}
-
 	return v2.NewServerCreds(opts.S2AAddress, opts.TransportCreds, v2LocalIdentities, verificationMode, opts.getS2AStream)
 }
 
