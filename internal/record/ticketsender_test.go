@@ -95,7 +95,7 @@ func (m *fakeAccessTokenManager) Token(identity interface{}) (string, error) {
 	default:
 		return "", fmt.Errorf("Incorrect identity type: %v", v)
 	}
-	if identity == nil || cmp.Equal(identity, &commonpbv1.Identity{}, protocmp.Transform()) {
+	if identity == nil || cmp.Equal(identity, &commonpbv1.Identity{}, protocmp.Transform()) || cmp.Equal(identity, &commonpb.Identity{}, protocmp.Transform()) {
 		if !m.allowEmptyIdentity {
 			return "", fmt.Errorf("not allowed to get token for empty identity")
 		}
