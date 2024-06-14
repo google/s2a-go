@@ -191,7 +191,7 @@ func (c *s2av2TransportCreds) ClientHandshake(ctx context.Context, serverAuthori
 		}
 		return nil, nil, err
 	}
-	grpclog.Infof("[test-change 1]client-side handshake is done using S2Av2 to: %s", serverName)
+	grpclog.Infof("[test-change 2]client-side handshake is done using S2Av2 to: %s", serverName)
 
 	return conn, authInfo, err
 }
