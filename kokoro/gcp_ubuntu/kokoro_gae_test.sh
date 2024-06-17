@@ -21,4 +21,5 @@ set -e
 set -x
 
 cd "${KOKORO_ARTIFACTS_DIR}/github/s2a-go"
+chmod a+rwx tools/internal_ci/run_gae_test.sh
 ./tools/internal_ci/run_gae_test.sh
