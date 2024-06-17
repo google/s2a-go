@@ -28,6 +28,7 @@ PROJECT_ID=$(curl "http://metadata.google.internal/computeMetadata/v1/project/pr
 # Setup app.
 cd "tools/internal_ci/test_gae"
 go mod edit -go=1.22
+export CLOUDSDK_CORE_DISABLE_PROMPTS=1
 
 # Deploy the app.
 gcloud app deploy --version=$KOKORO_GAE_DEFAULT_APP_VERSION
