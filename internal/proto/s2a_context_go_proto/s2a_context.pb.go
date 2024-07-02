@@ -21,7 +21,7 @@
 package s2a_context_go_proto
 
 import (
-	common_go_proto "github.com/google/s2a-go/internal/proto/common_go_proto"
+	common_go_proto "github.com/google/s2a/internal/proto/common_go_proto"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
