@@ -29,7 +29,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/golang/protobuf/proto"
+	"google.golang.org/protobuf/proto"
 	"github.com/google/s2a-go/fallback"
 	"github.com/google/s2a-go/internal/handshaker"
 	"github.com/google/s2a-go/internal/handshaker/service"

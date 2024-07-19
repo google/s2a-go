@@ -1,17 +1,16 @@
 module github.com/google/s2a-go
 
-go 1.19
+go 1.20
 
 require (
 	cloud.google.com/go/translate v1.10.3
-	github.com/golang/protobuf v1.5.4
 	github.com/google/go-cmp v0.6.0
 	golang.org/x/crypto v0.22.0
 	golang.org/x/sync v0.7.0
 	google.golang.org/api v0.177.0
 	google.golang.org/appengine v1.6.8
 	google.golang.org/grpc v1.63.2
-	google.golang.org/protobuf v1.34.0
+	google.golang.org/protobuf v1.34.2
 )
 
 require (
@@ -24,6 +23,7 @@ require (
 	github.com/go-logr/logr v1.4.1 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
+	github.com/golang/protobuf v1.5.4 // indirect
 	github.com/googleapis/enterprise-certificate-proxy v0.3.2 // indirect
 	github.com/googleapis/gax-go/v2 v2.12.3 // indirect
 	go.opencensus.io v0.24.0 // indirect
