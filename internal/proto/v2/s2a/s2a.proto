@@ -246,6 +246,8 @@ message ValidatePeerCertificateChainReq {
     RESERVED_CUSTOM_VERIFICATION_MODE_4 = 4;
     // Internal use only.
     RESERVED_CUSTOM_VERIFICATION_MODE_5 = 5;
+    // Internal use only.
+    RESERVED_CUSTOM_VERIFICATION_MODE_6 = 6;
   }
 
   message ClientPeer {

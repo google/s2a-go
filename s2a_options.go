@@ -83,6 +83,7 @@ const (
 	ReservedCustomVerificationMode3
 	ReservedCustomVerificationMode4
 	ReservedCustomVerificationMode5
+	ReservedCustomVerificationMode6
 )
 
 // ClientOptions contains the client-side options used to establish a secure
