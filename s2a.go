@@ -370,6 +370,8 @@ func getVerificationMode(verificationMode VerificationModeType) s2av2pb.Validate
 		return s2av2pb.ValidatePeerCertificateChainReq_RESERVED_CUSTOM_VERIFICATION_MODE_4
 	case ReservedCustomVerificationMode5:
 		return s2av2pb.ValidatePeerCertificateChainReq_RESERVED_CUSTOM_VERIFICATION_MODE_5
+	case ReservedCustomVerificationMode6:
+		return s2av2pb.ValidatePeerCertificateChainReq_RESERVED_CUSTOM_VERIFICATION_MODE_6
 	default:
 		return s2av2pb.ValidatePeerCertificateChainReq_UNSPECIFIED
 	}
