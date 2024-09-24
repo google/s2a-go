@@ -35,6 +35,7 @@ import (
 	"github.com/google/s2a-go/internal/tokenmanager"
 	"github.com/google/s2a-go/internal/v2"
 	"github.com/google/s2a-go/retry"
+	"github.com/google/s2a-go/stream"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/grpclog"
 	"google.golang.org/protobuf/proto"
@@ -117,7 +118,7 @@ func NewClientCreds(opts *ClientOptions) (credentials.TransportCredentials, erro
 	if err != nil {
 		return nil, err
 	}
-	return v2.NewClientCreds(opts.S2AAddress, opts.TransportCreds, v2LocalIdentity, verificationMode, fallbackFunc, opts.getS2AStream, opts.serverAuthorizationPolicy)
+	return v2.NewClientCreds(opts.S2AAddress, opts.TransportCreds, v2LocalIdentity, verificationMode, fallbackFunc, opts.GetS2AStream, opts.serverAuthorizationPolicy)
 }
 
 // NewServerCreds returns a server-side transport credentials object that uses
@@ -330,6 +331,7 @@ func NewTLSClientConfigFactory(opts *ClientOptions) (TLSClientConfigFactory, err
 			tokenManager:              nil,
 			verificationMode:          getVerificationMode(opts.VerificationMode),
 			serverAuthorizationPolicy: opts.serverAuthorizationPolicy,
+			getStream:                 opts.GetS2AStream,
 		}, nil
 	}
 	return &s2aTLSClientConfigFactory{
@@ -338,6 +340,7 @@ func NewTLSClientConfigFactory(opts *ClientOptions) (TLSClientConfigFactory, err
 		tokenManager:              tokenManager,
 		verificationMode:          getVerificationMode(opts.VerificationMode),
 		serverAuthorizationPolicy: opts.serverAuthorizationPolicy,
+		getStream:                 opts.GetS2AStream,
 	}, nil
 }
 
@@ -347,6 +350,7 @@ type s2aTLSClientConfigFactory struct {
 	tokenManager              tokenmanager.AccessTokenManager
 	verificationMode          s2av2pb.ValidatePeerCertificateChainReq_VerificationMode
 	serverAuthorizationPolicy []byte
+	getStream                 func(context.Context, string) (stream.S2AStream, error)
 }
 
 func (f *s2aTLSClientConfigFactory) Build(
@@ -355,7 +359,7 @@ func (f *s2aTLSClientConfigFactory) Build(
 	if opts != nil && opts.ServerName != "" {
 		serverName = opts.ServerName
 	}
-	return v2.NewClientTLSConfig(ctx, f.s2av2Address, f.transportCreds, f.tokenManager, f.verificationMode, serverName, f.serverAuthorizationPolicy)
+	return v2.NewClientTLSConfig(ctx, f.s2av2Address, f.transportCreds, f.tokenManager, f.verificationMode, serverName, f.serverAuthorizationPolicy, f.getStream)
 }
 
 func getVerificationMode(verificationMode VerificationModeType) s2av2pb.ValidatePeerCertificateChainReq_VerificationMode {

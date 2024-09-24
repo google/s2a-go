@@ -306,8 +306,9 @@ func NewClientTLSConfig(
 	tokenManager tokenmanager.AccessTokenManager,
 	verificationMode s2av2pb.ValidatePeerCertificateChainReq_VerificationMode,
 	serverName string,
-	serverAuthorizationPolicy []byte) (*tls.Config, error) {
-	s2AStream, err := createStream(ctx, s2av2Address, transportCreds, nil)
+	serverAuthorizationPolicy []byte,
+	getStream func(context.Context, string) (stream.S2AStream, error)) (*tls.Config, error) {
+	s2AStream, err := createStream(ctx, s2av2Address, transportCreds, getStream)
 	if err != nil {
 		grpclog.Infof("Failed to connect to S2Av2: %v", err)
 		return nil, err
