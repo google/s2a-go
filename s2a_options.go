@@ -149,7 +149,7 @@ type ClientOptions struct {
 	FallbackOpts *FallbackOptions
 
 	// Generates an S2AStream interface for talking to the S2A server.
-	GetS2AStream func(ctx context.Context, s2av2Address string) (stream.S2AStream, error)
+	getS2AStream func(ctx context.Context, s2av2Address string) (stream.S2AStream, error)
 
 	// Serialized user specified policy for server authorization.
 	serverAuthorizationPolicy []byte

@@ -118,7 +118,7 @@ func NewClientCreds(opts *ClientOptions) (credentials.TransportCredentials, erro
 	if err != nil {
 		return nil, err
 	}
-	return v2.NewClientCreds(opts.S2AAddress, opts.TransportCreds, v2LocalIdentity, verificationMode, fallbackFunc, opts.GetS2AStream, opts.serverAuthorizationPolicy)
+	return v2.NewClientCreds(opts.S2AAddress, opts.TransportCreds, v2LocalIdentity, verificationMode, fallbackFunc, opts.getS2AStream, opts.serverAuthorizationPolicy)
 }
 
 // NewServerCreds returns a server-side transport credentials object that uses
@@ -331,7 +331,7 @@ func NewTLSClientConfigFactory(opts *ClientOptions) (TLSClientConfigFactory, err
 			tokenManager:              nil,
 			verificationMode:          getVerificationMode(opts.VerificationMode),
 			serverAuthorizationPolicy: opts.serverAuthorizationPolicy,
-			getStream:                 opts.GetS2AStream,
+			getStream:                 opts.getS2AStream,
 		}, nil
 	}
 	return &s2aTLSClientConfigFactory{
@@ -340,7 +340,7 @@ func NewTLSClientConfigFactory(opts *ClientOptions) (TLSClientConfigFactory, err
 		tokenManager:              tokenManager,
 		verificationMode:          getVerificationMode(opts.VerificationMode),
 		serverAuthorizationPolicy: opts.serverAuthorizationPolicy,
-		getStream:                 opts.GetS2AStream,
+		getStream:                 opts.getS2AStream,
 	}, nil
 }
 

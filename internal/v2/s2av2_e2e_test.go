@@ -462,7 +462,9 @@ func TestNewClientTlsConfigWithCustomS2AStream(t *testing.T) {
 	s2aAddr := startFakeS2A(t, "TestNewClientTlsConfig_token")
 	var tokenManager tokenmanager.AccessTokenManager
 	ctx, cancel := context.WithTimeout(context.Background(), defaultE2ETimeout)
-	defer cancel()
+	t.Cleanup(func() {
+		cancel()
+	})
 
 	getStreamFuncCalled := false
 	_, err := NewClientTLSConfig(ctx, s2aAddr, nil, tokenManager, s2av2pb.ValidatePeerCertificateChainReq_CONNECT_TO_GOOGLE, "test_server_name", nil, func(ctx context.Context, s2av2Address string) (stream.S2AStream, error) {
