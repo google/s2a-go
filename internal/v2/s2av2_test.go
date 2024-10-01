@@ -318,7 +318,18 @@ func (x s2ATestStream) Send(m *s2av2pb.SessionReq) error {
 }
 
 func (x s2ATestStream) Recv() (*s2av2pb.SessionResp, error) {
-	return nil, nil
+	return &s2av2pb.SessionResp{
+		RespOneof: &s2av2pb.SessionResp_GetTlsConfigurationResp{
+			GetTlsConfigurationResp: &s2av2pb.GetTlsConfigurationResp{
+				TlsConfiguration: &s2av2pb.GetTlsConfigurationResp_ClientTlsConfiguration_{
+					ClientTlsConfiguration: &s2av2pb.GetTlsConfigurationResp_ClientTlsConfiguration{
+						MinTlsVersion: commonpb.TLSVersion_TLS_VERSION_1_3,
+						MaxTlsVersion: commonpb.TLSVersion_TLS_VERSION_1_3,
+					},
+				},
+			},
+		},
+	}, nil
 }
 
 func (x s2ATestStream) CloseSend() error {

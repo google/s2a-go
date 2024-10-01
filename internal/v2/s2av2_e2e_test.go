@@ -36,6 +36,7 @@ import (
 	"github.com/google/s2a-go/internal/tokenmanager"
 	"github.com/google/s2a-go/internal/v2/fakes2av2"
 	"github.com/google/s2a-go/retry"
+	"github.com/google/s2a-go/stream"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/grpclog"
 
@@ -422,7 +423,7 @@ func TestNewClientTlsConfigWithTokenManager(t *testing.T) {
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), defaultE2ETimeout)
 	defer cancel()
-	config, err := NewClientTLSConfig(ctx, s2AAddr, nil, accessTokenManager, s2av2pb.ValidatePeerCertificateChainReq_CONNECT_TO_GOOGLE, "test_server_name", nil)
+	config, err := NewClientTLSConfig(ctx, s2AAddr, nil, accessTokenManager, s2av2pb.ValidatePeerCertificateChainReq_CONNECT_TO_GOOGLE, "test_server_name", nil, nil)
 	if err != nil {
 		t.Errorf("NewClientTLSConfig() failed: %v", err)
 	}
@@ -442,7 +443,7 @@ func TestNewClientTlsConfigWithoutTokenManager(t *testing.T) {
 	var tokenManager tokenmanager.AccessTokenManager
 	ctx, cancel := context.WithTimeout(context.Background(), defaultE2ETimeout)
 	defer cancel()
-	config, err := NewClientTLSConfig(ctx, s2AAddr, nil, tokenManager, s2av2pb.ValidatePeerCertificateChainReq_CONNECT_TO_GOOGLE, "test_server_name", nil)
+	config, err := NewClientTLSConfig(ctx, s2AAddr, nil, tokenManager, s2av2pb.ValidatePeerCertificateChainReq_CONNECT_TO_GOOGLE, "test_server_name", nil, nil)
 	if err != nil {
 		t.Errorf("NewClientTLSConfig() failed: %v", err)
 	}
@@ -453,5 +454,28 @@ func TestNewClientTlsConfigWithoutTokenManager(t *testing.T) {
 	}
 	if got, want := config.Certificates[0].Certificate[0], cert.Certificate[0]; !bytes.Equal(got, want) {
 		t.Errorf("tls.Config has unexpected certificate: got: %v, want: %v", got, want)
+	}
+}
+
+func TestNewClientTlsConfigWithCustomS2AStream(t *testing.T) {
+	os.Unsetenv(accessTokenEnvVariable)
+	s2aAddr := startFakeS2A(t, "TestNewClientTlsConfig_token")
+	var tokenManager tokenmanager.AccessTokenManager
+	ctx, cancel := context.WithTimeout(context.Background(), defaultE2ETimeout)
+	t.Cleanup(func() {
+		cancel()
+	})
+
+	getStreamFuncCalled := false
+	_, err := NewClientTLSConfig(ctx, s2aAddr, nil, tokenManager, s2av2pb.ValidatePeerCertificateChainReq_CONNECT_TO_GOOGLE, "test_server_name", nil, func(ctx context.Context, s2av2Address string) (stream.S2AStream, error) {
+		getStreamFuncCalled = true
+		return s2ATestStream{debug: "test S2A stream"}, nil
+	})
+	if err != nil {
+		t.Errorf("NewClientTLSConfig() failed: %v", err)
+	}
+
+	if !getStreamFuncCalled {
+		t.Errorf("custom getStream function was called = %v, want: %v", getStreamFuncCalled, true)
 	}
 }
