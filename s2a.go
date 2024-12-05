@@ -350,7 +350,7 @@ type s2aTLSClientConfigFactory struct {
 	tokenManager              tokenmanager.AccessTokenManager
 	verificationMode          s2av2pb.ValidatePeerCertificateChainReq_VerificationMode
 	serverAuthorizationPolicy []byte
-	getStream                 func(context.Context, string) (stream.S2AStream, error)
+	getStream                 stream.GetS2AStream
 }
 
 func (f *s2aTLSClientConfigFactory) Build(

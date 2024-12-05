@@ -467,10 +467,12 @@ func TestNewClientTlsConfigWithCustomS2AStream(t *testing.T) {
 	})
 
 	getStreamFuncCalled := false
-	_, err := NewClientTLSConfig(ctx, s2aAddr, nil, tokenManager, s2av2pb.ValidatePeerCertificateChainReq_CONNECT_TO_GOOGLE, "test_server_name", nil, func(ctx context.Context, s2av2Address string) (stream.S2AStream, error) {
+	getS2AStream := func(context.Context, string, ...string) (stream.S2AStream, error) {
 		getStreamFuncCalled = true
 		return s2ATestStream{debug: "test S2A stream"}, nil
-	})
+	}
+
+	_, err := NewClientTLSConfig(ctx, s2aAddr, nil, tokenManager, s2av2pb.ValidatePeerCertificateChainReq_CONNECT_TO_GOOGLE, "test_server_name", nil, getS2AStream)
 	if err != nil {
 		t.Errorf("NewClientTLSConfig() failed: %v", err)
 	}
