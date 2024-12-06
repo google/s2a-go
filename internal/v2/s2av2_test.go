@@ -345,7 +345,7 @@ func TestCreateStream(t *testing.T) {
 		},
 	} {
 		t.Run(tc.description, func(t *testing.T) {
-			s2AStream, err := createStream(context.TODO(), "fake address", nil, func(ctx context.Context, s2av2Address string) (stream.S2AStream, error) {
+			s2AStream, err := createStream(context.TODO(), "fake address", nil, func(context.Context, string, ...string) (stream.S2AStream, error) {
 				return s2ATestStream{debug: "test s2a stream"}, nil
 			})
 			if err != nil {

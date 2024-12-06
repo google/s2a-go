@@ -19,7 +19,6 @@
 package s2a
 
 import (
-	"context"
 	"crypto/tls"
 	"errors"
 	"sync"
@@ -149,7 +148,7 @@ type ClientOptions struct {
 	FallbackOpts *FallbackOptions
 
 	// Generates an S2AStream interface for talking to the S2A server.
-	getS2AStream func(ctx context.Context, s2av2Address string) (stream.S2AStream, error)
+	getS2AStream stream.GetS2AStream
 
 	// Serialized user specified policy for server authorization.
 	serverAuthorizationPolicy []byte
@@ -203,7 +202,7 @@ type ServerOptions struct {
 	VerificationMode VerificationModeType
 
 	// Generates an S2AStream interface for talking to the S2A server.
-	getS2AStream func(ctx context.Context, s2av2Address string) (stream.S2AStream, error)
+	getS2AStream stream.GetS2AStream
 }
 
 // DefaultServerOptions returns the default server options.
