@@ -616,6 +616,35 @@ func TestV2EndToEndUsingFakeS2AOnUDS(t *testing.T) {
 	runClient(ctx, t, clientS2AAddress, nil, serverAddress, false, nil)
 }
 
+func TestNewTLSClientConfigFactoryWithNilLocalIdentityNoError(t *testing.T) {
+	t.Setenv(accessTokenEnvVariable, "TestNewTLSClientConfigFactory_token")
+	s2AAddr := startFakeS2A(t, false, "TestNewTLSClientConfigFactory_token", nil)
+	ctx, cancel := context.WithTimeout(context.Background(), defaultE2ETestTimeout)
+	defer cancel()
+
+	factory, err := NewTLSClientConfigFactory(&ClientOptions{
+		S2AAddress:    s2AAddr,
+		LocalIdentity: nil,
+	})
+	if err != nil {
+		t.Errorf("NewTLSClientConfigFactory() failed: %v", err)
+	}
+
+	config, err := factory.Build(ctx, nil)
+	if err != nil {
+		t.Errorf("Build tls config failed: %v", err)
+	}
+
+	cert, err := tls.X509KeyPair(clientCertpem, clientKeypem)
+	if err != nil {
+		t.Fatalf("tls.X509KeyPair failed: %v", err)
+	}
+
+	if got, want := config.Certificates[0].Certificate[0], cert.Certificate[0]; !bytes.Equal(got, want) {
+		t.Errorf("tls.Config has unexpected certificate: got: %v, want: %v", got, want)
+	}
+}
+
 func TestNewTLSClientConfigFactoryWithTokenManager(t *testing.T) {
 	os.Setenv(accessTokenEnvVariable, "TestNewTLSClientConfigFactory_token")
 	s2AAddr := startFakeS2A(t, false, "TestNewTLSClientConfigFactory_token", nil)

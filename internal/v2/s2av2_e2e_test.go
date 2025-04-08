@@ -414,6 +414,29 @@ func TestGRPCRetryAndFallbackEndToEndUsingFakeS2AOverTCP(t *testing.T) {
 	}
 }
 
+func TestNewClientTlsConfigWithNilLocalIdentityNoError(t *testing.T) {
+	t.Setenv(accessTokenEnvVariable, "TestNewClientTlsConfig_token")
+	s2AAddr := startFakeS2A(t, "TestNewClientTlsConfig_token")
+	accessTokenManager, err := tokenmanager.NewSingleTokenAccessTokenManager()
+	if err != nil {
+		t.Errorf("tokenmanager.NewSingleTokenAccessTokenManager() failed: %v", err)
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), defaultE2ETimeout)
+	defer cancel()
+	config, err := NewClientTLSConfig(ctx, s2AAddr, nil, accessTokenManager, s2av2pb.ValidatePeerCertificateChainReq_CONNECT_TO_GOOGLE, "test_server_name", nil, nil, nil)
+	if err != nil {
+		t.Errorf("NewClientTLSConfig() failed: %v", err)
+	}
+
+	cert, err := tls.X509KeyPair(clientCertpem, clientKeypem)
+	if err != nil {
+		t.Fatalf("tls.X509KeyPair failed: %v", err)
+	}
+	if got, want := config.Certificates[0].Certificate[0], cert.Certificate[0]; !bytes.Equal(got, want) {
+		t.Errorf("tls.Config has unexpected certificate: got: %v, want: %v", got, want)
+	}
+}
+
 func TestNewClientTlsConfigWithTokenManager(t *testing.T) {
 	os.Setenv(accessTokenEnvVariable, "TestNewClientTlsConfig_token")
 	s2AAddr := startFakeS2A(t, "TestNewClientTlsConfig_token")

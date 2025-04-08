@@ -23,6 +23,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	s2apb "github.com/google/s2a-go/internal/proto/common_go_proto"
+	s2av2pb "github.com/google/s2a-go/internal/proto/v2/common_go_proto"
 	"google.golang.org/protobuf/testing/protocmp"
 )
 
@@ -63,5 +64,65 @@ func TestToProtoIdentity(t *testing.T) {
 				t.Errorf("toProtoIdentity(%v) = %v, want %v", tc.outIdentity, got, want)
 			}
 		})
+	}
+}
+
+func TestToV2ProtoIdentity(t *testing.T) {
+	for _, tc := range []struct {
+		identity    Identity
+		outIdentity *s2av2pb.Identity
+	}{
+		{
+			identity: NewSpiffeID("test_spiffe_id"),
+			outIdentity: &s2av2pb.Identity{
+				IdentityOneof: &s2av2pb.Identity_SpiffeId{SpiffeId: "test_spiffe_id"},
+			},
+		},
+		{
+			identity: NewHostname("test_hostname"),
+			outIdentity: &s2av2pb.Identity{
+				IdentityOneof: &s2av2pb.Identity_Hostname{Hostname: "test_hostname"},
+			},
+		},
+		{
+			identity: NewUID("test_uid"),
+			outIdentity: &s2av2pb.Identity{
+				IdentityOneof: &s2av2pb.Identity_Uid{Uid: "test_uid"},
+			},
+		},
+		{
+			identity: &UnspecifiedID{
+				Attr: map[string]string{"key": "value"},
+			},
+			outIdentity: &s2av2pb.Identity{
+				Attributes: map[string]string{"key": "value"},
+			},
+		},
+		{
+			identity:    nil,
+			outIdentity: nil,
+		},
+	} {
+		t.Run(tc.outIdentity.String(), func(t *testing.T) {
+			protoSpiffeID, err := toV2ProtoIdentity(tc.identity)
+			if err != nil {
+				t.Errorf("toV2ProtoIdentity(%v) failed: %v", tc.identity, err)
+			}
+			if got, want := protoSpiffeID, tc.outIdentity; !cmp.Equal(got, want, protocmp.Transform()) {
+				t.Errorf("toV2ProtoIdentity(%v) = %v, want %v", tc.outIdentity, got, want)
+			}
+		})
+	}
+}
+
+// Implements the Identity interface and is used to get an error from toV2ProtoIdentity.
+type UnsupportedIdentity struct{}
+
+func (u *UnsupportedIdentity) Name() string                  { return "" }
+func (u *UnsupportedIdentity) Attributes() map[string]string { return map[string]string{} }
+
+func TestToV2ProtoIdentityError(t *testing.T) {
+	if _, err := toV2ProtoIdentity(&UnsupportedIdentity{}); err == nil {
+		t.Errorf("toV2ProtoIdentity(&UnsupportedIdentity{}) err = nil, want err != nil")
 	}
 }
