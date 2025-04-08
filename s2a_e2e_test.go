@@ -623,7 +623,8 @@ func TestNewTLSClientConfigFactoryWithTokenManager(t *testing.T) {
 	defer cancel()
 
 	factory, err := NewTLSClientConfigFactory(&ClientOptions{
-		S2AAddress: s2AAddr,
+		S2AAddress:    s2AAddr,
+		LocalIdentity: &UnspecifiedID{},
 	})
 	if err != nil {
 		t.Errorf("NewTLSClientConfigFactory() failed: %v", err)
@@ -651,7 +652,8 @@ func TestNewTLSClientConfigFactoryWithoutTokenManager(t *testing.T) {
 	defer cancel()
 
 	factory, err := NewTLSClientConfigFactory(&ClientOptions{
-		S2AAddress: s2AAddr,
+		S2AAddress:    s2AAddr,
+		LocalIdentity: &UnspecifiedID{},
 	})
 	if err != nil {
 		t.Errorf("NewTLSClientConfigFactory() failed: %v", err)
