@@ -43,7 +43,7 @@ func TestDial(t *testing.T) {
 		return func() {
 			hsDialer = temp
 		}
-	}()
+	}()()
 
 	ctx := context.Background()
 
