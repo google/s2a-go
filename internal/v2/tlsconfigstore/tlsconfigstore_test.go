@@ -200,7 +200,7 @@ func TestTLSConfigStoreClient(t *testing.T) {
 				t.Fatalf("Client: failed to setup bidirectional streaming RPC session: %v", err)
 			}
 			log.Printf("Client: set up bidirectional streaming RPC session.")
-			config, err := GetTLSConfigurationForClient(tc.ServerName, cstream, tc.tokenManager, nil, s2av2pb.ValidatePeerCertificateChainReq_CONNECT_TO_GOOGLE, nil)
+			config, err := GetTLSConfigurationForClient(tc.ServerName, cstream, tc.tokenManager, nil, s2av2pb.ValidatePeerCertificateChainReq_CONNECT_TO_GOOGLE, nil, nil)
 			if err != nil {
 				t.Errorf("GetTLSConfigurationForClient failed: %v", err)
 			}
@@ -266,7 +266,7 @@ func TestTLSConfigStoreClientWithoutCredentials(t *testing.T) {
 		t.Fatalf("Client: failed to setup bidirectional streaming RPC session: %v", err)
 	}
 	log.Printf("Client: set up bidirectional streaming RPC session.")
-	config, err := GetTLSConfigurationForClient("hostname", cstream, nil, nil, s2av2pb.ValidatePeerCertificateChainReq_CONNECT_TO_GOOGLE, nil)
+	config, err := GetTLSConfigurationForClient("hostname", cstream, nil, nil, s2av2pb.ValidatePeerCertificateChainReq_CONNECT_TO_GOOGLE, nil, nil)
 	if err != nil {
 		t.Errorf("GetTLSConfigurationForClient failed: %v", err)
 	}
@@ -959,4 +959,52 @@ func compareCipherSuites(a, b []uint16) bool {
 		}
 	}
 	return true
+}
+
+// TestNextProtosOrDefault verifies that ALPN defaults to HTTP/2 when the
+// caller does not request any protocols, and is otherwise honored verbatim.
+func TestNextProtosOrDefault(t *testing.T) {
+	for _, tc := range []struct {
+		description string
+		in          []string
+		want        []string
+	}{
+		{
+			description: "nil defaults to h2",
+			in:          nil,
+			want:        []string{h2},
+		},
+		{
+			description: "empty defaults to h2",
+			in:          []string{},
+			want:        []string{h2},
+		},
+		{
+			description: "http/1.1 is honored",
+			in:          []string{"http/1.1"},
+			want:        []string{"http/1.1"},
+		},
+		{
+			description: "multiple protocols are honored in order",
+			in:          []string{h2, "http/1.1"},
+			want:        []string{h2, "http/1.1"},
+		},
+	} {
+		t.Run(tc.description, func(t *testing.T) {
+			if got := nextProtosOrDefault(tc.in); !compareNextProtos(got, tc.want) {
+				t.Errorf("nextProtosOrDefault(%v) = %v, want %v", tc.in, got, tc.want)
+			}
+		})
+	}
+}
+
+// TestNextProtosOrDefaultCopiesInput verifies that the returned slice does not
+// alias the caller's, so a later mutation cannot change a live tls.Config.
+func TestNextProtosOrDefaultCopiesInput(t *testing.T) {
+	in := []string{"http/1.1"}
+	got := nextProtosOrDefault(in)
+	in[0] = "mutated"
+	if got[0] != "http/1.1" {
+		t.Errorf("nextProtosOrDefault aliased its input: got %v", got)
+	}
 }
