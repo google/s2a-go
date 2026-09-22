@@ -20,6 +20,7 @@ package s2a
 
 import (
 	"context"
+	"slices"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -507,3 +508,50 @@ func TestGetVerificationMode(t *testing.T) {
 		})
 	}
 }
+
+func TestNewTLSClientConfigFactory_NextProtos(t *testing.T) {
+	for _, tc := range []struct {
+		desc           string
+		opts           *ClientOptions
+		wantNextProtos []string
+	}{
+		{
+			desc: "empty NextProtos",
+			opts: &ClientOptions{
+				S2AAddress: "test_s2a_address",
+			},
+			wantNextProtos: nil,
+		},
+		{
+			desc: "custom NextProtos with HTTP/1.1",
+			opts: &ClientOptions{
+				S2AAddress: "test_s2a_address",
+				NextProtos: []string{"http/1.1"},
+			},
+			wantNextProtos: []string{"http/1.1"},
+		},
+		{
+			desc: "multiple NextProtos",
+			opts: &ClientOptions{
+				S2AAddress: "test_s2a_address",
+				NextProtos: []string{"h2", "http/1.1"},
+			},
+			wantNextProtos: []string{"h2", "http/1.1"},
+		},
+	} {
+		t.Run(tc.desc, func(t *testing.T) {
+			factory, err := NewTLSClientConfigFactory(tc.opts)
+			if err != nil {
+				t.Fatalf("NewTLSClientConfigFactory(%v) failed: %v", tc.opts, err)
+			}
+			f, ok := factory.(*s2aTLSClientConfigFactory)
+			if !ok {
+				t.Fatalf("factory is not of type *s2aTLSClientConfigFactory")
+			}
+			if !slices.Equal(f.nextProtos, tc.wantNextProtos) {
+				t.Errorf("f.nextProtos = %v, want %v", f.nextProtos, tc.wantNextProtos)
+			}
+		})
+	}
+}
+

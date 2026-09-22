@@ -25,6 +25,7 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
+	"slices"
 
 	"github.com/google/s2a-go/internal/tokenmanager"
 	"github.com/google/s2a-go/internal/v2/certverifier"
@@ -42,15 +43,12 @@ const (
 	h2 = "h2"
 )
 
-// nextProtosOrDefault returns the ALPN protocols to offer during the
-// handshake. S2A has historically offered HTTP/2 only, which is required by
-// the gRPC transport, so that remains the default when no protocols are
-// requested.
+// nextProtosOrDefault returns the ALPN protocols to offer during the handshake.
 func nextProtosOrDefault(nextProtos []string) []string {
 	if len(nextProtos) == 0 {
 		return []string{h2}
 	}
-	return append([]string(nil), nextProtos...)
+	return slices.Clone(nextProtos)
 }
 
 // GetTLSConfigurationForClient returns a tls.Config instance for use by a client application.
