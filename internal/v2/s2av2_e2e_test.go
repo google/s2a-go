@@ -32,6 +32,7 @@ import (
 
 	_ "embed"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/google/s2a-go/fallback"
 	"github.com/google/s2a-go/internal/tokenmanager"
 	"github.com/google/s2a-go/internal/v2/fakes2av2"
@@ -493,32 +494,59 @@ func TestNewClientTlsConfigWithoutTokenManager(t *testing.T) {
 }
 
 func TestNewClientTlsConfigWithCustomS2AStream(t *testing.T) {
-	os.Unsetenv(accessTokenEnvVariable)
-	s2aAddr := startFakeS2A(t, "TestNewClientTlsConfig_token")
-	identity := &commonpb.Identity{
-		Attributes: map[string]string{},
-		IdentityOneof: &commonpb.Identity_Hostname{
-			Hostname: "some_hostname",
+	for _, tc := range []struct {
+		desc           string
+		nextProtos     []string
+		wantNextProtos []string
+	}{
+		{
+			desc:           "nil NextProtos defaults to h2",
+			nextProtos:     nil,
+			wantNextProtos: []string{"h2"},
 		},
-	}
-	var tokenManager tokenmanager.AccessTokenManager
-	ctx, cancel := context.WithTimeout(context.Background(), defaultE2ETimeout)
-	t.Cleanup(func() {
-		cancel()
-	})
+		{
+			desc:           "non-nil NextProtos with HTTP/1.1",
+			nextProtos:     []string{"http/1.1"},
+			wantNextProtos: []string{"http/1.1"},
+		},
+		{
+			desc:           "non-nil NextProtos with multiple protocols",
+			nextProtos:     []string{"h2", "http/1.1"},
+			wantNextProtos: []string{"h2", "http/1.1"},
+		},
+	} {
+		t.Run(tc.desc, func(t *testing.T) {
+			os.Unsetenv(accessTokenEnvVariable)
+			s2aAddr := startFakeS2A(t, "TestNewClientTlsConfig_token")
+			identity := &commonpb.Identity{
+				Attributes: map[string]string{},
+				IdentityOneof: &commonpb.Identity_Hostname{
+					Hostname: "some_hostname",
+				},
+			}
+			var tokenManager tokenmanager.AccessTokenManager
+			ctx, cancel := context.WithTimeout(context.Background(), defaultE2ETimeout)
+			t.Cleanup(func() {
+				cancel()
+			})
 
-	getStreamFuncCalled := false
-	getS2AStream := func(context.Context, string, ...string) (stream.S2AStream, error) {
-		getStreamFuncCalled = true
-		return s2ATestStream{debug: "test S2A stream"}, nil
-	}
+			getStreamFuncCalled := false
+			getS2AStream := func(context.Context, string, ...string) (stream.S2AStream, error) {
+				getStreamFuncCalled = true
+				return s2ATestStream{debug: "test S2A stream"}, nil
+			}
 
-	_, err := NewClientTLSConfig(ctx, s2aAddr, nil, tokenManager, s2av2pb.ValidatePeerCertificateChainReq_CONNECT_TO_GOOGLE, "test_server_name", nil, getS2AStream, identity, nil)
-	if err != nil {
-		t.Errorf("NewClientTLSConfig() failed: %v", err)
-	}
+			config, err := NewClientTLSConfig(ctx, s2aAddr, nil, tokenManager, s2av2pb.ValidatePeerCertificateChainReq_CONNECT_TO_GOOGLE, "test_server_name", nil, getS2AStream, identity, tc.nextProtos)
+			if err != nil {
+				t.Fatalf("NewClientTLSConfig() failed: %v", err)
+			}
 
-	if !getStreamFuncCalled {
-		t.Errorf("custom getStream function was called = %v, want: %v", getStreamFuncCalled, true)
+			if !getStreamFuncCalled {
+				t.Errorf("custom getStream function was called = %v, want: %v", getStreamFuncCalled, true)
+			}
+			if !cmp.Equal(config.NextProtos, tc.wantNextProtos) {
+				t.Errorf("config.NextProtos = %v, want %v", config.NextProtos, tc.wantNextProtos)
+			}
+		})
 	}
 }

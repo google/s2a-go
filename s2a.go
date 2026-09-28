@@ -372,12 +372,14 @@ type s2aTLSClientConfigFactory struct {
 func (f *s2aTLSClientConfigFactory) Build(
 	ctx context.Context, opts *TLSClientConfigOptions) (*tls.Config, error) {
 	serverName := ""
-	if opts != nil && opts.ServerName != "" {
-		serverName = opts.ServerName
-	}
 	nextProtos := f.nextProtos
-	if opts != nil && len(opts.NextProtos) > 0 {
-		nextProtos = opts.NextProtos
+	if opts != nil {
+		if opts.ServerName != "" {
+			serverName = opts.ServerName
+		}
+		if len(opts.NextProtos) > 0 {
+			nextProtos = opts.NextProtos
+		}
 	}
 	return v2.NewClientTLSConfig(ctx, f.s2av2Address, f.transportCreds, f.tokenManager, f.verificationMode, serverName, f.serverAuthorizationPolicy, f.getStream, f.localIdentity, nextProtos)
 }
