@@ -945,3 +945,69 @@ func TestHTTPRetryAndFallbackEndToEndUsingFakeS2AOverTCP(t *testing.T) {
 		t.Errorf("expecting retryer attempts count:[%v], got [%v]", want, got)
 	}
 }
+
+// startHTTP1Server runs an HTTP/1.1 server on a local port.
+func startHTTP1Server(t *testing.T, resp string) string {
+	cert, _ := tls.X509KeyPair(serverCertpem, serverKeypem)
+	tlsConfig := tls.Config{
+		MinVersion:   tls.VersionTLS13,
+		MaxVersion:   tls.VersionTLS13,
+		Certificates: []tls.Certificate{cert},
+		NextProtos:   []string{"http/1.1"},
+	}
+	s := http.NewServeMux()
+	s.HandleFunc("/hello", func(w http.ResponseWriter, req *http.Request) {
+		fmt.Fprintf(w, resp)
+	})
+	lis, err := tls.Listen("tcp", "127.0.0.1:0", &tlsConfig)
+	if err != nil {
+		t.Fatalf("net.Listen(tcp, :0) failed: %v", err)
+	}
+	go func() {
+		http.Serve(lis, s)
+	}()
+	return lis.Addr().String()
+}
+
+func TestHTTPEndToEnd_WithNextProtos_HTTP1(t *testing.T) {
+	os.Setenv(accessTokenEnvVariable, testV2AccessToken)
+	oldRetry := retry.NewRetryer
+	defer func() { retry.NewRetryer = oldRetry }()
+	testRetryer := retry.NewRetryer()
+	retry.NewRetryer = func() *retry.S2ARetryer {
+		return testRetryer
+	}
+
+	// Start the fake S2A for the client.
+	clientHandshakerAddr := startFakeS2A(t, false, testV2AccessToken, nil)
+
+	// Start the HTTP/1.1 server.
+	serverAddr := startHTTP1Server(t, "hello http1")
+
+	// Start HTTP client configured with NextProtos = ["http/1.1"].
+	dialTLSContext := NewS2ADialTLSContextFunc(&ClientOptions{
+		S2AAddress: clientHandshakerAddr,
+		NextProtos: []string{"http/1.1"},
+	})
+	tr := http.Transport{
+		DialTLSContext: dialTLSContext,
+	}
+	client := &http.Client{Transport: &tr}
+	req, err := http.NewRequest(http.MethodGet, fmt.Sprintf("https://%s/hello", serverAddr), nil)
+	if err != nil {
+		t.Fatalf("error creating HTTP request: %v", err)
+	}
+	resp, err := client.Do(req)
+	if err != nil {
+		t.Fatalf("client.Do failed: %v", err)
+	}
+	defer resp.Body.Close()
+	respBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		t.Fatalf("error reading HTTP response: %v", err)
+	}
+	if got, want := string(respBody), "hello http1"; got != want {
+		t.Errorf("expecting HTTP response:[%s], got [%s]", want, got)
+	}
+}
+
