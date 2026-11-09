@@ -554,4 +554,3 @@ func TestNewTLSClientConfigFactory_NextProtos(t *testing.T) {
 		})
 	}
 }
-
