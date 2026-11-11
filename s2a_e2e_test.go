@@ -1010,4 +1010,3 @@ func TestHTTPEndToEnd_WithNextProtos_HTTP1(t *testing.T) {
 		t.Errorf("expecting HTTP response:[%s], got [%s]", want, got)
 	}
 }
-
