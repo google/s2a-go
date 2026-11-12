@@ -714,7 +714,7 @@ func startHTTPServer(t *testing.T, resp string) string {
 	}
 	s := http.NewServeMux()
 	s.HandleFunc("/hello", func(w http.ResponseWriter, req *http.Request) {
-		fmt.Fprintf(w, resp)
+		fmt.Fprint(w, resp)
 	})
 	lis, err := tls.Listen("tcp", ":0", &tlsConfig)
 	if err != nil {
