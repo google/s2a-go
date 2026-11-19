@@ -20,10 +20,13 @@ package s2a
 
 import (
 	"context"
+	"net"
 	"slices"
+	"sync/atomic"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"google.golang.org/grpc/credentials"
 	"google.golang.org/protobuf/testing/protocmp"
 
 	s2apb "github.com/google/s2a-go/internal/proto/common_go_proto"
@@ -552,5 +555,81 @@ func TestNewTLSClientConfigFactory_NextProtos(t *testing.T) {
 				t.Errorf("f.nextProtos = %v, want %v", f.nextProtos, tc.wantNextProtos)
 			}
 		})
+	}
+}
+
+type cloneTrackingTransportCreds struct {
+	info       credentials.ProtocolInfo
+	cloneCount *atomic.Int32
+}
+
+func (c *cloneTrackingTransportCreds) ClientHandshake(_ context.Context, _ string, rawConn net.Conn) (net.Conn, credentials.AuthInfo, error) {
+	return rawConn, nil, nil
+}
+
+func (c *cloneTrackingTransportCreds) ServerHandshake(rawConn net.Conn) (net.Conn, credentials.AuthInfo, error) {
+	return rawConn, nil, nil
+}
+
+func (c *cloneTrackingTransportCreds) Info() credentials.ProtocolInfo {
+	return c.info
+}
+
+func (c *cloneTrackingTransportCreds) Clone() credentials.TransportCredentials {
+	c.cloneCount.Add(1)
+	return &cloneTrackingTransportCreds{
+		info:       c.info,
+		cloneCount: c.cloneCount,
+	}
+}
+
+func (c *cloneTrackingTransportCreds) OverrideServerName(serverNameOverride string) error {
+	c.info.ServerName = serverNameOverride
+	return nil
+}
+
+func TestCloneClientS2Av2(t *testing.T) {
+	var cloneCount atomic.Int32
+	innerCreds := &cloneTrackingTransportCreds{
+		info:       credentials.ProtocolInfo{SecurityProtocol: "tls", ServerName: "s2a.example.com"},
+		cloneCount: &cloneCount,
+	}
+	c, err := NewClientCreds(&ClientOptions{
+		S2AAddress:       "test_s2a_address",
+		TransportCreds:   innerCreds,
+		VerificationMode: ConnectToGoogle,
+	})
+	if err != nil {
+		t.Fatalf("NewClientCreds() failed: %v", err)
+	}
+	cc := c.Clone()
+	if cc == nil {
+		t.Fatal("c.Clone() = nil, want non-nil")
+	}
+	if got, want := cloneCount.Load(), int32(1); got != want {
+		t.Errorf("inner TransportCreds.Clone() call count = %d, want %d", got, want)
+	}
+}
+
+func TestCloneServerS2Av2(t *testing.T) {
+	var cloneCount atomic.Int32
+	innerCreds := &cloneTrackingTransportCreds{
+		info:       credentials.ProtocolInfo{SecurityProtocol: "tls", ServerName: "s2a.example.com"},
+		cloneCount: &cloneCount,
+	}
+	c, err := NewServerCreds(&ServerOptions{
+		S2AAddress:       "test_s2a_address",
+		TransportCreds:   innerCreds,
+		VerificationMode: ConnectToGoogle,
+	})
+	if err != nil {
+		t.Fatalf("NewServerCreds() failed: %v", err)
+	}
+	cc := c.Clone()
+	if cc == nil {
+		t.Fatal("c.Clone() = nil, want non-nil")
+	}
+	if got, want := cloneCount.Load(), int32(1); got != want {
+		t.Errorf("inner TransportCreds.Clone() call count = %d, want %d", got, want)
 	}
 }
