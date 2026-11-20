@@ -21,12 +21,20 @@ package v2
 import (
 	"bytes"
 	"context"
+	"crypto/ecdsa"
+	"crypto/elliptic"
+	"crypto/rand"
 	"crypto/tls"
+	"crypto/x509"
+	"crypto/x509/pkix"
+	"encoding/pem"
 	"fmt"
 	"io/ioutil"
+	"math/big"
 	"net"
 	"os"
 	"path/filepath"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -548,5 +556,205 @@ func TestNewClientTlsConfigWithCustomS2AStream(t *testing.T) {
 				t.Errorf("config.NextProtos = %v, want %v", config.NextProtos, tc.wantNextProtos)
 			}
 		})
+	}
+}
+
+func startFakeS2AWithTLS(t *testing.T, expToken string, serverAuthzPolicy []byte) (string, credentials.TransportCredentials) {
+	t.Helper()
+	privKey, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	if err != nil {
+		t.Fatalf("ecdsa.GenerateKey() failed: %v", err)
+	}
+	tmpl := &x509.Certificate{
+		SerialNumber:          big.NewInt(1),
+		Subject:               pkix.Name{CommonName: "localhost"},
+		NotBefore:             time.Now().Add(-time.Hour),
+		NotAfter:              time.Now().Add(time.Hour),
+		KeyUsage:              x509.KeyUsageDigitalSignature | x509.KeyUsageCertSign,
+		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth},
+		BasicConstraintsValid: true,
+		IsCA:                  true,
+		DNSNames:              []string{"localhost"},
+		IPAddresses:           []net.IP{net.ParseIP("127.0.0.1"), net.ParseIP("::1")},
+	}
+	derBytes, err := x509.CreateCertificate(rand.Reader, tmpl, tmpl, &privKey.PublicKey, privKey)
+	if err != nil {
+		t.Fatalf("x509.CreateCertificate() failed: %v", err)
+	}
+	certPEM := pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: derBytes})
+	keyDER, err := x509.MarshalECPrivateKey(privKey)
+	if err != nil {
+		t.Fatalf("x509.MarshalECPrivateKey() failed: %v", err)
+	}
+	keyPEM := pem.EncodeToMemory(&pem.Block{Type: "EC PRIVATE KEY", Bytes: keyDER})
+	tlsCert, err := tls.X509KeyPair(certPEM, keyPEM)
+	if err != nil {
+		t.Fatalf("tls.X509KeyPair() failed: %v", err)
+	}
+	certPool := x509.NewCertPool()
+	if !certPool.AppendCertsFromPEM(certPEM) {
+		t.Fatal("certPool.AppendCertsFromPEM() failed")
+	}
+
+	lis, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatalf("net.Listen(tcp, 127.0.0.1:0) failed: %v", err)
+	}
+	s := grpc.NewServer(grpc.Creds(credentials.NewServerTLSFromCert(&tlsCert)))
+	s2av2pb.RegisterS2AServiceServer(s, &fakes2av2.Server{
+		ExpectedToken:             expToken,
+		ServerAuthorizationPolicy: serverAuthzPolicy,
+	})
+	t.Cleanup(s.Stop)
+	go func() {
+		_ = s.Serve(lis)
+	}()
+	return lis.Addr().String(), credentials.NewClientTLSFromCert(certPool, "localhost")
+}
+
+func TestEndToEndUsingFakeS2AOverTLSWithClonedCreds(t *testing.T) {
+	t.Setenv(accessTokenEnvVariable, "TestE2ETLSClone_token")
+	wantPolicy := []byte("e2e_server_authz_policy")
+	serverS2AAddr, serverS2ATLS := startFakeS2AWithTLS(t, "TestE2ETLSClone_token", nil)
+	clientS2AAddr, clientS2ATLS := startFakeS2AWithTLS(t, "TestE2ETLSClone_token", wantPolicy)
+
+	localIdentities := []*commonpb.Identity{
+		{
+			IdentityOneof: &commonpb.Identity_Hostname{
+				Hostname: "test_rsa_server_identity",
+			},
+		},
+	}
+	serverCreds, err := NewServerCreds(serverS2AAddr, serverS2ATLS, localIdentities, s2av2pb.ValidatePeerCertificateChainReq_CONNECT_TO_GOOGLE, nil)
+	if err != nil {
+		t.Fatalf("NewServerCreds() failed: %v", err)
+	}
+	lis, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatalf("net.Listen() failed: %v", err)
+	}
+	srv := grpc.NewServer(grpc.Creds(serverCreds.Clone()))
+	helloworldpb.RegisterGreeterServer(srv, &server{})
+	t.Cleanup(srv.Stop)
+	go func() {
+		_ = srv.Serve(lis)
+	}()
+
+	policyInput := []byte("e2e_server_authz_policy")
+	clientCreds, err := NewClientCreds(clientS2AAddr, clientS2ATLS, &commonpb.Identity{
+		IdentityOneof: &commonpb.Identity_Hostname{
+			Hostname: "test_rsa_client_identity",
+		},
+	}, s2av2pb.ValidatePeerCertificateChainReq_CONNECT_TO_GOOGLE, nil, nil, policyInput)
+	if err != nil {
+		t.Fatalf("NewClientCreds() failed: %v", err)
+	}
+	clonedClientCreds := clientCreds.Clone()
+	// Mutate the original slice to verify the clone holds an independent copy.
+	policyInput[0] = 'X'
+
+	ctx, cancel := context.WithTimeout(context.Background(), defaultE2ETimeout)
+	t.Cleanup(cancel)
+	conn, err := grpc.DialContext(ctx, lis.Addr().String(), grpc.WithTransportCredentials(clonedClientCreds), grpc.WithBlock())
+	if err != nil {
+		t.Fatalf("grpc.DialContext() with cloned creds failed: %v", err)
+	}
+	t.Cleanup(func() { _ = conn.Close() })
+
+	resp, err := helloworldpb.NewGreeterClient(conn).SayHello(ctx, &helloworldpb.HelloRequest{Name: clientMessage}, grpc.WaitForReady(true))
+	if err != nil {
+		t.Fatalf("SayHello() failed: %v", err)
+	}
+	if got, want := resp.GetMessage(), "Hello "+clientMessage; got != want {
+		t.Errorf("resp.GetMessage() = %q, want %q", got, want)
+	}
+}
+
+func TestEndToEndUsingCustomGetS2AStreamWithClonedCreds(t *testing.T) {
+	t.Setenv(accessTokenEnvVariable, "TestE2ECustomStreamClone_token")
+	wantPolicy := []byte("custom_stream_authz_policy")
+	serverS2AAddr, serverS2ATLS := startFakeS2AWithTLS(t, "TestE2ECustomStreamClone_token", nil)
+	clientS2AAddr, clientS2ATLS := startFakeS2AWithTLS(t, "TestE2ECustomStreamClone_token", wantPolicy)
+
+	var serverStreamCalls atomic.Int32
+	serverGetStream := func(ctx context.Context, _ string, _ ...string) (stream.S2AStream, error) {
+		serverStreamCalls.Add(1)
+		conn, err := grpc.DialContext(ctx, serverS2AAddr, grpc.WithTransportCredentials(serverS2ATLS))
+		if err != nil {
+			return nil, err
+		}
+		t.Cleanup(func() { _ = conn.Close() })
+		gRPCStream, err := s2av2pb.NewS2AServiceClient(conn).SetUpSession(ctx)
+		if err != nil {
+			return nil, err
+		}
+		return &s2AGrpcStream{stream: gRPCStream}, nil
+	}
+
+	var clientStreamCalls atomic.Int32
+	clientGetStream := func(ctx context.Context, _ string, _ ...string) (stream.S2AStream, error) {
+		clientStreamCalls.Add(1)
+		conn, err := grpc.DialContext(ctx, clientS2AAddr, grpc.WithTransportCredentials(clientS2ATLS))
+		if err != nil {
+			return nil, err
+		}
+		t.Cleanup(func() { _ = conn.Close() })
+		gRPCStream, err := s2av2pb.NewS2AServiceClient(conn).SetUpSession(ctx)
+		if err != nil {
+			return nil, err
+		}
+		return &s2AGrpcStream{stream: gRPCStream}, nil
+	}
+
+	serverCreds, err := NewServerCreds("", nil, []*commonpb.Identity{
+		{
+			IdentityOneof: &commonpb.Identity_Hostname{
+				Hostname: "test_rsa_server_identity",
+			},
+		},
+	}, s2av2pb.ValidatePeerCertificateChainReq_CONNECT_TO_GOOGLE, serverGetStream)
+	if err != nil {
+		t.Fatalf("NewServerCreds() failed: %v", err)
+	}
+	lis, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatalf("net.Listen() failed: %v", err)
+	}
+	srv := grpc.NewServer(grpc.Creds(serverCreds.Clone()))
+	helloworldpb.RegisterGreeterServer(srv, &server{})
+	t.Cleanup(srv.Stop)
+	go func() {
+		_ = srv.Serve(lis)
+	}()
+
+	clientCreds, err := NewClientCreds("", nil, &commonpb.Identity{
+		IdentityOneof: &commonpb.Identity_Hostname{
+			Hostname: "test_rsa_client_identity",
+		},
+	}, s2av2pb.ValidatePeerCertificateChainReq_CONNECT_TO_GOOGLE, nil, clientGetStream, wantPolicy)
+	if err != nil {
+		t.Fatalf("NewClientCreds() failed: %v", err)
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), defaultE2ETimeout)
+	t.Cleanup(cancel)
+	conn, err := grpc.DialContext(ctx, lis.Addr().String(), grpc.WithTransportCredentials(clientCreds.Clone()), grpc.WithBlock())
+	if err != nil {
+		t.Fatalf("grpc.DialContext() with cloned custom-stream creds failed: %v", err)
+	}
+	t.Cleanup(func() { _ = conn.Close() })
+
+	resp, err := helloworldpb.NewGreeterClient(conn).SayHello(ctx, &helloworldpb.HelloRequest{Name: clientMessage}, grpc.WaitForReady(true))
+	if err != nil {
+		t.Fatalf("SayHello() failed: %v", err)
+	}
+	if got, want := resp.GetMessage(), "Hello "+clientMessage; got != want {
+		t.Errorf("resp.GetMessage() = %q, want %q", got, want)
+	}
+	if got := serverStreamCalls.Load(); got == 0 {
+		t.Errorf("serverStreamCalls = %d, want > 0", got)
+	}
+	if got := clientStreamCalls.Load(); got == 0 {
+		t.Errorf("clientStreamCalls = %d, want > 0", got)
 	}
 }
