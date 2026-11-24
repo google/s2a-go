@@ -19,7 +19,9 @@
 package v2
 
 import (
+	"bytes"
 	"context"
+	"net"
 	"os"
 	"reflect"
 	"testing"
@@ -29,6 +31,7 @@ import (
 	"github.com/google/s2a-go/fallback"
 	"github.com/google/s2a-go/internal/tokenmanager"
 	"github.com/google/s2a-go/stream"
+	"google.golang.org/grpc/credentials"
 	"google.golang.org/protobuf/testing/protocmp"
 
 	commonpb "github.com/google/s2a-go/internal/proto/v2/common_go_proto"
@@ -246,6 +249,227 @@ func TestCloneServer(t *testing.T) {
 		return false
 	})), false; got != want {
 		t.Errorf("cmp.Equal(%+v, %+v) = %v, want %v", s2av2Creds, s2av2CloneCreds, got, want)
+	}
+}
+
+type fakeTransportCreds struct {
+	info   credentials.ProtocolInfo
+	cloned bool
+}
+
+func (f *fakeTransportCreds) ClientHandshake(_ context.Context, _ string, rawConn net.Conn) (net.Conn, credentials.AuthInfo, error) {
+	return rawConn, nil, nil
+}
+
+func (f *fakeTransportCreds) ServerHandshake(rawConn net.Conn) (net.Conn, credentials.AuthInfo, error) {
+	return rawConn, nil, nil
+}
+
+func (f *fakeTransportCreds) Info() credentials.ProtocolInfo {
+	return f.info
+}
+
+func (f *fakeTransportCreds) Clone() credentials.TransportCredentials {
+	return &fakeTransportCreds{
+		info:   f.info,
+		cloned: true,
+	}
+}
+
+func (f *fakeTransportCreds) OverrideServerName(serverNameOverride string) error {
+	f.info.ServerName = serverNameOverride
+	return nil
+}
+
+func TestCloneClientPreservesOptionalFields(t *testing.T) {
+	t.Setenv("S2A_ACCESS_TOKEN", "TestCloneClientPreservesOptionalFields_token")
+	fallbackFunc, err := fallback.DefaultFallbackClientHandshakeFunc("example.com")
+	if err != nil {
+		t.Fatalf("DefaultFallbackClientHandshakeFunc() failed: %v", err)
+	}
+	origTC := &fakeTransportCreds{
+		info: credentials.ProtocolInfo{
+			SecurityProtocol: "tls",
+			ServerName:       "s2a.example.com",
+		},
+	}
+	streamCalled := false
+	getStream := func(context.Context, string, ...string) (stream.S2AStream, error) {
+		streamCalled = true
+		return s2ATestStream{debug: "cloned client stream"}, nil
+	}
+	origPolicy := []byte("test_server_authz_policy")
+
+	c, err := NewClientCreds(fakes2av2Address, origTC, &commonpb.Identity{
+		IdentityOneof: &commonpb.Identity_Hostname{
+			Hostname: "test_rsa_client_identity",
+		},
+	}, s2av2pb.ValidatePeerCertificateChainReq_CONNECT_TO_GOOGLE, fallbackFunc, getStream, origPolicy)
+	if err != nil {
+		t.Fatalf("NewClientCreds() failed: %v", err)
+	}
+
+	cc := c.Clone()
+	s2av2Creds, ok := c.(*s2av2TransportCreds)
+	if !ok {
+		t.Fatal("created creds is not of type *s2av2TransportCreds")
+	}
+	s2av2CloneCreds, ok := cc.(*s2av2TransportCreds)
+	if !ok {
+		t.Fatal("cloned creds is not of type *s2av2TransportCreds")
+	}
+
+	cmpOpts := []cmp.Option{
+		protocmp.Transform(),
+		cmp.AllowUnexported(s2av2TransportCreds{}),
+		cmp.Comparer(func(x, y tokenmanager.AccessTokenManager) bool {
+			xToken, err := x.DefaultToken()
+			if err != nil {
+				t.Errorf("x.DefaultToken() failed: %v", err)
+			}
+			yToken, err := y.DefaultToken()
+			if err != nil {
+				t.Errorf("y.DefaultToken() failed: %v", err)
+			}
+			return xToken == yToken
+		}),
+		cmp.Comparer(func(x, y fallback.ClientHandshake) bool {
+			if x == nil || y == nil {
+				return x == nil && y == nil
+			}
+			return reflect.ValueOf(x).Pointer() == reflect.ValueOf(y).Pointer()
+		}),
+		cmp.Comparer(func(x, y stream.GetS2AStream) bool {
+			if x == nil || y == nil {
+				return x == nil && y == nil
+			}
+			return reflect.ValueOf(x).Pointer() == reflect.ValueOf(y).Pointer()
+		}),
+		cmp.Comparer(func(x, y *fakeTransportCreds) bool {
+			if x == nil || y == nil {
+				return x == nil && y == nil
+			}
+			return x.info == y.info
+		}),
+	}
+	if diff := cmp.Diff(s2av2Creds, s2av2CloneCreds, cmpOpts...); diff != "" {
+		t.Errorf("Clone() mismatch (-want +got):\n%s", diff)
+	}
+
+	// Verify transportCreds was deep-copied via Clone().
+	clonedTC, ok := s2av2CloneCreds.transportCreds.(*fakeTransportCreds)
+	if !ok {
+		t.Fatalf("s2av2CloneCreds.transportCreds = %T, want *fakeTransportCreds", s2av2CloneCreds.transportCreds)
+	}
+	if clonedTC == origTC {
+		t.Errorf("s2av2CloneCreds.transportCreds points to original instance; want independent clone")
+	}
+	if !clonedTC.cloned {
+		t.Errorf("clonedTC.cloned = false, want true")
+	}
+	if err := clonedTC.OverrideServerName("mutated.example.com"); err != nil {
+		t.Fatalf("clonedTC.OverrideServerName() failed: %v", err)
+	}
+	if got, want := origTC.Info().ServerName, "s2a.example.com"; got != want {
+		t.Errorf("origTC.Info().ServerName = %q, want %q", got, want)
+	}
+
+	// Verify getS2AStream was preserved and is callable on the clone.
+	if s2av2CloneCreds.getS2AStream == nil {
+		t.Fatal("s2av2CloneCreds.getS2AStream = nil, want non-nil")
+	}
+	s2aStream, err := createStream(context.Background(), fakes2av2Address, s2av2CloneCreds.transportCreds, s2av2CloneCreds.getS2AStream)
+	if err != nil {
+		t.Fatalf("createStream() with cloned creds failed: %v", err)
+	}
+	if !streamCalled {
+		t.Errorf("streamCalled = false, want true")
+	}
+	if gotStream, ok := s2aStream.(s2ATestStream); !ok || gotStream.debug != "cloned client stream" {
+		t.Errorf("createStream() = %#v, want s2ATestStream{debug: %q}", s2aStream, "cloned client stream")
+	}
+
+	// Verify serverAuthorizationPolicy was deep-copied.
+	if got, want := s2av2CloneCreds.serverAuthorizationPolicy, []byte("test_server_authz_policy"); !bytes.Equal(got, want) {
+		t.Errorf("s2av2CloneCreds.serverAuthorizationPolicy = %q, want %q", got, want)
+	}
+	s2av2CloneCreds.serverAuthorizationPolicy[0] = 'X'
+	if got, want := string(s2av2Creds.serverAuthorizationPolicy), "test_server_authz_policy"; got != want {
+		t.Errorf("mutating clone policy modified original: got %q, want %q", got, want)
+	}
+
+	// Verify non-nil empty serverAuthorizationPolicy stays non-nil on clone.
+	emptyPolicyCreds, err := NewClientCreds(fakes2av2Address, nil, nil, s2av2pb.ValidatePeerCertificateChainReq_CONNECT_TO_GOOGLE, nil, nil, []byte{})
+	if err != nil {
+		t.Fatalf("NewClientCreds() with empty policy failed: %v", err)
+	}
+	emptyPolicyClone := emptyPolicyCreds.Clone().(*s2av2TransportCreds)
+	if emptyPolicyClone.serverAuthorizationPolicy == nil || len(emptyPolicyClone.serverAuthorizationPolicy) != 0 {
+		t.Errorf("emptyPolicyClone.serverAuthorizationPolicy = %#v, want non-nil empty slice", emptyPolicyClone.serverAuthorizationPolicy)
+	}
+}
+
+func TestCloneServerPreservesOptionalFields(t *testing.T) {
+	t.Setenv("S2A_ACCESS_TOKEN", "TestCloneServerPreservesOptionalFields_token")
+	origTC := &fakeTransportCreds{
+		info: credentials.ProtocolInfo{
+			SecurityProtocol: "tls",
+			ServerName:       "s2a.example.com",
+		},
+	}
+	streamCalled := false
+	getStream := func(context.Context, string, ...string) (stream.S2AStream, error) {
+		streamCalled = true
+		return s2ATestStream{debug: "cloned server stream"}, nil
+	}
+	localIdentities := []*commonpb.Identity{
+		{
+			IdentityOneof: &commonpb.Identity_Hostname{
+				Hostname: "test_rsa_server_identity",
+			},
+		},
+	}
+
+	c, err := NewServerCreds(fakes2av2Address, origTC, localIdentities, s2av2pb.ValidatePeerCertificateChainReq_CONNECT_TO_GOOGLE, getStream)
+	if err != nil {
+		t.Fatalf("NewServerCreds() failed: %v", err)
+	}
+
+	cc := c.Clone()
+	s2av2CloneCreds, ok := cc.(*s2av2TransportCreds)
+	if !ok {
+		t.Fatal("cloned creds is not of type *s2av2TransportCreds")
+	}
+
+	clonedTC, ok := s2av2CloneCreds.transportCreds.(*fakeTransportCreds)
+	if !ok {
+		t.Fatalf("s2av2CloneCreds.transportCreds = %T, want *fakeTransportCreds", s2av2CloneCreds.transportCreds)
+	}
+	if clonedTC == origTC {
+		t.Errorf("s2av2CloneCreds.transportCreds points to original instance; want independent clone")
+	}
+	if !clonedTC.cloned {
+		t.Errorf("clonedTC.cloned = false, want true")
+	}
+	if err := clonedTC.OverrideServerName("mutated.example.com"); err != nil {
+		t.Fatalf("clonedTC.OverrideServerName() failed: %v", err)
+	}
+	if got, want := origTC.Info().ServerName, "s2a.example.com"; got != want {
+		t.Errorf("origTC.Info().ServerName = %q, want %q", got, want)
+	}
+
+	if s2av2CloneCreds.getS2AStream == nil {
+		t.Fatal("s2av2CloneCreds.getS2AStream = nil, want non-nil")
+	}
+	s2aStream, err := createStream(context.Background(), fakes2av2Address, s2av2CloneCreds.transportCreds, s2av2CloneCreds.getS2AStream)
+	if err != nil {
+		t.Fatalf("createStream() with cloned server creds failed: %v", err)
+	}
+	if !streamCalled {
+		t.Errorf("streamCalled = false, want true")
+	}
+	if gotStream, ok := s2aStream.(s2ATestStream); !ok || gotStream.debug != "cloned server stream" {
+		t.Errorf("createStream() = %#v, want s2ATestStream{debug: %q}", s2aStream, "cloned server stream")
 	}
 }
 

@@ -257,18 +257,20 @@ func (c *s2av2TransportCreds) Info() credentials.ProtocolInfo {
 
 // Clone makes a deep copy of s2av2TransportCreds.
 func (c *s2av2TransportCreds) Clone() credentials.TransportCredentials {
-	info := *c.info
-	serverName := c.serverName
-	fallbackClientHandshake := c.fallbackClientHandshake
-
-	s2av2Address := c.s2av2Address
-	var tokenManager tokenmanager.AccessTokenManager
-	if c.tokenManager == nil {
-		tokenManager = nil
-	} else {
-		tokenManager = *c.tokenManager
+	var info *credentials.ProtocolInfo
+	if c.info != nil {
+		infoCopy := *c.info
+		info = &infoCopy
 	}
-	verificationMode := c.verificationMode
+	var transportCreds credentials.TransportCredentials
+	if c.transportCreds != nil {
+		transportCreds = c.transportCreds.Clone()
+	}
+	var tokenManager *tokenmanager.AccessTokenManager
+	if c.tokenManager != nil {
+		tmCopy := *c.tokenManager
+		tokenManager = &tmCopy
+	}
 	var localIdentity *commonpb.Identity
 	if c.localIdentity != nil {
 		localIdentity = proto.Clone(c.localIdentity).(*commonpb.Identity)
@@ -276,26 +278,29 @@ func (c *s2av2TransportCreds) Clone() credentials.TransportCredentials {
 	var localIdentities []*commonpb.Identity
 	if c.localIdentities != nil {
 		localIdentities = make([]*commonpb.Identity, len(c.localIdentities))
-		for i, localIdentity := range c.localIdentities {
-			localIdentities[i] = proto.Clone(localIdentity).(*commonpb.Identity)
+		for i, id := range c.localIdentities {
+			localIdentities[i] = proto.Clone(id).(*commonpb.Identity)
 		}
 	}
-	creds := &s2av2TransportCreds{
-		info:                    &info,
-		isClient:                c.isClient,
-		serverName:              serverName,
-		fallbackClientHandshake: fallbackClientHandshake,
-		s2av2Address:            s2av2Address,
-		localIdentity:           localIdentity,
-		localIdentities:         localIdentities,
-		verificationMode:        verificationMode,
+	var serverAuthorizationPolicy []byte
+	if c.serverAuthorizationPolicy != nil {
+		serverAuthorizationPolicy = make([]byte, len(c.serverAuthorizationPolicy))
+		copy(serverAuthorizationPolicy, c.serverAuthorizationPolicy)
 	}
-	if c.tokenManager == nil {
-		creds.tokenManager = nil
-	} else {
-		creds.tokenManager = &tokenManager
+	return &s2av2TransportCreds{
+		info:                      info,
+		isClient:                  c.isClient,
+		serverName:                c.serverName,
+		s2av2Address:              c.s2av2Address,
+		transportCreds:            transportCreds,
+		tokenManager:              tokenManager,
+		localIdentity:             localIdentity,
+		localIdentities:           localIdentities,
+		verificationMode:          c.verificationMode,
+		fallbackClientHandshake:   c.fallbackClientHandshake,
+		getS2AStream:              c.getS2AStream,
+		serverAuthorizationPolicy: serverAuthorizationPolicy,
 	}
-	return creds
 }
 
 // NewClientTLSConfig returns a tls.Config instance that uses S2Av2 to establish a TLS connection as
